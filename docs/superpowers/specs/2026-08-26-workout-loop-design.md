@@ -7,9 +7,9 @@
 
 A private, single-user web app. When the owner books an open-gym slot in the Ellé
 Fitness app, this app generates a workout from stored preferences and training
-history, and emails it. The owner can reply to that email to say how it went, to
-have the workout changed, or to ask a question about a movement. Replies that need an
-answer get one by email.
+history, and emails it. Every exercise comes with a short written description in the
+same email. The owner can reply to say how the session went, and that reply feeds the
+next workout.
 
 Standalone: its own repo, its own deploy, no code inside the Ellé Fitness codebase
 beyond a single outbound webhook call.
@@ -37,13 +37,38 @@ including sending the workout as a formatted document, is off the table permanen
 - A workout arrives by email shortly after a gym slot is booked, with no action taken.
 - Workouts vary sensibly over time: muscle groups rotate, load progresses, and the
   same session is not repeated two days running.
-- Replying in plain English works for all of: saying how it went, changing the
-  workout, and asking how a movement is performed.
+- Every movement in the workout is explained in the same email, so nothing has to be
+  looked up.
+- Replying in plain English about how a session went changes the next workout.
 - **Replying is never required.** A workout with no reply is normal and nothing
   chases it.
 - The whole loop runs locally with no API key, no mail credentials, and no remote
   database.
 - Running cost stays under one dollar a month.
+
+## Scope
+
+Built in two phases. **Phase one is what this spec plans.** Phase two is written down
+so the phase one design does not accidentally block it, not because it is being built
+now.
+
+### Phase one
+
+- Booking triggers a generated workout by email.
+- Every exercise carries a short written description at the bottom of the email.
+- Replies are filed as feedback and feed the next generation. Nothing answers them.
+
+### Phase two, deferred
+
+Deferred because the exercise descriptions cover most of what they were for. Revisit
+only if phase one is in use and something is actually missing.
+
+- **Conversational replies.** Ask a question, get an answer. Ask for a change, get a
+  revised workout.
+- **Image attachments** for demonstrating movements. Confirmed to render on the phone,
+  so this is viable whenever it is wanted.
+
+Neither is speculative and both have a known shape. See the notes at the end.
 
 ## Non-goals
 
@@ -52,6 +77,8 @@ including sending the workout as a formatted document, is off the table permanen
 - A mobile app, a native client, or anything requiring a browser on the phone.
 - Tracking sets, reps and weights lifted as structured data. Replies are prose.
 - Nagging. No "how did that go?" reminder ever goes out.
+- Acknowledging a reply that filed correctly. Silence means it worked. Only a reply
+  that could not be matched to a workout gets a note back.
 - Video demonstrations. Attachments run to megabytes, mail providers strip them, and
   playback on a filtered phone is unlikely.
 - PDF attachments of any kind, including a formatted version of the workout. The
@@ -68,9 +95,8 @@ including sending the workout as a formatted document, is off the table permanen
 | Generation timing | Inline in the webhook request | Delivers in seconds. The gym's call is fire-and-forget, so a slow response there costs nothing. |
 | Reply channel | Reply to the workout email | The only channel the phone has |
 | Replying | Always optional, never prompted | It is a tool, not a chore |
-| Reply handling | One handler with tools, not a classifier | Same amount of code, and it survives "swap the squats, also how do I hip hinge" |
-| Demonstrations | Written description always, still images attached when matched | Text is the only thing guaranteed to arrive on the phone |
-| Image source | `free-exercise-db`, vendored into the repo | Public domain, 800+ exercises, no API, no rate limit, nothing to stay up |
+| Reply handling | Filed as feedback, not answered | Phase one. The exercise descriptions remove most of the reason to ask anything. |
+| Explaining movements | A description of every exercise, in the workout email itself | Generated in the same call for a fraction of a cent. Nothing to look up, nothing to ask for, no second system. |
 | Receiving mail | Poll a dedicated mailbox over IMAP | No domain, no MX records, no public inbound endpoint, no cost |
 | Scheduler | GitHub Actions cron, every 15 minutes | Vercel's free tier restricts cron frequency; Actions on a public repo does not |
 | Preferences | Structured fields plus a free-text brief | Structured for what the code depends on, prose for nuance without guessing at fields |
@@ -89,10 +115,6 @@ cannot run a Node app.
 
 **Video demonstrations, and links to video.** A link resolves in a browser the phone
 does not have. Video attachments are too large and usually stripped.
-
-**A classifier that routes replies into buckets** (feedback / tweak / question). No
-less code than a handler with tools, and it mishandles a reply that does two things
-at once, which is the normal case in real writing.
 
 **One-tap feedback links in the email footer.** Was the recommended option until the
 phone constraint surfaced. Unusable without a browser.
@@ -114,7 +136,7 @@ bookGymSlot()
                                      build prompt (pure)
                                        preferences
                                        last 6 workouts
-                                       their threads
+                                       their feedback
                                        │
                                        ▼
                                      generate (Claude API)
@@ -122,6 +144,7 @@ bookGymSlot()
                                        ▼
                                      send via SMTP
                                        plain text first, HTML wrapper second
+                                       workout, then exercise descriptions
                                        reply-to: the dedicated mailbox
                                        store the Message-ID
                                        │
@@ -137,27 +160,13 @@ bookGymSlot()
                                               sender must be the owner
                                               match In-Reply-To → workout
                                               strip quoted text
-                                              record inbound message
-                                                    │
-                                                    ▼
-                                              reply handler
-                                                sees: the workout
-                                                      preferences
-                                                      the thread so far
-                                                tools: revise_workout
-                                                       attach_demo
-                                                    │
-                                        ┌───────────┴───────────┐
-                                        ▼                       ▼
-                                 answer by email          revise the plan
-                                 (+ image attachment)     and resend it
-                                        │
-                                        └─▶ the thread feeds the next generation
+                                              file as feedback, mark seen
+                                              └─▶ feeds the next generation
 ```
 
 ## History window
 
-The prompt carries the **last 6 workouts and their message threads**. At three
+The prompt carries the **last 6 workouts and any feedback filed against them**. At three
 sessions a week that is roughly two weeks, which is enough for the model to rotate
 muscle groups and progress load without the prompt growing without bound. It is a
 constant in `lib/prompt.ts`, not a setting.
@@ -199,22 +208,21 @@ One row per booking.
 | `last_error` | text, nullable |
 | `created_at`, `sent_at` | |
 
-### `messages`
+### `feedback`
 
-The conversation about a workout, both directions. Replaces what was a one-way
-`feedback` table, now that replies are answered rather than only filed.
+One row per reply. One direction: replies are filed, not answered.
 
 | Column | Notes |
 |---|---|
 | `id` | |
 | `workout_id` | nullable. An unmatched reply is kept, not dropped. |
-| `direction` | `in` or `out` |
-| `source_message_id` | unique where present. Guarantees a reply is never processed twice. |
-| `body` | the stripped text |
-| `created_at` | |
+| `source_message_id` | unique. Guarantees a reply is never filed twice. |
+| `body` | the stripped reply text |
+| `received_at` | |
 
-The workout email itself is the first `out` row, so a thread reads in order without
-special-casing the original.
+**Phase two migration**, when replies become conversational: add a `direction` column
+defaulting to `in`, and start writing `out` rows. One column, no data rewrite. The
+phase one shape does not block it.
 
 ## Modules
 
@@ -223,12 +231,11 @@ database and no network.
 
 | Module | Purpose | Depends on |
 |---|---|---|
-| `lib/prompt.ts` | **Pure.** Preferences plus the last 6 workouts and their threads in, prompt string out. The heart of the project. | nothing |
+| `lib/prompt.ts` | **Pure.** Preferences plus the last 6 workouts and their feedback in, prompt string out. The heart of the project. | nothing |
 | `lib/reply-parse.ts` | **Pure.** Raw email in, stripped body plus `In-Reply-To` out. | nothing |
 | `lib/signature.ts` | **Pure.** HMAC sign and verify for the booking webhook. | node crypto |
 | `lib/generate.ts` | Calls the Claude API. Prompt in, plan text out. | Anthropic SDK |
-| `lib/reply-handler.ts` | Answers one inbound reply. Sees the workout, preferences and thread; may call `revise_workout` or `attach_demo`. | Anthropic SDK |
-| `lib/exercise-images.ts` | **Pure.** Exercise name in, matching image paths out, or nothing. | the vendored dataset |
+
 | `lib/mail-out.ts` | Sends over SMTP, returns the `Message-ID`. | nodemailer |
 | `lib/mail-in.ts` | Fetches unseen replies over IMAP. | an IMAP client |
 | `lib/db.ts` | Schema and queries. | Drizzle |
@@ -241,7 +248,7 @@ consumers.
 | Route | Purpose | Auth |
 |---|---|---|
 | `POST /api/booking` | Records the booking, generates, sends. Idempotent on `booking_ref`. | HMAC signature header |
-| `POST /api/cron` | Retries pending or unsent workouts, then polls for and answers replies. | shared secret header |
+| `POST /api/cron` | Retries pending or unsent workouts, then polls for and files replies. | shared secret header |
 | `GET /` | The preferences form | HTTP Basic auth |
 
 ## Reply matching
@@ -260,43 +267,33 @@ In order:
 Deduplication is on `messages.source_message_id` being unique, so a message processed
 twice inserts once.
 
+## The workout email
+
+Two parts, in this order, because the phone shows the top of a message first.
+
+1. **The workout.** Plain text, scannable, no markdown. Asterisks and pound signs read
+   as noise on a text-only client.
+2. **The exercises explained.** Below a clear separator, a short description of every
+   movement the workout uses. How it is performed, what it should feel like, what to
+   avoid.
+
+Both come out of the same generation call. The descriptions cost roughly 400 extra
+output tokens, about a cent, and they remove almost every reason to ask a follow-up
+question. That is why conversational replies are deferred rather than built.
+
+The plain-text body is the real output. The HTML body is a wrapper around the same
+content for reading on a computer.
+
 ## Replies
 
-Replying is optional and never prompted. Most workouts will get no reply and that is
-the expected case.
+Optional, never prompted, and never answered. A reply is stripped of quoted text and
+filed as feedback against its workout, where it feeds the next generation.
 
-A reply can do any of these, including several at once:
+Silence means it worked. The only reply that gets a response is one that could not be
+matched to a workout, which gets a short note saying so, because otherwise a lost note
+would vanish without trace on a phone that cannot check anything.
 
-- **Say how it went.** Recorded, feeds the next generation, no answer needed beyond a
-  short acknowledgement.
-- **Change the workout.** The handler calls `revise_workout`, which replaces
-  `plan_text` and sends the revised workout back in full.
-- **Ask about a movement.** Answered by email.
-- **Ask to see a movement.** See below.
-
-One handler does all of it, with the workout, the preferences and the thread so far in
-context, plus two tools. There is deliberately no classifier stage: a real reply often
-does two of these at once, and routing to a single bucket would drop the rest.
-
-### Demonstrations
-
-**A written description of the movement always goes.** It is the only thing guaranteed
-to arrive on a phone with no browser.
-
-Images are attached to the email when a match is found, using `free-exercise-db`
-vendored into the repo: public domain, over 800 exercises, JSON plus stills, typically
-two per exercise showing the start and end of the movement. Vendoring means no API
-call, no rate limit, no cost, and no third party that has to stay up.
-
-Matching is fuzzy on the exercise name. **When nothing matches, the reply says so** and
-sends the description alone. It never silently omits a picture that was asked for.
-
-Image attachments are confirmed to render on the phone, so this channel is real and
-not a gamble. PDFs are confirmed not to render, so images are attached as plain image
-files and never bundled into a document.
-
-The written description still always goes. It costs nothing, it survives a stripped
-attachment, and it is what makes the answer useful when the dataset has no match.
+Replies from anyone but the owner are marked seen and ignored.
 
 ## Error handling
 
@@ -309,28 +306,23 @@ attachment, and it is what makes the answer useful when the dataset has no match
 | Send fails | Row stays `generated`. The cron retries the send without regenerating. |
 | IMAP unreachable | The poll logs and exits. The next run picks up the same unseen mail. |
 | Reply matches nothing | Stored unmatched, logged. The sender gets a short note saying which workout it could not be tied to, rather than silence. |
-| Reply from anyone but the owner | Ignored and marked seen. Never reaches the model, never triggers an outbound email. |
-| An exercise has no image in the dataset | The written description goes alone and the reply says no picture was found. |
-| A reply loop (auto-responder, bounce) | Capped at 10 handled replies per workout per day. Beyond that, replies are stored but not answered. |
-| Reply handling fails | The inbound message is stored and marked seen either way, so the same reply is never answered twice. The failure is logged and not retried. |
+| Reply from anyone but the owner | Ignored and marked seen. Never stored, never acted on. |
 
 ## Testing
 
 Unit tests with `tsx --test` on `*.test.mts`, following the gym app's convention.
 
-- `prompt.ts` — the right history and thread messages appear; an empty history
-  produces a valid prompt.
+- `prompt.ts` — the right history and feedback appear; an empty history produces a
+  valid prompt.
 - `reply-parse.ts` — quoted text is stripped across several client formats. This is
   the module most likely to break silently, so it gets the most cases.
 - `signature.ts` — a valid signature passes, a tampered body fails.
-- `exercise-images.ts` — a known exercise resolves to images; an invented one resolves
-  to nothing rather than to a wrong match.
+
 
 **Local development with no credentials**, borrowed from the gym app's `lib/email.ts`:
 with no SMTP credentials the mailer prints the message to the console instead of
-sending; with no `ANTHROPIC_API_KEY` the generator and the reply handler return canned
-output. The full loop, replies included, is exercisable on a laptop with nothing
-configured.
+sending; with no `ANTHROPIC_API_KEY` the generator returns a canned plan. The full loop is
+exercisable on a laptop with nothing configured.
 
 ## Security
 
@@ -346,11 +338,10 @@ The repository is public.
   environment variables. One user, edited from a computer a handful of times a year,
   so a login system would be more code than the feature it protects. The configured
   owner email is used to decide **who mail goes to**, not to authenticate the page.
-- **Only replies from the configured owner address are processed.** Inbound mail now
-  drives a model and sends mail back, so without this anyone who learns the mailbox
-  address could run up the API bill. Everything else is marked seen and ignored.
-- **Replies are capped at 10 per workout per day.** An auto-responder or a bounce loop
-  would otherwise ping-pong against the mailbox indefinitely.
+- **Only replies from the configured owner address are processed.** Everything else is
+  marked seen and ignored. In phase one this only keeps junk out of the table; in phase
+  two, when replies drive a model and send mail back, it becomes the guard that stops
+  a stranger running up the API bill. Worth having from the start.
 - The mailbox is a dedicated account, never a personal one. Gmail over IMAP and SMTP
   requires an App Password, which requires 2FA on that account.
 
@@ -363,39 +354,31 @@ The repository is public.
 | Mail, one dedicated account, SMTP out and IMAP in | Free. Gmail allows 500 sends/day against a need of roughly 15/month. |
 | Scheduler, GitHub Actions on a public repo | Free |
 | Domain | Not required |
-| Exercise images | Free. Public domain dataset vendored into the repo. |
 | Claude API | See below. The only line item that costs anything. |
 
 ### API cost in detail
 
 Claude Opus 5 is $5 per million input tokens and $25 per million output tokens.
-Thinking tokens bill as output, which is why output dominates every figure here.
+Thinking tokens bill as output, which is why output dominates.
 
 | Event | Tokens in | Tokens out | Cost |
 |---|---|---|---|
-| Generate a workout | ~2,000 | ~1,500 | **~5c** |
-| Reply that answers a question | ~2,500 + a tool round trip | ~1,200 | **~5c** |
-| Reply that revises the workout | ~2,500 + a tool round trip | ~2,000 | **~8c** |
+| Generate a workout, descriptions included | ~2,000 | ~1,900 | **~6c** |
+| File a reply | none | none | **free** |
 
-At three sessions a week, roughly 13 workouts a month:
+Filing a reply is a database write. No model is involved in phase one, so how much
+the owner writes has no effect on the bill.
 
-| Month | Cost |
-|---|---|
-| Quiet, no replies | **~60c** |
-| Typical, ~10 reply exchanges | **~$1.20** |
-| Heavy, every workout discussed | **~$2.40** |
-
-Call it **one to two and a half dollars a month**, under thirty dollars a year.
+At three sessions a week, roughly 13 workouts a month: **about 80 cents a month**,
+under ten dollars a year, and flat.
 
 **Prompt caching is deliberately not used.** Output is about 80% of every call, so
 caching the stable preferences and instructions would save well under a cent per
 workout in exchange for real complexity. Not worth it.
 
-**Levers if it ever matters**, neither applied by default: dropping reply handling to
-`effort: "medium"` cuts thinking tokens, and Claude Haiku 4.5 at $1/$5 would cut the
-whole bill by roughly five times. Neither is worth doing before the thing works.
-
-
+**Levers if it ever matters**, neither applied by default: lowering `effort`, or
+Claude Haiku 4.5 at $1/$5 which would cut the bill by roughly five times. Neither is
+worth doing before the thing works.
 
 ## Change required in the Ellé Fitness repo
 
@@ -413,9 +396,46 @@ is the least interesting description of it.
 1. **Event-driven.** A real-world action triggers the system. Not a button, not a
    chat box.
 2. **It receives email, not just sends it.** Matching a reply to the workout it
-   answers, stripping quoted text, never double-processing a message, and answering
-   back in the same thread.
+   belongs to, stripping quoted text, and never double-processing a message. Almost
+   every project sends mail; very few read it.
 3. **A closed loop.** Booking triggers generation, generation reads history, the
    reply feeds the next one. It fits on one diagram.
 
 Lead the README with the loop diagram.
+
+## Phase two notes
+
+Not being built. Recorded so phase one does not block them and so the reasoning is not
+re-derived from scratch later.
+
+### Conversational replies
+
+Replies that ask a question get an answer; replies that ask for a change get a revised
+workout. One handler with the workout, preferences and thread in context, plus tools
+for revising and answering. Deliberately not a classifier that sorts replies into
+buckets, because a real reply often does two things at once and routing to one bucket
+drops the rest.
+
+Migration: add `direction` to `feedback`, start writing `out` rows.
+
+New guards it would need: a cap on replies handled per workout per day, since inbound
+mail would then drive a model and send mail back, and a bounce loop could otherwise
+ping-pong indefinitely.
+
+Cost: roughly 5c for an answer, 8c for a revision.
+
+### Image attachments
+
+Confirmed to render on the phone. PDFs confirmed not to, so images attach as plain
+image files and are never bundled into a document.
+
+Source: [`free-exercise-db`](https://github.com/yuhonas/free-exercise-db), public
+domain, over 800 exercises, JSON plus stills, typically two per exercise showing the
+start and end of a movement. Vendored into the repo, so no API, no rate limit, no cost,
+and no third party that has to stay up.
+
+Matching is fuzzy on the exercise name, and when nothing matches it must say so rather
+than silently omit a picture that was asked for.
+
+The written description always goes regardless, which is exactly why this is deferred:
+in phase one every exercise is already described in the email.
