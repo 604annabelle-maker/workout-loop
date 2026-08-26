@@ -28,6 +28,10 @@ This is not a preference, it is a hard constraint, and three things follow:
 3. Anything needing a browser (setting preferences, browsing history) is a
    computer-only task. Acceptable, because preferences change rarely.
 
+**Confirmed on the actual phone:** image attachments render. **PDF attachments do
+not.** So still images are a usable channel, and any idea that routes through a PDF,
+including sending the workout as a formatted document, is off the table permanently.
+
 ## Goals
 
 - A workout arrives by email shortly after a gym slot is booked, with no action taken.
@@ -50,6 +54,8 @@ This is not a preference, it is a hard constraint, and three things follow:
 - Nagging. No "how did that go?" reminder ever goes out.
 - Video demonstrations. Attachments run to megabytes, mail providers strip them, and
   playback on a filtered phone is unlikely.
+- PDF attachments of any kind, including a formatted version of the workout. The
+  phone cannot open them.
 - Anything that resolves in a browser, including video links. Useless on the phone.
 
 ## Decisions
@@ -285,9 +291,12 @@ call, no rate limit, no cost, and no third party that has to stay up.
 Matching is fuzzy on the exercise name. **When nothing matches, the reply says so** and
 sends the description alone. It never silently omits a picture that was asked for.
 
-Whether the phone renders attachments at all is unknown and cannot be determined from
-here. The first real demo request settles it. If images do not arrive, drop the
-attachment step; the written description was always doing the real work.
+Image attachments are confirmed to render on the phone, so this channel is real and
+not a gamble. PDFs are confirmed not to render, so images are attached as plain image
+files and never bundled into a document.
+
+The written description still always goes. It costs nothing, it survives a stripped
+attachment, and it is what makes the answer useful when the dataset has no match.
 
 ## Error handling
 
@@ -355,10 +364,38 @@ The repository is public.
 | Scheduler, GitHub Actions on a public repo | Free |
 | Domain | Not required |
 | Exercise images | Free. Public domain dataset vendored into the repo. |
-| Claude API | Roughly five cents per workout on Opus 5, about 72 cents a month at three sessions a week. Replies cost roughly the same each. No free tier. |
+| Claude API | See below. The only line item that costs anything. |
 
-The API is the only line item that costs anything. Replies add to it, but a heavy
-month of both workouts and conversation is still comfortably inside two dollars.
+### API cost in detail
+
+Claude Opus 5 is $5 per million input tokens and $25 per million output tokens.
+Thinking tokens bill as output, which is why output dominates every figure here.
+
+| Event | Tokens in | Tokens out | Cost |
+|---|---|---|---|
+| Generate a workout | ~2,000 | ~1,500 | **~5c** |
+| Reply that answers a question | ~2,500 + a tool round trip | ~1,200 | **~5c** |
+| Reply that revises the workout | ~2,500 + a tool round trip | ~2,000 | **~8c** |
+
+At three sessions a week, roughly 13 workouts a month:
+
+| Month | Cost |
+|---|---|
+| Quiet, no replies | **~60c** |
+| Typical, ~10 reply exchanges | **~$1.20** |
+| Heavy, every workout discussed | **~$2.40** |
+
+Call it **one to two and a half dollars a month**, under thirty dollars a year.
+
+**Prompt caching is deliberately not used.** Output is about 80% of every call, so
+caching the stable preferences and instructions would save well under a cent per
+workout in exchange for real complexity. Not worth it.
+
+**Levers if it ever matters**, neither applied by default: dropping reply handling to
+`effort: "medium"` cuts thinking tokens, and Claude Haiku 4.5 at $1/$5 would cut the
+whole bill by roughly five times. Neither is worth doing before the thing works.
+
+
 
 ## Change required in the Ellé Fitness repo
 
