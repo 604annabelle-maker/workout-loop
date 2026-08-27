@@ -1,0 +1,25 @@
+name: cron
+
+# Every fifteen minutes. GitHub's scheduler is best effort and routinely runs
+# late, sometimes by another ten minutes or so. That is fine: nothing here is
+# the main delivery path, only the net under it.
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  # So a run can be forced from the Actions tab without waiting.
+  workflow_dispatch:
+
+jobs:
+  tick:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Poke the cron endpoint
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        # --fail makes an HTTP error fail the step, so a broken secret or a
+        # down deployment shows up as a red run rather than a quiet success.
+        run: |
+          curl --fail --silent --show-error --max-time 120 \
+            -X POST "$APP_URL/api/cron" \
+            -H "authorization: Bearer $CRON_SECRET"

@@ -110,6 +110,9 @@ export async function deliverWorkout(workoutId: string): Promise<Delivery> {
       messageId: result.messageId,
       subject: mail.subject,
       sentAt: new Date(),
+      // Cleared on success. A sent workout still carrying the error from the
+      // attempt before reads as a contradiction the next time anyone looks.
+      lastError: null,
     })
     .where(eq(workouts.id, workoutId));
 
