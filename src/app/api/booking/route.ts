@@ -1,3 +1,4 @@
+import { after } from "next/server";
 import { parseBookingPayload } from "@/lib/booking-payload";
 import { deliverWorkout, recordBooking } from "@/lib/delivery";
 import { verify } from "@/lib/signature";
@@ -5,16 +6,22 @@ import { verify } from "@/lib/signature";
 /**
  * The booking webhook, called by the Ellé Fitness app (design §Entry points).
  *
- * Generation and sending happen inline. The gym's call is fire-and-forget, so
- * a slow response here costs a booking nothing, and the alternative would be a
- * queue for one user.
+ * The booking is recorded, the response goes back immediately, and the workout
+ * is generated afterwards.
+ *
+ * This was originally written to generate inline, on the reasoning that the
+ * gym's call is fire and forget so a slow response costs nothing. That was
+ * wrong. Generation takes close to thirty seconds, and "fire and forget" still
+ * means somebody holds a connection open for all of it. Booking a gym slot
+ * must not wait on a personal side project, so the work moves after the
+ * response.
+ *
+ * If the deferred work never runs, because the function is killed or the
+ * platform drops it, the row stays pending and the cron picks it up. The net
+ * was already there.
  */
 
-/**
- * Generation with adaptive thinking can run to most of a minute. The cron
- * covers an overrun anyway: the row stays pending and gets picked up, so the
- * worst case is arriving fifteen minutes later rather than not arriving.
- */
+/** Generation with adaptive thinking runs to most of a minute. */
 export const maxDuration = 60;
 
 const SIGNATURE_HEADER = "x-workout-signature";
@@ -54,7 +61,17 @@ export async function POST(request: Request) {
     return Response.json({ ok: true, workoutId: id, duplicate: true });
   }
 
-  const delivery = await deliverWorkout(id);
+  // After the response, not before. Failures here are the cron's problem.
+  after(async () => {
+    try {
+      await deliverWorkout(id);
+    } catch (err) {
+      console.error(`deferred delivery of ${id} failed:`, err);
+    }
+  });
 
-  return Response.json({ ok: true, workoutId: id, duplicate: false, delivery });
+  return Response.json(
+    { ok: true, workoutId: id, duplicate: false, accepted: true },
+    { status: 202 },
+  );
 }

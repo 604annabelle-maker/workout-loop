@@ -92,7 +92,7 @@ Neither is speculative and both have a known shape. See the notes at the end.
 | Placement | Standalone app | The gym app holds real client and payment data and can never be shown publicly. This one is for a portfolio. |
 | Access | Single user, gated on one email address held in an env var | Never fires for anyone else, including a future gym admin |
 | Trigger | Signed webhook from the gym app on booking | Event-driven. Fifteen lines on the gym side. |
-| Generation timing | Inline in the webhook request | Delivers in seconds. The gym's call is fire-and-forget, so a slow response there costs nothing. |
+| Generation timing | After the response, via `after()` | Generation takes about thirty seconds. "Fire and forget" still holds a connection open for all of it, and booking a gym slot must not wait on this. |
 | Reply channel | Reply to the workout email | The only channel the phone has |
 | Replying | Always optional, never prompted | It is a tool, not a chore |
 | Reply handling | Filed as feedback, not answered | Phase one. The exercise descriptions remove most of the reason to ask anything. |
@@ -247,7 +247,7 @@ consumers.
 
 | Route | Purpose | Auth |
 |---|---|---|
-| `POST /api/booking` | Records the booking, generates, sends. Idempotent on `booking_ref`. | HMAC signature header |
+| `POST /api/booking` | Records the booking, answers 202, then generates and sends. Idempotent on `booking_ref`. | HMAC signature header |
 | `POST /api/cron` | Retries pending or unsent workouts, then polls for and files replies. | shared secret header |
 | `GET /` | The preferences form | HTTP Basic auth |
 
@@ -385,8 +385,13 @@ worth doing before the thing works.
 Exactly one, and nothing else from this project belongs there.
 
 In `web/src/lib/gym.ts`, in `bookGymSlot`, immediately after the existing
-`sendMail(gymBooked({...}))` call: a signed POST to this app's `/api/booking`, fire
-and forget, wrapped so any failure is swallowed. Roughly fifteen lines.
+`sendMail(gymBooked({...}))` call: a signed POST to this app's `/api/booking`, in its
+own `web/src/lib/workout-loop.ts`, wrapped so any failure is swallowed.
+
+Three properties, in order: a booking can never fail because of it; it fires for one
+configured address only, or every client's booking would generate a workout for
+somebody else; and it does nothing at all unless configured, so it is inert wherever
+it has not been deliberately switched on.
 
 ## What makes this worth showing
 
