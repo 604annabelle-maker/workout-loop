@@ -15,6 +15,7 @@
 import { and, asc, inArray, lt, sql } from "drizzle-orm";
 import { db, schema } from "@/db";
 import { deliverWorkout } from "./delivery";
+import { pollReplies, type ReplyReport } from "./replies";
 
 const { workouts } = schema;
 
@@ -27,6 +28,7 @@ export interface CronReport {
   retrying: number;
   failed: number;
   stale: number;
+  replies: ReplyReport;
 }
 
 export async function runCron(now = new Date()): Promise<CronReport> {
@@ -36,6 +38,7 @@ export async function runCron(now = new Date()): Promise<CronReport> {
     retrying: 0,
     failed: 0,
     stale: 0,
+    replies: { polled: false, found: 0, filed: 0, ignored: 0, unmatched: 0, empty: 0 },
   };
 
   /*
@@ -78,6 +81,17 @@ export async function runCron(now = new Date()): Promise<CronReport> {
     if (delivery.status === "sent") report.sent += 1;
     else if (delivery.status === "retry") report.retrying += 1;
     else if (delivery.status === "failed") report.failed += 1;
+  }
+
+  /*
+   * After the retries, not before. A reply to a workout that is still being
+   * re-sent has nothing to attach to yet.
+   */
+  try {
+    report.replies = await pollReplies();
+  } catch (err) {
+    // A mailbox that is unreachable must not stop the retries that already ran.
+    console.error("polling replies failed:", err);
   }
 
   return report;

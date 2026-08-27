@@ -28,26 +28,25 @@ export interface SendResult {
 }
 
 export async function sendMail(mail: Mail): Promise<SendResult> {
-  const host = process.env.SMTP_HOST;
+  const address = process.env.MAILBOX_ADDRESS;
 
-  if (!host) return printInstead(mail);
+  // No mailbox configured, so there is nowhere to send from.
+  if (!address) return printInstead(mail);
 
   try {
     const port = Number(process.env.SMTP_PORT) || 465;
 
     const transport = nodemailer.createTransport({
-      host,
+      host: process.env.SMTP_HOST ?? "smtp.gmail.com",
       port,
       secure: port === 465,
-      auth: process.env.SMTP_USER
-        ? { user: process.env.SMTP_USER, pass: process.env.SMTP_PASSWORD }
-        : undefined,
+      auth: { user: address, pass: process.env.MAILBOX_PASSWORD ?? "" },
     });
 
     const info = await transport.sendMail({
       // Replies go back to whoever sent it, and that address is the mailbox the
       // reply poller reads. One account, both directions, no reply-to needed.
-      from: process.env.MAIL_FROM ?? process.env.SMTP_USER ?? host,
+      from: address,
       to: mail.to,
       subject: mail.subject,
       text: mail.text,
@@ -62,7 +61,7 @@ export async function sendMail(mail: Mail): Promise<SendResult> {
 }
 
 /**
- * No SMTP host configured, so the message goes to the console.
+ * No mailbox configured, so the message goes to the console.
  *
  * This reports success on purpose. The delivery step did complete; the
  * configured destination in development happens to be a terminal. Reporting
@@ -72,7 +71,7 @@ export async function sendMail(mail: Mail): Promise<SendResult> {
  */
 function printInstead(mail: Mail): SendResult {
   console.log(
-    `\n──────────────── email (not sent, no SMTP_HOST) ────────────────\n` +
+    `\n──────────────── email (not sent, no mailbox configured) ────────────────\n` +
       `  To:      ${mail.to}\n` +
       `  Subject: ${mail.subject}\n\n` +
       `${mail.text}\n` +
@@ -82,6 +81,6 @@ function printInstead(mail: Mail): SendResult {
   return {
     sent: true,
     messageId: `local-${randomUUID()}@workout-loop.invalid`,
-    reason: "no-smtp-host",
+    reason: "no-mailbox",
   };
 }
