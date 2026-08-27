@@ -16,6 +16,7 @@ export interface Candidate {
 
 export type Match =
   | { how: "in-reply-to"; workoutId: string }
+  | { how: "references"; workoutId: string }
   | { how: "subject"; workoutId: string }
   | { how: "none"; why: string };
 
@@ -30,7 +31,21 @@ export function matchWorkout(reply: ParsedReply, candidates: Candidate[]): Match
   }
 
   /*
-   * The fallback, for clients that omit In-Reply-To. Subjects carry the slot
+   * In-Reply-To names only the message immediately before this one, which is
+   * not always the workout. Anything else in the thread, a forward, a reply
+   * sent from the wrong account, and it points at that instead.
+   *
+   * References carries every id in the chain, so the workout is still in
+   * there. Searched newest first, because a thread that somehow touches two
+   * workouts is answering the later one.
+   */
+  for (const id of [...reply.references].reverse()) {
+    const hit = candidates.find((c) => c.messageId === id);
+    if (hit) return { how: "references", workoutId: hit.id };
+  }
+
+  /*
+   * The last resort, for clients that send neither header. Subjects carry the slot
    * date, so two workouts a week apart never share one, but two slots on the
    * same day would. An ambiguous match is treated as no match: filing feedback
    * against the wrong session is worse than filing it against none, because
@@ -51,8 +66,9 @@ export function matchWorkout(reply: ParsedReply, candidates: Candidate[]): Match
 
   return {
     how: "none",
-    why: reply.inReplyTo
-      ? "no workout has that message id, and the subject matched nothing"
-      : "no In-Reply-To header, and the subject matched nothing",
+    why:
+      reply.inReplyTo || reply.references.length
+        ? "nothing in the thread is a workout, and the subject matched nothing"
+        : "no threading headers, and the subject matched nothing",
   };
 }

@@ -12,6 +12,7 @@ function reply(over: Partial<ParsedReply> = {}): ParsedReply {
   return {
     body: "felt good",
     inReplyTo: null,
+    references: [],
     subject: "",
     from: "chana@example.com",
     ...over,
@@ -70,7 +71,48 @@ test("nothing at all matches nothing, with a reason", () => {
   const m = matchWorkout(reply(), CANDIDATES);
 
   assert.equal(m.how, "none");
-  assert.match(m.how === "none" ? m.why : "", /no In-Reply-To/);
+  assert.match(m.how === "none" ? m.why : "", /no threading headers/);
+});
+
+test("References finds the workout when In-Reply-To points mid-thread", () => {
+  // Exactly what happened live: a reply sent from the wrong account landed
+  // between the workout and the real reply, so In-Reply-To names that instead.
+  const m = matchWorkout(
+    reply({
+      inReplyTo: "an-intermediate-message@mail.gmail.com",
+      references: ["one@loop.invalid", "an-intermediate-message@mail.gmail.com"],
+    }),
+    CANDIDATES,
+  );
+
+  assert.deepEqual(m, { how: "references", workoutId: "w1" });
+});
+
+test("References is preferred over the subject", () => {
+  const m = matchWorkout(
+    reply({ references: ["two@loop.invalid"], subject: "Workout for Wed 26 Aug" }),
+    CANDIDATES,
+  );
+
+  assert.deepEqual(m, { how: "references", workoutId: "w2" });
+});
+
+test("a thread touching two workouts answers the later one", () => {
+  const m = matchWorkout(
+    reply({ references: ["one@loop.invalid", "two@loop.invalid"] }),
+    CANDIDATES,
+  );
+
+  assert.deepEqual(m, { how: "references", workoutId: "w2" });
+});
+
+test("In-Reply-To still wins over References when it names a workout", () => {
+  const m = matchWorkout(
+    reply({ inReplyTo: "one@loop.invalid", references: ["two@loop.invalid"] }),
+    CANDIDATES,
+  );
+
+  assert.deepEqual(m, { how: "in-reply-to", workoutId: "w1" });
 });
 
 test("no candidates at all is not an error", () => {

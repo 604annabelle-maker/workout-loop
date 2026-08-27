@@ -68,6 +68,9 @@ export async function eachUnseen(
           headers: {
             "message-id": parsed.messageId ?? "",
             "in-reply-to": parsed.inReplyTo ?? "",
+            references: Array.isArray(parsed.references)
+              ? parsed.references.join(" ")
+              : (parsed.references ?? ""),
             subject: parsed.subject ?? "",
             from: parsed.from?.text ?? "",
           },

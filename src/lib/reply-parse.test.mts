@@ -4,6 +4,7 @@ import {
   addressOf,
   normalizeMessageId,
   normalizeSubject,
+  parseMessageIdList,
   parseReply,
   stripQuoted,
 } from "./reply-parse.ts";
@@ -144,6 +145,19 @@ test("absent or empty message ids come back null", () => {
   assert.equal(normalizeMessageId("<>"), null);
 });
 
+/* ----------------------------------------------------------------- references */
+
+test("the References chain is parsed oldest first, brackets stripped", () => {
+  assert.deepEqual(parseMessageIdList("<a@x> <b@x>\n <c@x>"), ["a@x", "b@x", "c@x"]);
+  assert.deepEqual(parseMessageIdList("a@x"), ["a@x"]);
+});
+
+test("an absent or empty References header is an empty list, not a crash", () => {
+  assert.deepEqual(parseMessageIdList(null), []);
+  assert.deepEqual(parseMessageIdList(undefined), []);
+  assert.deepEqual(parseMessageIdList("   "), []);
+});
+
 /* ------------------------------------------------------------------ addresses */
 
 test("an address is extracted from a display name and lowercased", () => {
@@ -172,6 +186,7 @@ test("parseReply pulls a full reply apart", () => {
   assert.deepEqual(parsed, {
     body: "Legs were toast.",
     inReplyTo: "workout-42@loop.example.com",
+    references: [],
     subject: "Your workout, Wed 26 Aug",
     from: "chana@example.com",
   });
@@ -180,5 +195,11 @@ test("parseReply pulls a full reply apart", () => {
 test("parseReply survives a message with no headers at all", () => {
   const parsed = parseReply({ headers: {}, text: "hello" });
 
-  assert.deepEqual(parsed, { body: "hello", inReplyTo: null, subject: "", from: null });
+  assert.deepEqual(parsed, {
+    body: "hello",
+    inReplyTo: null,
+    references: [],
+    subject: "",
+    from: null,
+  });
 });

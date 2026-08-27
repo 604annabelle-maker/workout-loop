@@ -22,6 +22,15 @@ export interface ParsedReply {
   body: string;
   /** The Message-ID this answers, angle brackets stripped. */
   inReplyTo: string | null;
+  /**
+   * Every Message-ID in the thread so far, oldest first, brackets stripped.
+   *
+   * In-Reply-To names only the immediately preceding message, which is not
+   * necessarily the workout: one intermediate message in the thread and it
+   * points somewhere else entirely. References carries the whole chain, so
+   * the workout is still in there.
+   */
+  references: string[];
   /** The subject with any Re: prefixes removed. */
   subject: string;
   /** The sender's bare address, lowercased. */
@@ -123,6 +132,17 @@ export function normalizeMessageId(raw: string | null | undefined): string | nul
   return inner.length > 0 ? inner : null;
 }
 
+/** Every id in a header that holds a list of them, such as References. */
+export function parseMessageIdList(raw: string | null | undefined): string[] {
+  if (!raw) return [];
+
+  return raw
+    .trim()
+    .split(/\s+/)
+    .map((token) => token.replace(/^</, "").replace(/>$/, "").trim())
+    .filter((id) => id.length > 0);
+}
+
 /** "Someone <a@b.com>" or "a@b.com" to "a@b.com". Null if it isn't an address. */
 export function addressOf(header: string | null | undefined): string | null {
   if (!header) return null;
@@ -139,6 +159,7 @@ export function parseReply(msg: RawMessage): ParsedReply {
   return {
     body: stripQuoted(msg.text),
     inReplyTo: normalizeMessageId(header("in-reply-to")),
+    references: parseMessageIdList(header("references")),
     subject: normalizeSubject(header("subject")),
     from: addressOf(header("from")),
   };
