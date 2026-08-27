@@ -5,6 +5,8 @@
  * this project can be read, diffed and tested without a key or a database.
  */
 
+import { dateAndTime } from "./when";
+
 /**
  * How many past workouts the model sees. Enough at three sessions a week to
  * rotate muscle groups and progress load, without the prompt growing forever.
@@ -53,21 +55,6 @@ export interface Prompt {
   user: string;
 }
 
-const WHEN = new Intl.DateTimeFormat("en-GB", {
-  timeZone: "Asia/Jerusalem",
-  weekday: "short",
-  day: "numeric",
-  month: "short",
-  year: "numeric",
-  hour: "2-digit",
-  minute: "2-digit",
-  hour12: false,
-});
-
-function when(at: Date): string {
-  return WHEN.format(at);
-}
-
 /**
  * A past workout as history.
  *
@@ -91,7 +78,7 @@ function asHistory(workout: PastWorkout): string {
     .map((f) => `  Afterwards they said: ${f}`)
     .join("\n");
 
-  return [`${when(workout.slotStartsAt)}`, excerpt, notes].filter(Boolean).join("\n");
+  return [`${dateAndTime(workout.slotStartsAt)}`, excerpt, notes].filter(Boolean).join("\n");
 }
 
 const SYSTEM = `You write one gym workout at a time for a single person who trains alone.
@@ -154,7 +141,7 @@ RECENT SESSIONS, oldest first
 ${past}
 
 THIS SESSION
-${when(slot.startsAt)}, ${slot.minutes} minutes.`;
+${dateAndTime(slot.startsAt)}, ${slot.minutes} minutes.`;
 
   return { system: SYSTEM, user };
 }
