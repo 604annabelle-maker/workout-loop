@@ -9,6 +9,7 @@
 
 import { randomUUID } from "node:crypto";
 import nodemailer from "nodemailer";
+import { mailbox } from "./mailbox";
 import { normalizeMessageId } from "./reply-parse";
 
 export interface Mail {
@@ -28,10 +29,10 @@ export interface SendResult {
 }
 
 export async function sendMail(mail: Mail): Promise<SendResult> {
-  const address = process.env.MAILBOX_ADDRESS;
+  const box = mailbox();
 
   // No mailbox configured, so there is nowhere to send from.
-  if (!address) return printInstead(mail);
+  if (!box) return printInstead(mail);
 
   try {
     const port = Number(process.env.SMTP_PORT) || 465;
@@ -40,13 +41,13 @@ export async function sendMail(mail: Mail): Promise<SendResult> {
       host: process.env.SMTP_HOST ?? "smtp.gmail.com",
       port,
       secure: port === 465,
-      auth: { user: address, pass: process.env.MAILBOX_PASSWORD ?? "" },
+      auth: { user: box.address, pass: box.password },
     });
 
     const info = await transport.sendMail({
       // Replies go back to whoever sent it, and that address is the mailbox the
       // reply poller reads. One account, both directions, no reply-to needed.
-      from: address,
+      from: box.address,
       to: mail.to,
       subject: mail.subject,
       text: mail.text,

@@ -14,6 +14,7 @@
 
 import { ImapFlow } from "imapflow";
 import { simpleParser, type ParsedMail } from "mailparser";
+import { mailbox } from "./mailbox";
 import type { RawMessage } from "./reply-parse";
 
 export interface Incoming extends RawMessage {
@@ -29,14 +30,14 @@ export interface PollResult {
 export async function eachUnseen(
   handle: (message: Incoming) => Promise<void>,
 ): Promise<PollResult> {
-  const address = process.env.MAILBOX_ADDRESS;
-  if (!address) return { polled: false, found: 0 };
+  const box = mailbox();
+  if (!box) return { polled: false, found: 0 };
 
   const client = new ImapFlow({
     host: process.env.IMAP_HOST ?? "imap.gmail.com",
     port: Number(process.env.IMAP_PORT) || 993,
     secure: true,
-    auth: { user: address, pass: process.env.MAILBOX_PASSWORD ?? "" },
+    auth: { user: box.address, pass: box.password },
     // Otherwise every poll writes a wall of connection chatter to the log.
     logger: false,
   });
