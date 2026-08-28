@@ -57,4 +57,13 @@ console.log(`splits on "${DESCRIPTIONS_HEADING}": ${descriptions === undefined ?
 // writing plain text. Underscores and hyphens occur in ordinary writing.
 console.log(`markdown characters in the session: ${(session.match(/[*#`]/g) ?? []).length} (should be 0)`);
 
+// The layout only survives if lines do not wrap on a narrow screen, so this is
+// the diagnostic that decides whether the format worked.
+const lines = planText.split("\n");
+const longest = Math.max(...lines.map((l) => l.length));
+const over = lines.filter((l) => l.length > 50);
+console.log(`longest line: ${longest} characters`);
+console.log(`lines over 50: ${over.length} of ${lines.length}`);
+over.slice(0, 5).forEach((l) => console.log(`  ${l.length}: ${l}`));
+
 process.exit(0);

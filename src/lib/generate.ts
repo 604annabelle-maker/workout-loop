@@ -36,28 +36,50 @@ export class GenerationError extends Error {}
 
 const CANNED = `[canned plan: ANTHROPIC_API_KEY is not set]
 
-Goblet squat 3x8, moderate weight
-Romanian deadlift 3x8
-Dumbbell row 3x10 each side
-Plank 3x40 seconds
+WARM UP
+
+5 min easy: bodyweight squats and hinges
+Goblet squat: light set of 8
+
+THE SESSION
+
+1. GOBLET SQUAT  3x8
+   Moderate weight. Rest 90 sec.
+
+2. ROMANIAN DEADLIFT  3x8
+   Stop at the stretch. Rest 90 sec.
+
+3. DUMBBELL ROW  3x10 each side
+   Pull to the hip. Rest 60 sec.
+
+FINISH
+
+4. PLANK  3x40 sec
 
 ${DESCRIPTIONS_HEADING}
 
-Goblet squat: hold a dumbbell against your chest and sit straight down between
-your hips, keeping your heels flat. It should feel like your thighs are doing
-the work. The usual mistake is leaning forward as you stand up.
+GOBLET SQUAT
+Hold a dumbbell against your chest and sit
+straight down between your hips, heels flat.
+It should feel like your thighs are working.
+Do not lean forward as you stand up.
 
-Romanian deadlift: with a slight bend in the knees, push your hips backwards
-and let the weight travel down your thighs. You should feel a stretch in your
-hamstrings, not in your lower back. Stop lowering when the stretch arrives.
+ROMANIAN DEADLIFT
+Knees slightly bent, push your hips back and
+let the weight travel down your thighs. You
+should feel a stretch in the hamstrings, not
+the lower back. Stop when the stretch arrives.
 
-Dumbbell row: brace one hand on a bench, pull the dumbbell to your hip rather
-than your shoulder. It should feel like your back is pulling, not your arm.
-The usual mistake is twisting your torso to get the weight up.
+DUMBBELL ROW
+Brace one hand on a bench and pull the bell to
+your hip, not your shoulder. It should feel
+like your back pulling, not your arm. Do not
+twist your torso to get the weight up.
 
-Plank: elbows under shoulders, hips level with your shoulders. It should feel
-like your stomach is holding you up. The usual mistake is letting your hips
-drift upwards to make it easier.`;
+PLANK
+Elbows under shoulders, hips level with them.
+It should feel like your stomach holding you
+up. Do not let your hips drift upwards.`;
 
 export async function generateWorkout(
   preferences: Preferences,

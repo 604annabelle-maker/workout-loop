@@ -51,4 +51,10 @@ console.log(`plan:       ${canned ? "canned" : "generated"}`);
 console.log(`sent:       ${result.sent}${result.reason ? ` (${result.reason})` : ""}`);
 console.log(`message id: ${result.messageId}`);
 
+const lines = planText.split("\n");
+const over = lines.filter((l) => l.length > 50);
+console.log(`longest line: ${Math.max(...lines.map((l) => l.length))} characters`);
+console.log(`lines over 50: ${over.length} of ${lines.length}`);
+over.slice(0, 5).forEach((l) => console.log(`  ${l.length}: ${l}`));
+
 process.exit(result.sent ? 0 : 1);

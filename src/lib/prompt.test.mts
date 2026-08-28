@@ -113,10 +113,18 @@ test("a very long past session is excerpted rather than replayed whole", () => {
 test("the system prompt states the constraints that matter", () => {
   const { system } = buildPrompt(PREFS, [], SLOT);
 
-  assert.match(system, /plain text/i);
-  assert.match(system, /markdown/i);
-  assert.ok(system.includes(DESCRIPTIONS_HEADING));
-  assert.match(system, /every exercise/i);
+  // Whitespace-normalised, because the prompt is hard-wrapped for readability
+  // and a phrase can straddle a line break. The instruction is what matters,
+  // not where it happens to fold.
+  const flat = system.replace(/\s+/g, " ");
+
+  assert.match(flat, /plain text/i);
+  assert.match(flat, /markdown/i);
+  assert.ok(flat.includes(DESCRIPTIONS_HEADING));
+  assert.match(flat, /every exercise/i);
+  assert.match(flat, /under 50 characters/i);
+  assert.match(flat, /WARM UP/);
+  assert.match(flat, /THE SESSION/);
 });
 
 test("empty preferences degrade to a usable prompt rather than blanks", () => {
