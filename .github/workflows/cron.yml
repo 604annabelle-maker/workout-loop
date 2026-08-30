@@ -1,25 +1,45 @@
+# The heartbeat (design §Architecture).
+#
+# Retries any workout that generated or sent badly, then polls the mailbox for
+# replies. Both are idempotent, so a run that overlaps or repeats costs
+# nothing.
+#
+# GitHub Actions rather than Vercel Cron: the free Vercel tier limits how often
+# a cron may run, and Actions on a public repository does not.
 name: cron
 
-# Every fifteen minutes. GitHub's scheduler is best effort and routinely runs
-# late, sometimes by another ten minutes or so. That is fine: nothing here is
-# the main delivery path, only the net under it.
 on:
   schedule:
+    # Every 15 minutes. Actions' floor is 5, but scheduled runs are queued
+    # rather than punctual and often land late, so a tighter interval would buy
+    # precision that does not exist.
     - cron: "*/15 * * * *"
-  # So a run can be forced from the Actions tab without waiting.
+  # So it can be run by hand from the Actions tab when something looks stuck.
   workflow_dispatch:
 
 jobs:
   tick:
     runs-on: ubuntu-latest
     steps:
-      - name: Poke the cron endpoint
+      - name: Call the cron endpoint
+        run: |
+          code=$(curl --silent --show-error --fail-with-body \
+            --max-time 120 \
+            --output /tmp/cron.json \
+            --write-out '%{http_code}' \
+            --request POST \
+            --header "authorization: Bearer $CRON_SECRET" \
+            "$APP_URL/api/cron") || true
+
+          echo "HTTP $code"
+          cat /tmp/cron.json || true
+          echo
+
+          # A non-2xx is a real failure worth a red tick, since nothing else
+          # is watching. The body is printed first so the run says why.
+          if [ "$code" -lt 200 ] || [ "$code" -ge 300 ]; then
+            exit 1
+          fi
         env:
           APP_URL: ${{ secrets.APP_URL }}
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
-        # --fail makes an HTTP error fail the step, so a broken secret or a
-        # down deployment shows up as a red run rather than a quiet success.
-        run: |
-          curl --fail --silent --show-error --max-time 120 \
-            -X POST "$APP_URL/api/cron" \
-            -H "authorization: Bearer $CRON_SECRET"
