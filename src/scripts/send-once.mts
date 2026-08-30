@@ -43,6 +43,10 @@ const { planText, canned } = await generateWorkout(
   slot,
 );
 
+console.log("─".repeat(60));
+console.log(planText);
+console.log("─".repeat(60) + "\n");
+
 const mail = composeWorkoutMail(planText, slot);
 const result = await sendMail({ to, ...mail });
 

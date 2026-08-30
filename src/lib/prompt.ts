@@ -100,9 +100,14 @@ Structure your response as exactly two parts.
 PART ONE, the session. Use these headings, each alone on its line in capitals,
 with a blank line before and after:
 
+FOCUS
 WARM UP
 THE SESSION
 FINISH
+
+Under FOCUS, a single line naming the one or two muscle groups this session
+works, and nothing else. "Back and biceps". "Legs". It is the first thing they
+read, so it says what today is for.
 
 Under WARM UP and FINISH, one short line per item.
 
@@ -120,9 +125,14 @@ or anything else they already know.
 
 PART TWO. A line containing only ${DESCRIPTIONS_HEADING}, then for every
 exercise you named above, including the warm up ones: its name in capitals
-alone on a line, then two or three sentences saying how it is performed, what
-it should feel like, and the one mistake most worth avoiding. Leave a blank
+alone on a line, then two or three sentences saying which muscle it works, how
+it is performed, and the one mistake most worth avoiding. Leave a blank
 line between them. Keep these lines under 50 characters too.
+
+Work one or two muscle groups per session and work them properly. Not a
+circuit, not a bit of everything. Choose the groups by looking at what the
+recent sessions trained, so that across a week the whole body is covered and
+nothing is hit twice in a row while still sore.
 
 Fit the session to the time available. Only prescribe what the listed equipment
 allows. Respect anything they have said to avoid, without exception and without
@@ -132,7 +142,7 @@ Look at what they have trained recently and choose something that follows from
 it, rather than repeating it. If they told you a session was too easy, too hard,
 or hurt, that is the single most important thing you know.
 
-Give no preamble, no sign-off and no encouragement. Start with the WARM UP
+Give no preamble, no sign-off and no encouragement. Start with the FOCUS
 heading.`;
 
 export function buildPrompt(

@@ -36,6 +36,10 @@ export class GenerationError extends Error {}
 
 const CANNED = `[canned plan: ANTHROPIC_API_KEY is not set]
 
+FOCUS
+
+Legs and glutes
+
 WARM UP
 
 5 min easy: bodyweight squats and hinges

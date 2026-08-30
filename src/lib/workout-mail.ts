@@ -101,7 +101,28 @@ function wrap(session: string, descriptions: string): string {
 </div>`;
 }
 
+/**
+ * The muscle groups this session works.
+ *
+ * Rendered as a title rather than a list item because it answers "what is
+ * today for", which is the question asked before the workout is even read.
+ */
+function renderFocus(section: Section): string {
+  const focus = [...section.items, ...section.exercises.map((e) => e.name)]
+    .filter(Boolean)
+    .join(", ");
+
+  if (!focus) return "";
+
+  return `<p style="font-size:11px;font-weight:700;letter-spacing:.16em;color:${FAINT};margin:0 0 4px">
+            ${escapeHtml(section.heading)}</p>
+          <p style="font-size:20px;font-weight:700;line-height:1.25;color:${ACCENT};margin:0 0 22px">
+            ${escapeHtml(focus)}</p>`;
+}
+
 function renderSection(section: Section, index: number): string {
+  if (section.heading === "FOCUS") return renderFocus(section);
+
   const heading = section.heading
     ? `<p style="font-size:11px;font-weight:700;letter-spacing:.16em;color:${FAINT};
                  margin:${index === 0 ? "0" : "26px"} 0 12px">${escapeHtml(section.heading)}</p>`

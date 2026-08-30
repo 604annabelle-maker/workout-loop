@@ -5,7 +5,11 @@ import { DESCRIPTIONS_HEADING } from "./prompt.ts";
 
 const SLOT = { startsAt: new Date("2026-08-26T15:00:00Z"), minutes: 60 };
 
-const PLAN = `WARM UP
+const PLAN = `FOCUS
+
+Back and biceps
+
+WARM UP
 
 - Bike 3 min
 - Bodyweight squat 10 reps
@@ -45,6 +49,7 @@ test("the html carries every section, exercise and description", () => {
   const { html } = composeWorkoutMail(PLAN, SLOT);
 
   for (const expected of [
+    "Back and biceps",
     "WARM UP",
     "THE SESSION",
     "FINISH",
@@ -56,6 +61,20 @@ test("the html carries every section, exercise and description", () => {
   ]) {
     assert.match(html, new RegExp(expected), `missing: ${expected}`);
   }
+});
+
+test("the focus is a title, not a list item", () => {
+  const { html } = composeWorkoutMail(PLAN, SLOT);
+
+  // Large and in the accent colour, so it is read before anything else.
+  assert.match(html, /font-size:20px;font-weight:700;[^"]*color:#0f766e[^>]*>\s*Back and biceps/);
+});
+
+test("a plan with no focus section renders without an empty title", () => {
+  const { html } = composeWorkoutMail("THE SESSION\n\n1. BACK SQUAT  4x5", SLOT);
+
+  assert.ok(!html.includes("FOCUS"));
+  assert.match(html, /BACK SQUAT/);
 });
 
 test("the sets are coloured, because that is the line read mid set", () => {
