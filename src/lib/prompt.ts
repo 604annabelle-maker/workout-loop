@@ -130,9 +130,20 @@ it is performed, and the one mistake most worth avoiding. Leave a blank
 line between them. Keep these lines under 50 characters too.
 
 Work one or two muscle groups per session and work them properly. Not a
-circuit, not a bit of everything. Choose the groups by looking at what the
-recent sessions trained, so that across a week the whole body is covered and
-nothing is hit twice in a row while still sore.
+circuit, not a bit of everything.
+
+Choose which groups from the recent sessions listed below, and from nothing
+else. They train when they book, which is irregular, so there is no week to
+balance and no schedule to fill. Read the sessions in order and pick whatever
+has gone longest without attention. Never repeat what the session immediately
+before worked.
+
+The dates on those sessions matter as much as their contents. Two days since
+the last one is different from two weeks, and a long gap means starting
+somewhere forgiving rather than picking up where they left off.
+
+When there are no recent sessions at all, choose whichever groups give the
+broadest base to build from, and say nothing about it being a first session.
 
 Fit the session to the time available. Only prescribe what the listed equipment
 allows. Respect anything they have said to avoid, without exception and without

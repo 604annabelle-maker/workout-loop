@@ -123,6 +123,11 @@ test("the system prompt states the constraints that matter", () => {
   assert.ok(flat.includes(DESCRIPTIONS_HEADING));
   assert.match(flat, /every exercise/i);
   assert.match(flat, /under 50 characters/i);
+  // The split follows the recent sessions, not a calendar week. They book
+  // irregularly, so a weekly frame breaks whenever the rhythm changes.
+  assert.match(flat, /recent sessions/i);
+  assert.match(flat, /no week to balance/i);
+  assert.ok(!/across a week/i.test(flat), "no calendar framing");
   assert.match(flat, /WARM UP/);
   assert.match(flat, /THE SESSION/);
 });
