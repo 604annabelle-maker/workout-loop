@@ -13,7 +13,9 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx src/db/migrate.ts",
     "generate:once": "tsx src/scripts/generate-once.mts",
-    "send:once": "tsx src/scripts/send-once.mts"
+    "send:once": "tsx src/scripts/send-once.mts",
+    "workout": "tsx src/scripts/workout.mts",
+    "tick": "tsx src/scripts/tick.mts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.121.0",
