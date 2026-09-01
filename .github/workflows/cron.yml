@@ -23,13 +23,21 @@ jobs:
     steps:
       - name: Call the cron endpoint
         run: |
-          code=$(curl --silent --show-error --fail-with-body \
+          # Trailing slashes and http:// both produce a 308 that curl reports
+          # as the outcome unless it is told to follow. The redirect is
+          # harmless; a run should not go red over a formatting slip in a
+          # secret. curl drops the auth header if a redirect ever crosses to
+          # another host, so following is safe.
+          target="${APP_URL%/}/api/cron"
+          echo "calling $target"
+
+          code=$(curl --silent --show-error --fail-with-body --location \
             --max-time 120 \
             --output /tmp/cron.json \
             --write-out '%{http_code}' \
             --request POST \
             --header "authorization: Bearer $CRON_SECRET" \
-            "$APP_URL/api/cron") || true
+            "$target") || true
 
           echo "HTTP $code"
           cat /tmp/cron.json || true
@@ -41,5 +49,9 @@ jobs:
             exit 1
           fi
         env:
-          APP_URL: ${{ secrets.APP_URL }}
+          # A deployment URL is not a secret, and storing it as one means
+          # GitHub masks it in the log, which makes exactly this kind of
+          # problem harder to see. A repository variable is preferred; the
+          # secret is still read so an existing setup keeps working.
+          APP_URL: ${{ vars.APP_URL || secrets.APP_URL }}
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
