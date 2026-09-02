@@ -48,6 +48,17 @@ jobs:
           if [ "$code" -lt 200 ] || [ "$code" -ge 300 ]; then
             exit 1
           fi
+
+          # A 2xx is not enough on its own. Following redirects means a login
+          # wall in front of the deployment answers 200 with its own page, and
+          # this check went green for days while fetching exactly that. The
+          # response has to actually be the cron report.
+          if ! grep -q '"ok":true' /tmp/cron.json; then
+            echo "Reached something, but it did not answer like the app."
+            echo "Check that APP_URL points at the deployment and that nothing"
+            echo "is intercepting requests in front of it."
+            exit 1
+          fi
         env:
           # A deployment URL is not a secret, and storing it as one means
           # GitHub masks it in the log, which makes exactly this kind of
