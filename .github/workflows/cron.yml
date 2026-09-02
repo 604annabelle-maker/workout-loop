@@ -9,11 +9,15 @@
 name: cron
 
 on:
-  schedule:
-    # Every 15 minutes. Actions' floor is 5, but scheduled runs are queued
-    # rather than punctual and often land late, so a tighter interval would buy
-    # precision that does not exist.
-    - cron: "*/15 * * * *"
+  # PAUSED. Every run was failing and mailing a notification, and a cron that
+  # fails does nothing useful anyway, so nothing is lost by silencing it until
+  # APP_URL and CRON_SECRET are confirmed. Uncomment to resume.
+  #
+  # schedule:
+  #   # Every 15 minutes. Actions' floor is 5, but scheduled runs are queued
+  #   # rather than punctual and often land late, so a tighter interval would
+  #   # buy precision that does not exist.
+  #   - cron: "*/15 * * * *"
   # So it can be run by hand from the Actions tab when something looks stuck.
   workflow_dispatch:
 
