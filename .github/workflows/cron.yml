@@ -9,15 +9,11 @@
 name: cron
 
 on:
-  # PAUSED. Every run was failing and mailing a notification, and a cron that
-  # fails does nothing useful anyway, so nothing is lost by silencing it until
-  # APP_URL and CRON_SECRET are confirmed. Uncomment to resume.
-  #
-  # schedule:
-  #   # Every 15 minutes. Actions' floor is 5, but scheduled runs are queued
-  #   # rather than punctual and often land late, so a tighter interval would
-  #   # buy precision that does not exist.
-  #   - cron: "*/15 * * * *"
+  schedule:
+    # Every 15 minutes. Actions' floor is 5, but scheduled runs are queued
+    # rather than punctual and often land late, so a tighter interval would buy
+    # precision that does not exist.
+    - cron: "*/15 * * * *"
   # So it can be run by hand from the Actions tab when something looks stuck.
   workflow_dispatch:
 
@@ -27,12 +23,26 @@ jobs:
     steps:
       - name: Call the cron endpoint
         run: |
-          # Trailing slashes and http:// both produce a 308 that curl reports
-          # as the outcome unless it is told to follow. The redirect is
-          # harmless; a run should not go red over a formatting slip in a
-          # secret. curl drops the auth header if a redirect ever crosses to
-          # another host, so following is safe.
-          target="${APP_URL%/}/api/cron"
+          # Normalised before use, because two formatting slips in APP_URL
+          # produce failures that look nothing like their cause.
+          #
+          # A trailing slash gives a double slash and a 308. A missing scheme
+          # is worse: curl defaults to http, Vercel redirects to https, and
+          # curl drops the Authorization header across the scheme change,
+          # which is correct of it but arrives at the app as an
+          # unauthenticated request. The log then says 401 while the secret is
+          # perfectly fine.
+          url="${APP_URL%/}"
+          case "$url" in
+            https://*) ;;
+            # Upgraded rather than respected. The deployment is https only, so
+            # http can only ever be a mistake, and it is the mistake that
+            # strips the auth header on the redirect.
+            http://*) url="https://${url#http://}" ;;
+            *) url="https://$url" ;;
+          esac
+
+          target="$url/api/cron"
           echo "calling $target"
 
           code=$(curl --silent --show-error --fail-with-body --location \
