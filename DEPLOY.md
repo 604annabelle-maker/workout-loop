@@ -33,7 +33,35 @@ connection string by hand.
 
 Then deploy. The build takes about a minute.
 
-## 3. Check it came up
+## 3. Turn off Vercel's own protection
+
+**Vercel puts a login wall in front of new projects by default.** It intercepts
+every request before the app sees it, so the gym app's webhook and the GitHub
+Actions cron both get a redirect to a Vercel login page instead of a response.
+
+In the **workout-loop** project:
+
+1. **Settings** in the top row of tabs
+2. **Deployment Protection** in the left sidebar
+3. Under **Vercel Authentication**, change **Standard Protection** to
+   **Disabled**
+4. **Save**
+
+Safe to turn off. Every route in this app authenticates itself: an HMAC
+signature on `/api/booking`, a shared secret on `/api/cron`, basic auth on the
+preferences page. All three refuse to run unconfigured rather than running
+open, which is exactly so nothing depends on a platform-level gate.
+
+### Use the stable URL, not a deployment URL
+
+Vercel gives every individual deployment its own address with a random hash in
+it, like `workout-loop-n9bcns7ix-chana.vercel.app`. That address changes with
+every deploy. Anything pointing at it works once and then breaks.
+
+The stable one has no hash: `https://workout-loop-chana.vercel.app`. It is the
+one listed under **Settings, Domains**. Use it everywhere.
+
+## 4. Check it came up
 
 Visit the deployment URL. The preferences page should ask for a username and
 password, and your saved preferences should be there once you are in. They will
@@ -43,7 +71,7 @@ If you get a 500 instead of a password prompt, an environment variable is
 missing. Every route refuses to run unconfigured in production rather than
 running open, so a 500 here means a missing value, not a broken deploy.
 
-## 4. Give the cron its secrets
+## 5. Give the cron its secrets
 
 In the GitHub repository: **Settings, then Secrets and variables, then
 Actions**. Add two repository secrets:
@@ -57,7 +85,7 @@ The workflow runs every fifteen minutes and can be triggered by hand from the
 Actions tab. Do that once after setting the secrets: a green tick means the
 retry sweep and the mailbox poll are both working in production.
 
-## 5. Connect the gym app
+## 6. Connect the gym app
 
 In the **Ellé Fitness** Vercel project, add three variables:
 
@@ -74,7 +102,7 @@ decides *where the workout is sent*.
 Then merge the `workout-loop-webhook` branch in the gym repository and let it
 redeploy. Until those three variables exist, that code does nothing at all.
 
-## 6. Book a slot
+## 7. Book a slot
 
 Book an open gym slot on your own account. A workout should arrive within a
 minute or so.
