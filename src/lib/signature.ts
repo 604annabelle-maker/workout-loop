@@ -5,12 +5,29 @@
  * body, this verifies it. Nothing else about the request is trusted.
  */
 
-import { createHmac, timingSafeEqual } from "node:crypto";
+import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 
 const PREFIX = "sha256=";
 
 export function sign(body: string, secret: string): string {
-  return PREFIX + createHmac("sha256", secret).update(body, "utf8").digest("hex");
+  // Trimmed, because this value is pasted into two separate deployment forms
+  // and a trailing newline is invisible in both. An untrimmed mismatch looks
+  // exactly like a wrong secret and took days to find once already.
+  return (
+    PREFIX +
+    createHmac("sha256", secret.trim()).update(body, "utf8").digest("hex")
+  );
+}
+
+/**
+ * A short, one-way fingerprint of a secret, safe to log.
+ *
+ * Two deployments holding the same secret print the same eight characters.
+ * Comparing them is the only way to tell "the values differ" from "the
+ * signing is broken" without either side revealing what it holds.
+ */
+export function fingerprint(secret: string): string {
+  return createHash("sha256").update(secret.trim(), "utf8").digest("hex").slice(0, 8);
 }
 
 /**
@@ -28,7 +45,7 @@ export function verify(
   presented: string | null | undefined,
   secret: string,
 ): boolean {
-  if (!secret || !presented) return false;
+  if (!secret.trim() || !presented) return false;
 
   const expected = Buffer.from(sign(body, secret), "utf8");
   const given = Buffer.from(presented.trim(), "utf8");

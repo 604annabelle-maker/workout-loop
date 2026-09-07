@@ -1,7 +1,7 @@
 import { after } from "next/server";
 import { parseBookingPayload } from "@/lib/booking-payload";
 import { deliverWorkout, recordBooking } from "@/lib/delivery";
-import { verify } from "@/lib/signature";
+import { fingerprint, verify } from "@/lib/signature";
 
 /**
  * The booking webhook, called by the Ellé Fitness app (design §Entry points).
@@ -34,6 +34,16 @@ export async function POST(request: Request) {
 
   if (secret) {
     if (!verify(body, request.headers.get(SIGNATURE_HEADER), secret)) {
+      /*
+       * Logged, not returned. The fingerprint is one way and safe, but this
+       * endpoint is public and there is no reason to hand a stranger anything
+       * about the secret. The caller's own logs carry the other half.
+       */
+      console.warn(
+        `refused a booking: expected secret ${fingerprint(secret)}, ` +
+          `signature ${request.headers.has(SIGNATURE_HEADER) ? "present" : "absent"}`,
+      );
+
       return Response.json(
         {
           error: "Not allowed",
