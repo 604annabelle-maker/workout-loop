@@ -10,7 +10,9 @@
 import { randomUUID } from "node:crypto";
 import nodemailer from "nodemailer";
 import { mailbox } from "./mailbox";
+import { pictureFile } from "./picture-library";
 import { normalizeMessageId } from "./reply-parse";
+import type { Inline } from "./workout-mail";
 
 export interface Mail {
   to: string;
@@ -19,6 +21,8 @@ export interface Mail {
   text: string;
   /** A wrapper around the same words, for reading on a computer. */
   html: string;
+  /** Pictures the HTML refers to by Content-ID. */
+  inline?: Inline[];
 }
 
 export interface SendResult {
@@ -52,6 +56,18 @@ export async function sendMail(mail: Mail): Promise<SendResult> {
       subject: mail.subject,
       text: mail.text,
       html: mail.html,
+      /*
+       * `inline` rather than `attachment`, which is what keeps these in the
+       * body where the HTML puts them instead of in a row of files at the
+       * bottom. nodemailer reads each one off disk and sends the message as
+       * multipart/related.
+       */
+      attachments: (mail.inline ?? []).map((picture) => ({
+        cid: picture.cid,
+        filename: picture.filename,
+        path: pictureFile(picture.file),
+        contentDisposition: "inline" as const,
+      })),
     });
 
     return { sent: true, messageId: normalizeMessageId(info.messageId) };
@@ -71,10 +87,13 @@ export async function sendMail(mail: Mail): Promise<SendResult> {
  * possible. The `.invalid` message id can never collide with a real one.
  */
 function printInstead(mail: Mail): SendResult {
+  const pictures = mail.inline?.length ?? 0;
+
   console.log(
     `\n──────────────── email (not sent, no mailbox configured) ────────────────\n` +
       `  To:      ${mail.to}\n` +
-      `  Subject: ${mail.subject}\n\n` +
+      `  Subject: ${mail.subject}\n` +
+      `  In body: ${pictures} picture${pictures === 1 ? "" : "s"}\n\n` +
       `${mail.text}\n` +
       `────────────────────────────────────────────────────────────────\n`,
   );

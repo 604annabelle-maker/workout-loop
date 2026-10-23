@@ -10,12 +10,12 @@
 
 import Anthropic from "@anthropic-ai/sdk";
 import {
-  DESCRIPTIONS_HEADING,
   buildPrompt,
   type PastWorkout,
   type Preferences,
   type Slot,
 } from "./prompt";
+import { DESCRIPTIONS_HEADING } from "./workout-shape";
 
 const MODEL = "claude-opus-5";
 

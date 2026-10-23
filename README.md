@@ -47,16 +47,34 @@ API key.
 |---|---|---|
 | `lib/prompt.ts` | Preferences and history in, prompt out | yes |
 | `lib/workout-shape.ts` | Recovers structure from a generated plan, so it can be rendered in colour | yes |
+| `lib/progression.ts` | What each movement was last loaded at | yes |
+| `lib/exercise-name.ts` | Decides when two exercise names mean the same movement | yes |
+| `lib/exercise-pictures.ts` | Picks which stills go with a plan | yes |
 | `lib/workout-mail.ts` | Decides what the email says and looks like | yes |
 | `lib/reply-parse.ts` | Strips quoted text, reads the threading headers | yes |
 | `lib/reply-match.ts` | Decides which workout a reply answers | yes |
 | `lib/booking-payload.ts` | Validates what the gym app sends | yes |
 | `lib/signature.ts` | HMAC over the webhook body | yes |
 | `lib/mailbox.ts` | The one account, both directions | yes |
+| `lib/picture-library.ts` | The vendored stills on disk | no |
 | `lib/generate.ts` | Calls Claude, or returns a stand in | no |
 | `lib/mail-out.ts`, `lib/mail-in.ts` | SMTP and IMAP | no |
 | `lib/delivery.ts` | Booked to sent, shared by the webhook and the retry | no |
 | `lib/replies.ts` | Polls, matches, files | no |
+
+**Progressive overload is the point, so it is built in rather than asked for.**
+`progression.ts` reads the stored plans back per movement instead of per
+session, which gives the last load for every exercise. The model is told those
+numbers so it can prescribe the next step up, and the email prints them under
+each exercise, so the number to beat is on the screen in the gym.
+
+**The pictures are in the body, not attached.** Two stills per exercise, the
+start and the end of the movement, directly under the exercise they belong to
+and referred to by `cid:`. Attached instead, they would arrive as a row of
+files at the bottom of the message in whatever order they went in, which
+answers "what does this look like" with "scroll down and guess". A movement
+with no picture says so, because a silent gap reads as an email that failed to
+load and there is no browser here to go and check.
 
 A few decisions worth knowing:
 
@@ -96,7 +114,17 @@ is the reason it was buildable before any account existed.
 npm run generate:once      # print a workout, with diagnostics
 npm run send:once          # generate one and send it
 npm run db:migrate         # apply migrations
+npm run vendor:pictures    # rebuild assets/exercise-pictures
 ```
+
+**The pictures are vendored, not fetched.** `assets/exercise-pictures` holds
+873 exercises from [free-exercise-db](https://github.com/yuhonas/free-exercise-db)
+(public domain), shrunk to the width an email needs: about 25MB in the
+repository, and nothing to call while a workout is going out. Matching a
+prescribed exercise to one of them is fuzzy, because the model writes "SMITH
+OVERHEAD PRESS" for what the catalogue calls "Smith Machine Overhead Shoulder
+Press". `next.config.ts` names the directory so a Vercel function ships with
+it; the files are read by name, so nothing in the build graph points at them.
 
 ## Configuring it
 

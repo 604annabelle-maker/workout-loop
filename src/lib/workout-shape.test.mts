@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { shapePlan } from "./workout-shape.ts";
-import { DESCRIPTIONS_HEADING } from "./prompt.ts";
+import { DESCRIPTIONS_HEADING } from "./workout-shape.ts";
 
 const PLAN = `WARM UP
 

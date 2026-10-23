@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { composeWorkoutMail, workoutSubject } from "./workout-mail.ts";
-import { DESCRIPTIONS_HEADING } from "./prompt.ts";
+import { DESCRIPTIONS_HEADING } from "./workout-shape.ts";
 
 const SLOT = { startsAt: new Date("2026-08-26T15:00:00Z"), minutes: 60 };
 
@@ -128,4 +128,120 @@ test("a plan with no descriptions produces no empty descriptions section", () =>
 
 test("surrounding whitespace on the plan is trimmed", () => {
   assert.equal(composeWorkoutMail(`\n\n${PLAN}\n\n`, SLOT).text, PLAN.trim());
+});
+
+const PICTURES = [
+  {
+    exercise: "BACK SQUAT",
+    shows: "",
+    frames: [
+      { cid: "exercise-barbell-squat-0@workout-loop", file: "Barbell_Squat-0.jpg" },
+      { cid: "exercise-barbell-squat-1@workout-loop", file: "Barbell_Squat-1.jpg" },
+    ],
+  },
+  { exercise: "DEADLIFT", shows: "Romanian Deadlift", frames: [{ cid: "exercise-rdl-0@workout-loop", file: "Romanian_Deadlift-0.jpg" }] },
+];
+
+const LAST_TIME = [
+  {
+    exercise: "BACK SQUAT",
+    when: new Date("2026-08-12T15:00:00Z"),
+    sets: "4x5",
+    note: "55kg. Rest 3 min.",
+  },
+];
+
+test("a picture sits in the body under its own exercise, not at the bottom", () => {
+  const { html } = composeWorkoutMail(PLAN, SLOT, { pictures: PICTURES });
+
+  const squat = html.indexOf("BACK SQUAT");
+  const picture = html.indexOf("cid:exercise-barbell-squat-0@workout-loop");
+  const deadlift = html.indexOf(">DEADLIFT<");
+
+  assert.ok(squat < picture && picture < deadlift, "the picture is between the two exercises");
+  assert.match(html, /<img src="cid:exercise-barbell-squat-1@workout-loop"/);
+});
+
+test("both frames of a movement go side by side, labelled start and finish", () => {
+  const { html } = composeWorkoutMail(PLAN, SLOT, { pictures: PICTURES });
+
+  assert.match(html, /alt="BACK SQUAT, start"/);
+  assert.match(html, /alt="BACK SQUAT, finish"/);
+  assert.match(html, /<table role="presentation"/);
+});
+
+test("only the pictures the body refers to are sent", () => {
+  const { inline } = composeWorkoutMail(PLAN, SLOT, { pictures: PICTURES });
+
+  assert.deepEqual(
+    inline.map((i) => i.cid),
+    [
+      "exercise-barbell-squat-0@workout-loop",
+      "exercise-barbell-squat-1@workout-loop",
+      "exercise-rdl-0@workout-loop",
+    ],
+  );
+  assert.deepEqual(inline.map((i) => i.filename), [
+    "back-squat-1.jpg",
+    "back-squat-2.jpg",
+    "deadlift-1.jpg",
+  ]);
+});
+
+test("a picture of a near enough movement says what it is of", () => {
+  const { html } = composeWorkoutMail(PLAN, SLOT, { pictures: PICTURES });
+
+  assert.match(html, /Shown: Romanian Deadlift/);
+  // The one that is what it says it is gets no caption.
+  assert.equal(html.match(/Shown:/g)?.length, 1);
+});
+
+test("an exercise searched for and not found says so rather than looking broken", () => {
+  // What ./exercise-pictures.ts produces: an answer for every exercise, and
+  // an empty one for the movement that is not in the set.
+  const pictures = [PICTURES[0], { exercise: "DEADLIFT", shows: "", frames: [] }];
+  const { html } = composeWorkoutMail(PLAN, SLOT, { pictures });
+
+  assert.match(html, /No picture for this one\./);
+  assert.equal(html.match(/No picture for this one\./g)?.length, 1);
+});
+
+test("a plan that could not be parsed sends no pictures at all", () => {
+  const { html, inline } = composeWorkoutMail("freeform text", SLOT, { pictures: PICTURES });
+
+  assert.deepEqual(inline, []);
+  assert.ok(!html.includes("cid:"));
+});
+
+test("no pictures offered means no pictures and no apology", () => {
+  const { html, inline } = composeWorkoutMail(PLAN, SLOT);
+
+  assert.deepEqual(inline, []);
+  assert.ok(!html.includes("cid:"));
+  assert.ok(!html.includes("No picture for this one"));
+});
+
+test("last time's load is printed under the exercise, with its date", () => {
+  const { html } = composeWorkoutMail(PLAN, SLOT, { lastTime: LAST_TIME });
+
+  assert.match(html, /Last time<\/span> 4x5, 55kg\. Rest 3 min\./);
+  assert.match(html, /Wed 12 Aug/);
+
+  // Today's prescription first, last time's underneath it to be beaten.
+  const today = html.indexOf(">4x5<");
+  const before = html.indexOf("Last time");
+  assert.ok(today < before);
+});
+
+test("a movement never done before carries no last time line", () => {
+  const { html } = composeWorkoutMail(PLAN, SLOT, { lastTime: LAST_TIME });
+
+  const deadlift = html.indexOf(">DEADLIFT<");
+  assert.equal(html.indexOf("Last time", deadlift), -1);
+});
+
+test("the text body is still the plan exactly, pictures or not", () => {
+  const { text } = composeWorkoutMail(PLAN, SLOT, { pictures: PICTURES, lastTime: LAST_TIME });
+
+  assert.equal(text, PLAN.trim());
 });

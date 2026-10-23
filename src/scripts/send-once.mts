@@ -10,6 +10,8 @@ process.loadEnvFile(".env");
 
 const { generateWorkout } = await import("../lib/generate.ts");
 const { composeWorkoutMail } = await import("../lib/workout-mail.ts");
+const { workoutPictures } = await import("../lib/picture-library.ts");
+const { lastTimeFor } = await import("../lib/progression.ts");
 const { sendMail } = await import("../lib/mail-out.ts");
 const { readPreferences, EMPTY } = await import("../lib/preferences.ts");
 const { recentWorkouts } = await import("../lib/workouts.ts");
@@ -37,20 +39,26 @@ if (JSON.stringify(preferences) === JSON.stringify(EMPTY)) {
   };
 }
 
-const { planText, canned } = await generateWorkout(
-  preferences,
-  await recentWorkouts(),
-  slot,
-);
+const history = await recentWorkouts();
+
+const { planText, canned } = await generateWorkout(preferences, history, slot);
 
 console.log("─".repeat(60));
 console.log(planText);
 console.log("─".repeat(60) + "\n");
 
-const mail = composeWorkoutMail(planText, slot);
+const pictures = workoutPictures(planText);
+const lastTime = lastTimeFor(planText, history);
+
+const mail = composeWorkoutMail(planText, slot, { pictures, lastTime });
 const result = await sendMail({ to, ...mail });
 
+const missing = pictures.filter((p) => p.frames.length === 0).map((p) => p.exercise);
+
 console.log(`subject:    ${mail.subject}`);
+console.log(`pictures:   ${mail.inline.length} in the body, for ${pictures.length - missing.length} of ${pictures.length} exercises`);
+if (missing.length > 0) console.log(`  no picture: ${missing.join(", ")}`);
+console.log(`last time:  ${lastTime.length} of ${pictures.length} exercises have been done before`);
 console.log(`plan:       ${canned ? "canned" : "generated"}`);
 console.log(`sent:       ${result.sent}${result.reason ? ` (${result.reason})` : ""}`);
 console.log(`message id: ${result.messageId}`);

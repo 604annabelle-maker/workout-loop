@@ -15,7 +15,9 @@ import { db, schema } from "@/db";
 import type { Booking } from "./booking-payload";
 import { generateWorkout } from "./generate";
 import { sendMail } from "./mail-out";
+import { workoutPictures } from "./picture-library";
 import { readPreferences } from "./preferences";
+import { lastTimeFor } from "./progression";
 import { dateOnly } from "./when";
 import { composeWorkoutMail } from "./workout-mail";
 import { recentWorkouts } from "./workouts";
@@ -76,11 +78,18 @@ export async function deliverWorkout(workoutId: string): Promise<Delivery> {
   const slot = { startsAt: workout.slotStartsAt, minutes: workout.slotMinutes };
   let planText = workout.planText;
 
+  /*
+   * Read whether or not a plan has to be generated. A retry sends the plan
+   * already in the row, and it has to carry the same pictures and the same
+   * last-time lines the first attempt would have.
+   */
+  const history = await recentWorkouts();
+
   if (!planText) {
     try {
       const generated = await generateWorkout(
         await readPreferences(),
-        await recentWorkouts(),
+        history,
         slot,
       );
       planText = generated.planText;
@@ -96,7 +105,11 @@ export async function deliverWorkout(workoutId: string): Promise<Delivery> {
     }
   }
 
-  const mail = composeWorkoutMail(planText, slot);
+  const mail = composeWorkoutMail(planText, slot, {
+    pictures: workoutPictures(planText),
+    lastTime: lastTimeFor(planText, history),
+  });
+
   const result = await sendMail({ to, ...mail });
 
   if (!result.sent) {

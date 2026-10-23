@@ -1,7 +1,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { generateWorkout } from "./generate.ts";
-import { DESCRIPTIONS_HEADING, type Preferences } from "./prompt.ts";
+import { type Preferences } from "./prompt.ts";
+import { DESCRIPTIONS_HEADING } from "./workout-shape.ts";
 
 const PREFS: Preferences = {
   goals: "",

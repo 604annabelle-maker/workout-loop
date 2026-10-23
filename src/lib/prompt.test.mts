@@ -1,12 +1,12 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  DESCRIPTIONS_HEADING,
   HISTORY_WINDOW,
   buildPrompt,
   type PastWorkout,
   type Preferences,
 } from "./prompt.ts";
+import { DESCRIPTIONS_HEADING } from "./workout-shape.ts";
 
 const PREFS: Preferences = {
   goals: "get stronger, keep my back healthy",
@@ -146,4 +146,41 @@ test("empty preferences degrade to a usable prompt rather than blanks", () => {
   assert.match(user, /Goals: not stated/);
   assert.match(user, /Avoid: nothing stated/);
   assert.ok(!user.includes("In their words"));
+});
+
+function loadedSession(day: number, body: string): PastWorkout {
+  return {
+    slotStartsAt: new Date(`2026-08-${String(day).padStart(2, "0")}T15:00:00Z`),
+    planText: `FOCUS\n\nLegs\n\nTHE SESSION\n\n${body}\n\n${DESCRIPTIONS_HEADING}\nBack squat: sit down between your hips.`,
+    feedback: [],
+  };
+}
+
+test("the model is told what each movement was last loaded at", () => {
+  const history = [
+    loadedSession(12, "1. BACK SQUAT  4 x 6\n   45kg. Rest 3 min."),
+    loadedSession(19, "1. BACK SQUAT  4 x 6\n   50kg. Rest 3 min."),
+  ];
+
+  const { user } = buildPrompt(PREFS, history, SLOT);
+
+  assert.match(user, /WHAT THEY LAST LIFTED/);
+  // The most recent load, not the first, and only once.
+  assert.match(user, /BACK SQUAT - Wed 19 Aug: 4 x 6, 50kg\. Rest 3 min\./);
+  assert.equal(user.match(/BACK SQUAT -/g)?.length, 1);
+});
+
+test("a first session is told there is nothing to progress from yet", () => {
+  const { user } = buildPrompt(PREFS, [], SLOT);
+
+  assert.match(user, /WHAT THEY LAST LIFTED/);
+  assert.match(user, /Pick sensible starting weights/);
+});
+
+test("progressive overload is asked for in so many words", () => {
+  const { system } = buildPrompt(PREFS, [], SLOT);
+
+  assert.match(system, /PROGRESSIVE OVERLOAD/);
+  assert.match(system, /2\.5kg/);
+  assert.match(system, /same from session to session/);
 });

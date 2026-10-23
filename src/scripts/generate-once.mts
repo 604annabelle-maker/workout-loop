@@ -13,7 +13,7 @@ process.loadEnvFile(".env");
 const { generateWorkout } = await import("../lib/generate.ts");
 const { readPreferences, EMPTY } = await import("../lib/preferences.ts");
 const { recentWorkouts } = await import("../lib/workouts.ts");
-const { DESCRIPTIONS_HEADING } = await import("../lib/prompt.ts");
+const { DESCRIPTIONS_HEADING } = await import("../lib/workout-shape.ts");
 
 const minutes = Number(process.argv[2]) || 60;
 

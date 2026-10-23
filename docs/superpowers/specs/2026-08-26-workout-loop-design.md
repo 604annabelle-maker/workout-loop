@@ -66,7 +66,8 @@ only if phase one is in use and something is actually missing.
 - **Conversational replies.** Ask a question, get an answer. Ask for a change, get a
   revised workout.
 - **Image attachments** for demonstrating movements. Confirmed to render on the phone,
-  so this is viable whenever it is wanted.
+  so this is viable whenever it is wanted. *Built in October 2026, in the body rather
+  than attached. See the note at the end.*
 
 Neither is speculative and both have a known shape. See the notes at the end.
 
@@ -431,8 +432,19 @@ Cost: roughly 5c for an answer, 8c for a revision.
 
 ### Image attachments
 
-Confirmed to render on the phone. PDFs confirmed not to, so images attach as plain
-image files and are never bundled into a document.
+**Built, 23 October 2026, with one change: the pictures are in the body rather than
+attached.** Attached, they arrive as a row of files at the bottom of the message in
+whatever order they went in, and matching a file to the exercise it is of means
+scrolling down and guessing. Referred to by `cid:` from the HTML they sit under the
+exercise they belong to, which is the whole point of having them. Nothing else below
+changed: same source, vendored the same way, same fuzzy matching, and a movement with
+no picture still says so.
+
+The stills are shrunk to 400px at vendor time. The originals are 750px and 40 to 70kB
+each; a workout carries ten or twelve, and this is read on a phone.
+
+Confirmed to render on the phone. PDFs confirmed not to, so images are sent as plain
+image parts and are never bundled into a document.
 
 Source: [`free-exercise-db`](https://github.com/yuhonas/free-exercise-db), public
 domain, over 800 exercises, JSON plus stills, typically two per exercise showing the
@@ -444,3 +456,27 @@ than silently omit a picture that was asked for.
 
 The written description always goes regardless, which is exactly why this is deferred:
 in phase one every exercise is already described in the email.
+
+
+## Progressive overload
+
+Added 23 October 2026, after a first month of real use.
+
+Load was progressing only as far as the model happened to notice it in the replayed
+sessions, which is not a mechanism. It is now one:
+
+- `progression.ts` reads the stored plans back **per movement** rather than per
+  session, so every exercise has a last load and a date.
+- Those lines go into the prompt as their own block, and the system prompt asks for
+  the next step up in so many words: the smallest increment the gym allows, a rep or
+  a set where the weight cannot move that finely, and holding or dropping the load
+  after a reply that said it was too hard or that something hurt.
+- The email prints last time's load under today's prescription, so the number to beat
+  is on the screen while she is standing at the machine.
+- The prompt also asks for a weight in kg on every loading line, and for anchor lifts
+  to keep their name and their place from session to session. "Moderate" cannot be
+  beaten, and a movement renamed between sessions loses its history.
+
+This stays inside the non-goal above: nothing is tracked as structured data. What is
+read back is what was *prescribed*, and a reply is what corrects it, which is the loop
+the rest of the project already runs on.

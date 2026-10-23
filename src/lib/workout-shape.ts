@@ -12,7 +12,15 @@
  * verbatim.
  */
 
-import { DESCRIPTIONS_HEADING } from "./prompt";
+/**
+ * The line that separates the workout from the explanations.
+ *
+ * Lives here, with the parsing, because three places agree on it: the prompt
+ * asks the model for it, this reads the plan back apart on it, and the mailer
+ * renders the two halves differently. A drift between any of them would put
+ * the glossary in the wrong half of the email.
+ */
+export const DESCRIPTIONS_HEADING = "HOW TO DO THESE";
 
 export interface Exercise {
   /** "1", "2". Empty for an unnumbered item. */

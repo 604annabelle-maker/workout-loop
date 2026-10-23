@@ -5,7 +5,9 @@
  * this project can be read, diffed and tested without a key or a database.
  */
 
+import { lastLiftedLines } from "./progression";
 import { dateAndTime } from "./when";
+import { DESCRIPTIONS_HEADING } from "./workout-shape";
 
 /**
  * How many past workouts the model sees. Enough at three sessions a week to
@@ -16,15 +18,13 @@ import { dateAndTime } from "./when";
 export const HISTORY_WINDOW = 6;
 
 /**
- * The line that separates the workout from the explanations.
+ * How much of a past workout is replayed as history.
  *
- * Shared rather than described in prose, because the mailer splits on it and a
- * drift between the two would put the glossary in the wrong half of the email.
+ * Long enough to reach the end of a full session, loading lines included,
+ * because progression reads those: a session truncated mid way through is a
+ * session whose last two exercises look as though they never happened.
  */
-export const DESCRIPTIONS_HEADING = "HOW TO DO THESE";
-
-/** How much of a past workout is replayed as history. */
-const HISTORY_EXCERPT_CHARS = 600;
+const HISTORY_EXCERPT_CHARS = 1_000;
 
 export interface Preferences {
   goals: string;
@@ -118,7 +118,13 @@ Under THE SESSION, exactly two lines per exercise:
   mid set, so it must be short and it must never wrap.
 
   Line two: the loading and the rest, indented three spaces. One sentence.
-  Under 50 characters.
+  Under 50 characters. Name an actual weight in kg whenever the movement takes
+  one, because a weight is the thing that gets progressed and "moderate" can
+  never be beaten.
+
+Name exercises the way a gym does, and the same way every time: SMITH
+OVERHEAD PRESS stays SMITH OVERHEAD PRESS. A movement renamed between
+sessions reads as a different movement and its loading history is lost.
 
 Leave one blank line between exercises. Do not restate the date, the duration,
 or anything else they already know.
@@ -153,6 +159,29 @@ Look at what they have trained recently and choose something that follows from
 it, rather than repeating it. If they told you a session was too easy, too hard,
 or hurt, that is the single most important thing you know.
 
+PROGRESSIVE OVERLOAD. This is the point of the whole thing, not a bonus. They
+are trying to get stronger, which only happens if the work gets harder over
+time, and it only gets harder if you can see what it was last time.
+
+WHAT THEY LAST LIFTED below gives the most recent loading for each movement.
+Use it:
+
+- Keep the main lifts for a muscle group the same from session to session, so
+  there is something to beat. Two or three anchors per group, then vary the
+  smaller work. Rotating every exercise feels varied and progresses nothing.
+- When a movement is listed, prescribe the next step up: usually the smallest
+  increment the gym allows, 2.5kg on a bar or machine, 1 to 2kg a dumbbell.
+  Where the weight cannot move that finely, add a rep or a set instead, and
+  only then go up in weight.
+- Say what the step is on the loading line, in their units: "12.5kg a side, up
+  2.5kg on last time". They are standing at the machine when they read it, so
+  it has to be a number and not an instruction to judge.
+- Hold the load, or drop it, when a reply said it was too hard, or something
+  hurt, or there has been a long gap. One honest easy session is worth more
+  than a number that cannot be hit. Say so in one short line when you do.
+- When a movement has never been done, pick a sensible starting weight and
+  say it plainly, so there is something to progress from next time.
+
 Give no preamble, no sign-off and no encouragement. Start with the FOCUS
 heading.`;
 
@@ -179,11 +208,16 @@ export function buildPrompt(
       ? recent.map(asHistory).join("\n\n")
       : "Nothing yet. This is the first session.";
 
+  const lifted = lastLiftedLines(recent);
+
   const user = `ABOUT THEM
 ${about}
 
 RECENT SESSIONS, oldest first
 ${past}
+
+WHAT THEY LAST LIFTED, most recent first
+${lifted || "Nothing yet. Pick sensible starting weights."}
 
 THIS SESSION
 ${dateAndTime(slot.startsAt)}, ${slot.minutes} minutes.`;
