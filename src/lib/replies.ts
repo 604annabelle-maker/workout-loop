@@ -1,19 +1,30 @@
 /**
  * Filing replies (design §Replies).
  *
- * Optional, never prompted, never answered. A reply is stripped of quoted
- * text and filed against the workout it belongs to, where it feeds the next
- * generation.
+ * Optional, never required, never chased. A reply is stripped of quoted text
+ * and filed against the workout it belongs to, then read into a log of what
+ * she lifted and how she felt (./reply-read.ts). The prose feeds the next
+ * generation as it always did; the log is what progress is measured from.
  *
- * Silence means it worked. The only reply that gets a response is one that
- * could not be matched, because otherwise a lost note would vanish without
- * trace on a phone that cannot check anything.
+ * Filing and reading are two steps on purpose. Filing is a database write
+ * that cannot fail for any interesting reason; reading calls a model that
+ * can. A reply is never lost because it could not be read: it is filed first,
+ * and reading is retried by the cron until it works or gives up.
+ *
+ * Silence means it worked. What was read shows up at the top of the next
+ * workout, where a misreading can be corrected. The only reply that gets an
+ * answer of its own is one that could not be matched to a workout, because
+ * otherwise a lost note would vanish without trace on a phone that cannot
+ * check anything.
  */
 
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq, gte, isNull, lt } from "drizzle-orm";
 import { db, schema } from "@/db";
 import { eachUnseen, type Incoming } from "./mail-in";
 import { sendMail } from "./mail-out";
+import { readPlan, type Plan } from "./plan";
+import { isEmptyLog } from "./reply-log";
+import { readReply } from "./reply-read";
 import { matchWorkout, type Candidate } from "./reply-match";
 import { normalizeMessageId, parseReply } from "./reply-parse";
 
@@ -35,6 +46,8 @@ export interface ReplyReport {
   ignored: number;
   unmatched: number;
   empty: number;
+  /** Replies read into a log this run, including retries of earlier ones. */
+  read: number;
 }
 
 export async function pollReplies(): Promise<ReplyReport> {
@@ -45,6 +58,7 @@ export async function pollReplies(): Promise<ReplyReport> {
     ignored: 0,
     unmatched: 0,
     empty: 0,
+    read: 0,
   };
 
   const owner = process.env.OWNER_EMAIL?.trim().toLowerCase();
@@ -56,7 +70,77 @@ export async function pollReplies(): Promise<ReplyReport> {
   report.polled = result.polled;
   report.found = result.found;
 
+  // After filing, so this run's replies are read in the same pass, and so
+  // anything that failed to read last time gets another go.
+  report.read = await readPendingLogs();
+
   return report;
+}
+
+/** Tries this many times to read a reply, then leaves it to the prose. */
+const READ_ATTEMPTS = 3;
+
+/** How far back an unread reply is still worth reading. */
+const READ_WINDOW_DAYS = 14;
+
+/**
+ * Reads every filed reply that has not been read yet. Returns how many were.
+ *
+ * Never throws: a reply that cannot be read stays filed as prose, which is
+ * exactly what the app did for its first two months.
+ */
+export async function readPendingLogs(now = new Date()): Promise<number> {
+  const since = new Date(now.getTime() - READ_WINDOW_DAYS * 24 * 60 * 60 * 1000);
+
+  const pending = await db
+    .select({
+      id: feedback.id,
+      body: feedback.body,
+      attempts: feedback.logAttempts,
+      plan: workouts.plan,
+    })
+    .from(feedback)
+    .innerJoin(workouts, eq(feedback.workoutId, workouts.id))
+    .where(
+      and(
+        isNull(feedback.log),
+        lt(feedback.logAttempts, READ_ATTEMPTS),
+        gte(feedback.receivedAt, since),
+      ),
+    )
+    .limit(10);
+
+  let read = 0;
+
+  for (const row of pending) {
+    let plan: Plan | null = null;
+    try {
+      plan = row.plan ? readPlan(row.plan) : null;
+    } catch {
+      plan = null;
+    }
+
+    try {
+      const log = await readReply(row.body, plan);
+      await db
+        .update(feedback)
+        .set({
+          // An empty log is still a read: there was simply nothing to record.
+          log: isEmptyLog(log) ? { ...log, empty: true } : log,
+          logAttempts: row.attempts + 1,
+        })
+        .where(eq(feedback.id, row.id));
+      read += 1;
+    } catch (err) {
+      console.error(`reading reply ${row.id} failed:`, err);
+      await db
+        .update(feedback)
+        .set({ logAttempts: row.attempts + 1 })
+        .where(eq(feedback.id, row.id));
+    }
+  }
+
+  return read;
 }
 
 async function handle(

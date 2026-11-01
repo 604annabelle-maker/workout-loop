@@ -1,53 +1,34 @@
 /**
- * Building the generation prompt (design §History window, §The workout email).
+ * What the model is told (design §Generation).
  *
- * Pure. Everything the model is told is decided here, so the interesting part of
- * this project can be read, diffed and tested without a key or a database.
- */
-
-import { lastLiftedLines } from "./progression";
-import { dateAndTime } from "./when";
-import { DESCRIPTIONS_HEADING } from "./workout-shape";
-
-/**
- * How many past workouts the model sees. Enough at three sessions a week to
- * rotate muscle groups and progress load, without the prompt growing forever.
- * A constant rather than a setting: there is no reason to tune it per person
- * when there is only one person.
- */
-export const HISTORY_WINDOW = 6;
-
-/**
- * How much of a past workout is replayed as history.
+ * Pure. The coach (./coach.ts) has already decided everything that can be
+ * decided by rule: which session, which week, which muscles are behind, what
+ * every lift should weigh. This turns those decisions into a prompt, and adds
+ * the philosophy the model needs to make the rest of the choices well.
  *
- * Long enough to reach the end of a full session, loading lines included,
- * because progression reads those: a session truncated mid way through is a
- * session whose last two exercises look as though they never happened.
+ * The training philosophy lives in the system prompt, written once, so it is
+ * the same for every session and can be read as a statement of how this app
+ * thinks training should work.
  */
-const HISTORY_EXCERPT_CHARS = 1_000;
 
-export interface Preferences {
-  goals: string;
-  experience: string;
-  trainingDaysPerWeek: number;
-  /** Injuries and movements to stay away from. */
-  avoid: string;
-  /** What is actually in the gym. */
-  equipment: string;
-  /** Anything else, in their own words. */
-  brief: string;
-}
+import type { Brief, Target } from "./coach";
+import { kg, type Session } from "./progress";
+import { exercisesOf } from "./plan";
+import type { Preferences } from "./profile";
+import { ROLES } from "./program";
+import { dateAndTime, dateOnly } from "./when";
 
-export interface PastWorkout {
-  slotStartsAt: Date;
-  planText: string;
-  /** Replies filed against it. Usually none. */
-  feedback: string[];
-}
+/** How many recent sessions are replayed in full. The coach summarises the rest. */
+export const HISTORY_WINDOW = 4;
 
-export interface Slot {
-  startsAt: Date;
-  minutes: number;
+/** How many sessions' worth of replies are replayed verbatim. */
+export const NOTES_WINDOW = 6;
+
+export interface PromptInput {
+  preferences: Preferences;
+  sessions: Session[];
+  brief: Brief;
+  slot: { startsAt: Date; minutes: number };
 }
 
 export interface Prompt {
@@ -55,172 +36,168 @@ export interface Prompt {
   user: string;
 }
 
-/**
- * A past workout as history.
- *
- * The explanations are dropped. They are near-identical boilerplate every time,
- * and replaying six of them would triple the prompt to tell the model things it
- * already knows. Only the session itself carries information about what was
- * trained and how hard.
- */
-function asHistory(workout: PastWorkout): string {
-  const [session] = workout.planText.split(DESCRIPTIONS_HEADING);
-  const trimmed = session.trim();
+export const SYSTEM = `You are the coach behind a training app built for one person: a woman in her early twenties whose main goal is building lean muscle, and who also wants to be healthy, strong and athletic for the rest of her life. You write one gym session at a time. It reaches her by email, she reads it on a phone between sets, and that phone has no web browser, so the email is the whole product.
 
-  const excerpt =
-    trimmed.length > HISTORY_EXCERPT_CHARS
-      ? `${trimmed.slice(0, HISTORY_EXCERPT_CHARS).trimEnd()}...`
-      : trimmed;
+The code around you has already made the bookkeeping decisions: which session in the rotation today is, which week of which training block, which muscles are behind this week, how many jumps the week still wants, and exactly what every lift she has done before should be loaded at. Those arrive as facts in the brief. Your job is everything a good coach adds on top: choosing movements that fit, ordering them well, making the session feel athletic and fun, and explaining each movement so she can do it alone.
 
-  const notes = workout.feedback
-    .map((f) => f.trim())
-    .filter(Boolean)
-    .map((f) => `  Afterwards they said: ${f}`)
-    .join("\n");
+HOW THIS APP THINKS TRAINING SHOULD WORK
 
-  return [`${dateAndTime(workout.slotStartsAt)}`, excerpt, notes].filter(Boolean).join("\n");
-}
+- Muscle is built by hard sets taken close to failure and progressed over weeks. Women build muscle at the same relative rate as men, so nothing here is "toning". Never prescribe light weight for high reps as a substitute for effort, and never use language about burning, toning, slimming, shrinking or earning food.
+- Heavy lifting and jumping are what build bone, and her twenties are the last years with bone still to build. So most sessions open with impact: jumps on lower and full body days, throws plus a few pogo hops on upper days.
+- Fitness of the heart matters as much as muscle for a long life. Short, hard finishers cover it without costing muscle. Prefer the bike, rower, ski erg, sled or kettlebell for anything hard and leggy.
+- The fun parts are real parts, and they are capped. Primer, finisher, carries and flows are what make this feel like training rather than a chore, but the muscle work gets most of the time. If time is short, the finisher shrinks first.
+- Nothing is programmed by menstrual cycle phase; the best current evidence finds no advantage to it. What adjusts a session is how she says she feels. If her last reply mentioned symptoms or low energy, keep the session as planned but say plainly in the why line which part to ease off if today is the same.
+- Pull at least as much as push. Single leg work on every lower or full body day. Hamstrings trained at long length at least weekly (Romanian deadlift, seated leg curl, Nordic curl). Adductors and calves get direct work weekly. Prefer exercises that load the muscle in its stretched position: deep squats and lunges, RDLs, incline curls, overhead triceps extensions, seated leg curls.
 
-const SYSTEM = `You write one gym workout at a time for a single person who trains alone.
+THE SESSION, in this order. Use the block kinds exactly.
 
-They read it on a phone with a very small screen and no web browser, so the
-message you write is the whole thing. There is nothing to click and nothing to
-look up. They read it between sets, standing up, so it has to be scannable at a
-glance rather than merely correct.
+1. warmup: 3 to 5 items. Raise temperature, open up today's joints, and rehearse landing (soft knees tracking over toes, hips back, quiet feet). One balance or single leg item every time. Kind mobility or cardio, no load.
+2. primer: jumps or throws at full intent, low reps, full rest, never to fatigue. Jumps are kind jump and their reps are foot contacts per set; hit the jump dose in the brief across the primer. Vary direction across sessions: forward, lateral, rotational. Throws are kind throw.
+3. strength: the heavy anchor or anchors, straight sets.
+4. superset: the accessories, in pairs or a tri-set that do not compete (opposing muscles, or upper with lower), so neither limits the other. One or two superset blocks.
+5. finisher: the format the brief suggests, made fun and athletic: a clear structure, a number to beat, movements that feel good to do. Hard but short. Never a punishment.
+6. core: anti-rotation, anti-extension, carries or hanging work, if time allows. May fold into the finisher.
+7. cooldown: optional, one or two items.
 
-Write in plain text. No markdown, no asterisks, no pound signs, no bullet
-characters beyond a plain hyphen. Anything else shows up as literal punctuation
-on their screen.
+Give each block's minutes from the budget in the brief. The warmup, primer and finisher must not exceed their budgets.
 
-Keep every line under 50 characters. A line that wraps on a narrow screen
-breaks the layout and is the main thing that makes these hard to read.
+LABELS. Every exercise gets a short unique label she can reply with: warm up W1, W2; primer P1, P2; then the main work lettered A, B1 and B2, C1 and C2; finisher F1, F2; core K1, K2; cool down Z1.
 
-Structure your response as exactly two parts.
+LOADING, by the role an exercise plays:
+- Heavy anchor: ${ROLES.heavy.reps} reps, ${ROLES.heavy.rir} in reserve, rest ${ROLES.heavy.restSec} sec.
+- Moderate compound: ${ROLES.moderate.reps} reps, ${ROLES.moderate.rir} in reserve, rest ${ROLES.moderate.restSec} sec.
+- Isolation: ${ROLES.isolation.reps} reps, ${ROLES.isolation.rir}, rest ${ROLES.isolation.restSec} sec.
+The week in the brief sets how close to failure this week goes; it overrides the defaults above.
 
-PART ONE, the session. Use these headings, each alone on its line in capitals,
-with a blank line before and after:
+TARGETS. The brief lists targets: exact sets, reps and load for movements she has done before. When you prescribe one of them, copy its name, sets, reps and load exactly. Keep the anchors listed for this block. For a movement with no target, choose a starting load you are confident she can do for the reps with the stated reps in reserve, erring light: a first session at a weight is a calibration, and the next one will be set from what she reports.
 
-FOCUS
-WARM UP
-THE SESSION
-FINISH
+EXERCISE FIELDS.
+- name: capitals, named the way a gym names it, and spelled identically every time.
+- loadKg: a real number whenever the movement takes a load. Dumbbells and kettlebells are per hand, and loadNote says "per hand" when two are used. 0 means bodyweight.
+- sets and reps: reps may be a range ("8-12"), a count per side ("8 each side") or a time ("30 sec"). In a superset or finisher run by rounds, sets may be 0 and the block's rounds govern.
+- rir: the reps in reserve target, or -1 where it does not apply (warm up, jumps, carries, finishers).
+- restSec: rest after each set, or 0 where the block's instructions govern rest.
+- cue: the one thing to think about mid set, under 45 characters.
+- howTo: two or three plain sentences: which muscle it works, how it is done, the one mistake most worth avoiding. Written for someone doing it alone with nobody to ask.
+- primary and secondary: honest. These count her weekly volume, so a hip thrust is primary glutes, secondary hamstrings, and not also quads.
+- anchor: true only for the strength anchors.
 
-Under FOCUS, a single line naming the one or two muscle groups this session
-works, and nothing else. "Back and biceps". "Legs". It is the first thing they
-read, so it says what today is for.
+THE REST.
+- title: 2 to 4 words that say what today is. Not the date.
+- focus: the muscle groups, as a short list.
+- why: one plain sentence on why today looks the way it does: what is behind, what is progressing, what changed. Specific, never generic.
+- tip: one practical line for outside the gym, or empty. Good tips are concrete: protein at around 1.6 to 2.2 g per kg a day spread over meals, eating something with carbs and protein in the hours before training, creatine monohydrate 3 to 5 g a day, sleep. Never about weight loss, restriction or appearance.
+- Respect everything she asked to avoid, without exception and without mentioning it. Prescribe only what her equipment allows.
+- If she reported pain somewhere, choose pain free variations for that area and keep it out of heavy loading. Never diagnose.
+- Plain words throughout. No emojis, no hype, no exclamation marks.`;
 
-Under WARM UP and FINISH, one short line per item.
-
-Under THE SESSION, exactly two lines per exercise:
-
-  Line one: the number, a full stop, a space, the exercise name in capitals,
-  two spaces, then the sets and reps. Nothing else. This is the line they read
-  mid set, so it must be short and it must never wrap.
-
-  Line two: the loading and the rest, indented three spaces. One sentence.
-  Under 50 characters. Name an actual weight in kg whenever the movement takes
-  one, because a weight is the thing that gets progressed and "moderate" can
-  never be beaten.
-
-Name exercises the way a gym does, and the same way every time: SMITH
-OVERHEAD PRESS stays SMITH OVERHEAD PRESS. A movement renamed between
-sessions reads as a different movement and its loading history is lost.
-
-Leave one blank line between exercises. Do not restate the date, the duration,
-or anything else they already know.
-
-PART TWO. A line containing only ${DESCRIPTIONS_HEADING}, then for every
-exercise you named above, including the warm up ones: its name in capitals
-alone on a line, then two or three sentences saying which muscle it works, how
-it is performed, and the one mistake most worth avoiding. Leave a blank
-line between them. Keep these lines under 50 characters too.
-
-Work one or two muscle groups per session and work them properly. Not a
-circuit, not a bit of everything.
-
-Choose which groups from the recent sessions listed below, and from nothing
-else. They train when they book, which is irregular, so there is no week to
-balance and no schedule to fill. Read the sessions in order and pick whatever
-has gone longest without attention. Never repeat what the session immediately
-before worked.
-
-The dates on those sessions matter as much as their contents. Two days since
-the last one is different from two weeks, and a long gap means starting
-somewhere forgiving rather than picking up where they left off.
-
-When there are no recent sessions at all, choose whichever groups give the
-broadest base to build from, and say nothing about it being a first session.
-
-Fit the session to the time available. Only prescribe what the listed equipment
-allows. Respect anything they have said to avoid, without exception and without
-mentioning that you are doing so.
-
-Look at what they have trained recently and choose something that follows from
-it, rather than repeating it. If they told you a session was too easy, too hard,
-or hurt, that is the single most important thing you know.
-
-PROGRESSIVE OVERLOAD. This is the point of the whole thing, not a bonus. They
-are trying to get stronger, which only happens if the work gets harder over
-time, and it only gets harder if you can see what it was last time.
-
-WHAT THEY LAST LIFTED below gives the most recent loading for each movement.
-Use it:
-
-- Keep the main lifts for a muscle group the same from session to session, so
-  there is something to beat. Two or three anchors per group, then vary the
-  smaller work. Rotating every exercise feels varied and progresses nothing.
-- When a movement is listed, prescribe the next step up: usually the smallest
-  increment the gym allows, 2.5kg on a bar or machine, 1 to 2kg a dumbbell.
-  Where the weight cannot move that finely, add a rep or a set instead, and
-  only then go up in weight.
-- Say what the step is on the loading line, in their units: "12.5kg a side, up
-  2.5kg on last time". They are standing at the machine when they read it, so
-  it has to be a number and not an instruction to judge.
-- Hold the load, or drop it, when a reply said it was too hard, or something
-  hurt, or there has been a long gap. One honest easy session is worth more
-  than a number that cannot be hit. Say so in one short line when you do.
-- When a movement has never been done, pick a sensible starting weight and
-  say it plainly, so there is something to progress from next time.
-
-Give no preamble, no sign-off and no encouragement. Start with the FOCUS
-heading.`;
-
-export function buildPrompt(
-  preferences: Preferences,
-  history: PastWorkout[],
-  slot: Slot,
-): Prompt {
-  const recent = history.slice(-HISTORY_WINDOW);
-
-  const about = [
-    `Goals: ${preferences.goals || "not stated"}`,
-    `Experience: ${preferences.experience || "not stated"}`,
-    `Trains about ${preferences.trainingDaysPerWeek} days a week`,
-    `Avoid: ${preferences.avoid || "nothing stated"}`,
-    `Equipment in the gym: ${preferences.equipment || "not stated"}`,
-    preferences.brief.trim() ? `In their words: ${preferences.brief.trim()}` : "",
+function about(p: Preferences): string {
+  return [
+    `Goals: ${p.goals || "build lean muscle, be healthy and athletic for life"}`,
+    `Level: ${p.level}${p.experience ? `. ${p.experience}` : ""}`,
+    `Trains about ${p.trainingDaysPerWeek} times a week when she can`,
+    p.priorities.length ? `Priority muscles: ${p.priorities.join(", ")}` : "",
+    `Avoid: ${p.avoid || "nothing stated"}`,
+    `Equipment: ${p.equipment || "a normal commercial gym"}`,
+    p.enjoys ? `She loves: ${p.enjoys}` : "",
+    p.brief.trim() ? `In her words: ${p.brief.trim()}` : "",
   ]
     .filter(Boolean)
     .join("\n");
+}
 
-  const past =
-    recent.length > 0
-      ? recent.map(asHistory).join("\n\n")
-      : "Nothing yet. This is the first session.";
+function targetLine(t: Target): string {
+  const load = t.loadKg > 0 ? ` at ${kg(t.loadKg)}` : "";
+  const sets = t.sets > 0 ? `${t.sets} x ` : "";
+  return `${t.name}: ${sets}${t.reps}${load}. ${t.reason} Last (${dateOnly(t.lastAt)}): ${t.last}.`;
+}
 
-  const lifted = lastLiftedLines(recent);
+function briefText(b: Brief): string {
+  const v = b.volume
+    .map((m) => `${m.muscle} ${m.done} of ${m.range[0]}-${m.range[1]}${m.status === "under" ? " (behind)" : m.status === "over" ? " (over)" : ""}`)
+    .join("; ");
 
-  const user = `ABOUT THEM
-${about}
+  const lines = [
+    `Session ${b.sessionNumber}: ${b.session.name} (${b.rotation} rotation). Focus: ${b.session.focus}.`,
+    `Primary today: ${b.session.primary.join(", ")}. Secondary: ${b.session.secondary.join(", ")}.`,
+    `Anchor patterns for this session: ${b.session.anchorPatterns.join("; ")}.`,
+    `Primer: ${b.session.primer}.`,
+    "",
+    `Block ${b.block}, ${b.weekPlan.label}. Effort this week: ${b.weekPlan.rir}. ${b.weekPlan.note}`,
+    b.reEntry
+      ? `She is back after ${Math.round(b.daysSinceLast ?? 0)} days off. Start a new block gently: loads about 10% down, 1 set fewer on accessories, nothing near failure.`
+      : b.daysSinceLast !== null
+        ? `Last session was ${b.daysSinceLast} days ago.`
+        : "This is her first session with the app. Choose a balanced, confidence building session and pick loads to calibrate from.",
+    "",
+    `Time budget in minutes: warm up ${b.budget.warmup}, primer ${b.budget.primer}, main work ${b.budget.main}, finisher ${b.budget.finisher}.`,
+    `Hard sets per muscle in the last 7 days (half sets for secondary): ${v}.`,
+    b.behind.length ? `Behind and trainable today, most behind first: ${b.behind.join(", ")}. Add a set or an accessory for these where it fits.` : "No muscle trainable today is behind.",
+    `Jumps: ${b.impact.done} foot contacts in the last 7 days, aiming for ${b.impact.weekly[0]}-${b.impact.weekly[1]} a week. Today: ${b.impact.today[0]}-${b.impact.today[1]}.`,
+    `Hard conditioning: ${b.conditioning.done} min in the last 7 days, aiming for ${b.conditioning.weekly[0]}-${b.conditioning.weekly[1]}.${b.conditioning.needed ? " Today's finisher should be conditioning." : ""}`,
+    `Finisher: ${b.finisher.format}. Idea: ${b.finisher.idea}.`,
+    "",
+    b.anchors.length
+      ? `Anchors this block for this session, keep them: ${b.anchors.join(", ")}.`
+      : b.previousAnchors.length
+        ? `New block. Last block's anchors here were ${b.previousAnchors.join(", ")}. Keep any that are still progressing; swap any that stalled for a close variation.`
+        : "No anchors yet for this session in this block. Choose them from the anchor patterns and mark them.",
+    b.stalled.length ? `Stalled (no progress in three logged sessions): ${b.stalled.join(", ")}. If one is an anchor and this is week 1, swap it for a close variation; otherwise change its rep range.` : "",
+    b.readiness.length ? `Her last reply said: ${b.readiness.join("; ")}.` : "",
+    b.pain.length ? `Pain she mentioned recently: ${b.pain.join("; ")}.` : "",
+    b.likes.length ? `She said she liked: ${b.likes.join(", ")}.` : "",
+    b.dislikes.length ? `She said she did not like: ${b.dislikes.join(", ")}. Avoid these unless they are essential.` : "",
+    b.requests.length ? `She asked for: ${b.requests.join("; ")}.` : "",
+  ];
+
+  return lines.filter((l, i, all) => l !== "" || all[i - 1] !== "").join("\n").trim();
+}
+
+function sessionSummary(s: Session): string {
+  const when = dateAndTime(s.at);
+  if (!s.plan) {
+    const text = s.legacyText.split("HOW TO DO THESE")[0].trim().slice(0, 700);
+    return `${when}\n${text}`;
+  }
+  const exercises = exercisesOf(s.plan)
+    .filter((e) => e.kind !== "mobility")
+    .map((e) => {
+      const load = e.loadKg > 0 ? ` @ ${kg(e.loadKg)}` : "";
+      const sets = e.sets > 0 ? `${e.sets}x` : "";
+      return `${e.label} ${e.name} ${sets}${e.reps}${load}`;
+    })
+    .join("; ");
+  return `${when}: ${s.plan.title}. ${exercises}`;
+}
+
+export function buildPrompt(input: PromptInput): Prompt {
+  const sessions = [...input.sessions].sort((a, b) => a.at.getTime() - b.at.getTime());
+  const recent = sessions.slice(-HISTORY_WINDOW);
+
+  const notes = sessions
+    .slice(-NOTES_WINDOW)
+    .flatMap((s) => s.notes.map((n) => `${dateOnly(s.at)}: ${n.trim()}`))
+    .filter((n) => n.length > 0);
+
+  const targets = input.brief.targets.map(targetLine).join("\n");
+
+  const user = `ABOUT HER
+${about(input.preferences)}
+
+TODAY
+${dateAndTime(input.slot.startsAt)}, ${input.slot.minutes} minutes.
+
+THE BRIEF
+${briefText(input.brief)}
+
+TARGETS
+${targets || "None yet. Every load today is a first calibration."}
 
 RECENT SESSIONS, oldest first
-${past}
+${recent.length ? recent.map(sessionSummary).join("\n") : "None yet."}
 
-WHAT THEY LAST LIFTED, most recent first
-${lifted || "Nothing yet. Pick sensible starting weights."}
-
-THIS SESSION
-${dateAndTime(slot.startsAt)}, ${slot.minutes} minutes.`;
+WHAT SHE WROTE AFTER RECENT SESSIONS, verbatim
+${notes.length ? notes.join("\n") : "Nothing."}`;
 
   return { system: SYSTEM, user };
 }

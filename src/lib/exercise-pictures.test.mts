@@ -1,7 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { exercisesIn, picturesFor, type PictureIndex } from "./exercise-pictures.ts";
-import { DESCRIPTIONS_HEADING } from "./workout-shape.ts";
+import { picturesFor, type PictureIndex } from "./exercise-pictures.ts";
 
 const INDEX: PictureIndex = {
   exercises: [
@@ -11,41 +10,11 @@ const INDEX: PictureIndex = {
   ],
 };
 
-const PLAN = `FOCUS
+const PLAN = ["BARBELL SQUAT", "ROMANIAN DEADLIFT", "SEATED LEG CURL"];
 
-Legs
-
-WARM UP
-
-Bike 4 min
-Bodyweight squat 10 reps
-
-THE SESSION
-
-1. BARBELL SQUAT  4x5
-   60kg. Rest 3 min.
-
-2. ROMANIAN DEADLIFT  3x8
-   40kg. Rest 2 min.
-
-3. SEATED LEG CURL  3x12
-   Moderate. Rest 75 sec.
-
-FINISH
-
-Couch stretch 45 sec each side
-
-${DESCRIPTIONS_HEADING}
-
-BARBELL SQUAT
-Bar on the upper back, brace hard.`;
-
-test("only the numbered exercises are picked out, not the warm up prose", () => {
-  assert.deepEqual(exercisesIn(PLAN), [
-    "BARBELL SQUAT",
-    "ROMANIAN DEADLIFT",
-    "SEATED LEG CURL",
-  ]);
+test("a name asked for twice is answered once, in the order asked", () => {
+  const pictures = picturesFor(INDEX, ["BARBELL SQUAT", "BARBELL SQUAT", "ROMANIAN DEADLIFT"]);
+  assert.deepEqual(pictures.map((p) => p.exercise), ["BARBELL SQUAT", "ROMANIAN DEADLIFT"]);
 });
 
 test("every exercise gets an answer, including the ones with no picture", () => {
@@ -73,7 +42,7 @@ test("a picture of the movement as asked for needs no caption", () => {
 });
 
 test("a picture of something adjacent says what it is of", () => {
-  const [raise] = picturesFor(INDEX, "THE SESSION\n\n1. DUMBBELL LATERAL RAISE  3x12\n");
+  const [raise] = picturesFor(INDEX, ["DUMBBELL LATERAL RAISE"]);
   assert.equal(raise.shows, "Side Lateral Raise");
   assert.equal(raise.frames.length, 1);
 });

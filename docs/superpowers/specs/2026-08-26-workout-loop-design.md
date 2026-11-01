@@ -480,3 +480,61 @@ sessions, which is not a mechanism. It is now one:
 This stays inside the non-goal above: nothing is tracked as structured data. What is
 read back is what was *prescribed*, and a reply is what corrects it, which is the loop
 the rest of the project already runs on.
+
+
+## The November 2026 restructure
+
+Two months of use showed three things. The sessions were correct but plain:
+one or two muscle groups, straight sets, little that felt athletic. Progress
+was measured against what had been *prescribed*, because nothing knew what she
+actually lifted. And the training philosophy lived nowhere in particular; it
+was whatever the prompt happened to imply.
+
+What changed, and why:
+
+**A training philosophy, researched and written down.** `lib/program.ts`
+holds every rule as data with its reason, and `docs/training-research.md` is
+the research behind it: hypertrophy volume and effort for women, bone and
+impact loading at 22, conditioning for longevity, Stacy Sims' approach graded
+against the evidence, the menstrual cycle question, and which fun formats are
+compatible with a muscle goal. The split moved from one or two muscles a
+session to full body at three sessions a week or fewer and upper and lower at
+four or more, because each muscle trained at least twice a week is the rule
+that matters most.
+
+**A coach in code, ahead of the model.** `lib/coach.ts` decides everything
+that can be decided by rule: rotation, five week blocks with a lighter fifth
+week, weekly sets per muscle against targets, jump and conditioning doses, and
+the next load for every lift by double progression. The model receives those
+as facts. Progression is bookkeeping, and bookkeeping belongs where it can be
+tested.
+
+**Structured plans.** The model returns JSON against a schema rather than text
+to be parsed back apart. The email is laid out by code, so it is the same
+shape every time, and each exercise carries its muscles, its label and whether
+it is an anchor, which is what the tracking needs.
+
+**Replies read into a log.** This reverses a phase one non-goal ("Tracking
+sets, reps and weights lifted as structured data. Replies are prose."). The
+non-goal was right for phase one: it kept the loop small. But "get stronger"
+is unmeasurable without knowing what was lifted, and the reply was already
+the channel. So a reply is still filed as prose, still replayed verbatim, and
+still never required; it is now also read into a log. A model reads free text;
+a deterministic reader handles the shorthand the email suggests, which also
+keeps the loop testable offline. Filing and reading are separate steps, so a
+reply is never lost to a failed read. What was read appears at the top of the
+next workout, which is how a misreading gets corrected without a browser.
+
+**A weekly review.** Sunday morning, counted from the log, not written by a
+model. It is not a nag: a week with no training sends nothing.
+
+**Cycle tracking without cycle syncing.** Optional. When on, a period start in
+a reply is noted, the cycle day shows on each workout, and an unusually long
+gap is mentioned gently in the review, because a missing period is an early
+sign of under-fuelling. Sessions are never programmed by phase: the best
+recent trials find no advantage, and symptom-based adjustment covers the days
+that genuinely feel worse. Every workout says what to do if today feels off.
+
+Still true: email is the whole product, plain text is complete and capped at
+50 characters a line, replying is optional, and the loop runs with nothing
+configured.

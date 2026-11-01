@@ -56,6 +56,13 @@ const SYNONYMS: Record<string, string> = {
   thruster: "thrust",
   ohp: "overhead press",
   rdl: "romanian deadlift",
+  rdls: "romanian deadlift",
+  deadlifts: "deadlift",
+  bridges: "bridge",
+  swings: "swing",
+  jumps: "jump",
+  carries: "carry",
+  pushups: "pushup",
   bw: "bodyweight",
   // A hanging knee raise and a hanging leg raise are the same picture.
   knee: "leg",

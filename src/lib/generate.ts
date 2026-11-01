@@ -1,137 +1,183 @@
 /**
- * Turning a prompt into a workout (design §Architecture).
+ * Turning a session brief into a workout (design §Architecture).
  *
  * Without ANTHROPIC_API_KEY this returns a canned plan rather than throwing, so
  * the booking webhook, the mailer and the reply loop can all be exercised on a
- * laptop with nothing configured. The canned plan carries the same shape as a
- * real one, heading and descriptions included, so anything downstream that
- * splits on that heading is genuinely tested.
+ * laptop with nothing configured. The canned plan is a real `Plan`, built the
+ * way the coach would ask for it, so everything downstream is genuinely
+ * tested.
  */
 
-import Anthropic from "@anthropic-ai/sdk";
-import {
-  buildPrompt,
-  type PastWorkout,
-  type Preferences,
-  type Slot,
-} from "./prompt";
-import { DESCRIPTIONS_HEADING } from "./workout-shape";
-
-const MODEL = "claude-opus-5";
+import { askForJson, ClaudeError } from "./claude";
+import type { Brief } from "./coach";
+import { enforceTargets } from "./coach";
+import { PLAN_SCHEMA, readPlan, PlanError, type Plan } from "./plan";
+import { buildPrompt, type PromptInput } from "./prompt";
 
 /**
- * Generous. A workout and its descriptions run to maybe 2,000 tokens, but
- * adaptive thinking is billed and capped out of the same budget, and a response
- * cut off mid-sentence is worse than a slightly larger ceiling.
+ * Generous. A plan runs to maybe 4,000 tokens of JSON, but adaptive thinking
+ * is billed and capped out of the same budget, and a response cut off mid
+ * object is worse than a slightly larger ceiling.
  */
-const MAX_TOKENS = 16_000;
+const MAX_TOKENS = 32_000;
 
 export interface Generated {
-  planText: string;
+  plan: Plan;
   /** True when no API key was configured and this is the stand-in. */
   canned: boolean;
 }
 
 export class GenerationError extends Error {}
 
-const CANNED = `[canned plan: ANTHROPIC_API_KEY is not set]
-
-FOCUS
-
-Legs and glutes
-
-WARM UP
-
-5 min easy: bodyweight squats and hinges
-Goblet squat: light set of 8
-
-THE SESSION
-
-1. GOBLET SQUAT  3x8
-   Moderate weight. Rest 90 sec.
-
-2. ROMANIAN DEADLIFT  3x8
-   Stop at the stretch. Rest 90 sec.
-
-3. DUMBBELL ROW  3x10 each side
-   Pull to the hip. Rest 60 sec.
-
-FINISH
-
-4. PLANK  3x40 sec
-
-${DESCRIPTIONS_HEADING}
-
-GOBLET SQUAT
-Hold a dumbbell against your chest and sit
-straight down between your hips, heels flat.
-It should feel like your thighs are working.
-Do not lean forward as you stand up.
-
-ROMANIAN DEADLIFT
-Knees slightly bent, push your hips back and
-let the weight travel down your thighs. You
-should feel a stretch in the hamstrings, not
-the lower back. Stop when the stretch arrives.
-
-DUMBBELL ROW
-Brace one hand on a bench and pull the bell to
-your hip, not your shoulder. It should feel
-like your back pulling, not your arm. Do not
-twist your torso to get the weight up.
-
-PLANK
-Elbows under shoulders, hips level with them.
-It should feel like your stomach holding you
-up. Do not let your hips drift upwards.`;
-
-export async function generateWorkout(
-  preferences: Preferences,
-  history: PastWorkout[],
-  slot: Slot,
-): Promise<Generated> {
+export async function generateWorkout(input: PromptInput): Promise<Generated> {
   if (!process.env.ANTHROPIC_API_KEY) {
-    return { planText: CANNED, canned: true };
+    return { plan: enforceTargets(cannedPlan(input.brief), input.brief), canned: true };
   }
 
-  const { system, user } = buildPrompt(preferences, history, slot);
-  const client = new Anthropic();
+  const { system, user } = buildPrompt(input);
 
-  /*
-   * Streamed rather than awaited whole. The response is long enough that a
-   * non-streaming request risks the SDK's HTTP timeout, and streaming costs
-   * nothing here because nobody is watching it arrive.
-   */
-  const stream = client.messages.stream({
-    model: MODEL,
-    max_tokens: MAX_TOKENS,
-    thinking: { type: "adaptive" },
-    system,
-    messages: [{ role: "user", content: user }],
-  });
+  try {
+    const raw = await askForJson({
+      system,
+      user,
+      schema: PLAN_SCHEMA as unknown as Record<string, unknown>,
+      // The coach has already made the decisions that need to be right; what
+      // is left is choosing and describing movements. Medium is Opus 5.5's
+      // default and keeps generation well inside the function's time limit.
+      effort: "medium",
+      maxTokens: MAX_TOKENS,
+    });
 
-  const message = await stream.finalMessage();
-
-  if (message.stop_reason === "refusal") {
-    throw new GenerationError(
-      `The model declined to answer (${message.stop_details?.category ?? "no category"}).`,
-    );
+    // The model proposes; the progression rules dispose. A load the coach
+    // worked out from what she actually lifted is not the model's to change.
+    return { plan: enforceTargets(readPlan(raw), input.brief), canned: false };
+  } catch (err) {
+    if (err instanceof ClaudeError || err instanceof PlanError) {
+      throw new GenerationError(err.message);
+    }
+    throw err;
   }
-
-  const planText = message.content
-    .filter((block) => block.type === "text")
-    .map((block) => block.text)
-    .join("")
-    .trim();
-
-  if (!planText) {
-    throw new GenerationError("The model returned no text.");
-  }
-
-  if (message.stop_reason === "max_tokens") {
-    // Truncated mid-sentence. Better to retry than to send half a workout.
-    throw new GenerationError(`Ran out of tokens at ${MAX_TOKENS}.`);
-  }
-
-  return { planText, canned: false };
 }
+
+/**
+ * A plan with the shape of a real one, for running without a key.
+ *
+ * Built from the brief so the stand-in still follows the rotation: a lower day
+ * reads like a lower day. It is deliberately ordinary.
+ */
+export function cannedPlan(brief: Brief): Plan {
+  const lower =
+    brief.session.half === "lower" ||
+    (brief.session.half === "full" && (brief.session.primary.includes("glutes") || brief.session.primary.includes("quads")) && brief.sessionNumber % 2 === 1);
+
+  const warmup = {
+    kind: "warmup" as const,
+    title: "Warm up",
+    format: "circuit" as const,
+    rounds: 1,
+    minutes: 6,
+    instructions: "Easy pace. Get warm, not tired.",
+    exercises: [
+      ex("W1", "BIKE", "cardio", 0, "3 min easy", 0, "Nose breathing pace.", [], []),
+      ex("W2", "WORLD'S GREATEST STRETCH", "mobility", 0, "3 each side", 0, "Slow and long.", [], []),
+      ex("W3", "SINGLE LEG BALANCE REACH", "mobility", 0, "5 each side", 0, "Soft knee, tall chest.", [], []),
+    ],
+  };
+
+  const primer = {
+    kind: "primer" as const,
+    title: lower ? "Jump primer" : "Throw primer",
+    format: "straight sets" as const,
+    rounds: 0,
+    minutes: 5,
+    instructions: "Fast and crisp. Full rest, these are not cardio.",
+    exercises: lower
+      ? [ex("P", "BOX JUMP", "jump", 4, "5", 0, "Land quiet, step down.", ["quads", "glutes"], ["calves"], 45)]
+      : [ex("P", "MED BALL SLAM", "throw", 4, "6", 6, "Reach tall, slam hard.", ["core"], ["back"], 45)],
+  };
+
+  const strength = {
+    kind: "strength" as const,
+    title: lower ? "Glute strength" : "Back strength",
+    format: "straight sets" as const,
+    rounds: 0,
+    minutes: 15,
+    instructions: "",
+    exercises: lower
+      ? [ex("A", "HIP THRUST", "lift", 4, "6-10", 50, "Ribs down, squeeze at top.", ["glutes"], ["hamstrings"], 150, true, 2)]
+      : [ex("A", "LAT PULLDOWN", "lift", 4, "6-10", 35, "Elbows to back pockets.", ["back"], ["biceps"], 120, true, 2)],
+  };
+
+  const superset = {
+    kind: "superset" as const,
+    title: "Superset",
+    format: "superset" as const,
+    rounds: 3,
+    minutes: 14,
+    instructions: "B1 then B2, rest 75 sec after the pair.",
+    exercises: lower
+      ? [
+          ex("B1", "DUMBBELL ROMANIAN DEADLIFT", "lift", 3, "8-12", 16, "Hips back, long hamstrings.", ["hamstrings", "glutes"], [], 0, true, 2),
+          ex("B2", "BULGARIAN SPLIT SQUAT", "lift", 3, "8-10 each", 10, "Lean in for glutes.", ["glutes", "quads"], ["adductors"], 0, false, 2),
+        ]
+      : [
+          ex("B1", "ONE ARM DUMBBELL ROW", "lift", 3, "8-12 each", 16, "Pull to the hip.", ["back"], ["biceps"], 0, true, 2),
+          ex("B2", "DUMBBELL SHOULDER PRESS", "lift", 3, "8-12", 9, "Ribs down, press up.", ["shoulders"], ["triceps"], 0, false, 2),
+        ],
+  };
+
+  const finisher = {
+    kind: "finisher" as const,
+    title: "EMOM finisher",
+    format: "EMOM" as const,
+    rounds: 8,
+    minutes: 8,
+    instructions: "Every minute on the minute for 8 min. Odd minutes C1, even minutes C2.",
+    exercises: [
+      ex("C1", "KETTLEBELL SWING", "lift", 0, "15", 16, "Snap the hips.", ["glutes", "hamstrings"], ["core"]),
+      ex("C2", "FARMER CARRY", "carry", 0, "40 m", 20, "Tall and quiet.", ["core"], ["back"]),
+    ],
+  };
+
+  return {
+    title: brief.session.name,
+    focus: brief.session.focus,
+    why: "A canned plan: ANTHROPIC_API_KEY is not set.",
+    blocks: [warmup, primer, strength, superset, finisher],
+    tip: "",
+  };
+}
+
+function ex(
+  label: string,
+  name: string,
+  kind: Plan["blocks"][number]["exercises"][number]["kind"],
+  sets: number,
+  reps: string,
+  loadKg: number,
+  cue: string,
+  primary: Plan["blocks"][number]["exercises"][number]["primary"],
+  secondary: Plan["blocks"][number]["exercises"][number]["secondary"],
+  restSec = 0,
+  anchor = false,
+  rir = -1,
+): Plan["blocks"][number]["exercises"][number] {
+  return {
+    label,
+    name,
+    kind,
+    sets,
+    reps,
+    loadKg,
+    loadNote: "",
+    rir,
+    restSec,
+    cue,
+    howTo: `${name.charAt(0)}${name.slice(1).toLowerCase()}, done with control. ${cue}`,
+    primary,
+    secondary,
+    anchor,
+  };
+}
+
+export { PlanError };

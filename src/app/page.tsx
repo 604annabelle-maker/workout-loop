@@ -1,4 +1,6 @@
+import { MUSCLES } from "@/lib/plan";
 import { readPreferences } from "@/lib/preferences";
+import { LEVELS, MAX_PRIORITIES } from "@/lib/profile";
 import { updatePreferences } from "./actions";
 
 // Reads the database on every request. There is one user and no cache to win.
@@ -44,6 +46,15 @@ const field: React.CSSProperties = {
 
 const group: React.CSSProperties = { marginBottom: "1.75rem" };
 
+const choice: React.CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: "0.35rem",
+  marginRight: "1rem",
+  marginBottom: "0.4rem",
+  fontSize: "0.95rem",
+};
+
 export default async function PreferencesPage() {
   const prefs = await readPreferences();
 
@@ -73,19 +84,53 @@ export default async function PreferencesPage() {
         </div>
 
         <div style={group}>
+          <label style={label} htmlFor="level">
+            Level
+            <span style={hint}>Scales the weekly set targets. Beginner is roughly the first six months.</span>
+          </label>
+          <select id="level" name="level" style={{ ...field, width: "12rem" }} defaultValue={prefs.level}>
+            {LEVELS.map((l) => (
+              <option key={l} value={l}>
+                {l}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div style={group}>
           <label style={label} htmlFor="trainingDaysPerWeek">
             Training days per week
+            <span style={hint}>
+              Three or fewer gets full body sessions; four or more gets an upper and lower split.
+              Once there are three weeks of history, what you actually do takes over.
+            </span>
           </label>
           <input
             id="trainingDaysPerWeek"
             name="trainingDaysPerWeek"
             type="number"
-            min={0}
-            max={14}
+            min={1}
+            max={7}
             style={{ ...field, width: "6rem" }}
             defaultValue={prefs.trainingDaysPerWeek}
           />
         </div>
+
+        <fieldset style={{ ...group, border: 0, padding: 0, margin: "0 0 1.75rem" }}>
+          <legend style={label}>
+            Priority muscles
+            <span style={hint}>
+              Up to {MAX_PRIORITIES}. These get the top of their weekly range; everything else still
+              gets enough to grow.
+            </span>
+          </legend>
+          {MUSCLES.map((m) => (
+            <label key={m} style={choice}>
+              <input type="checkbox" name="priorities" value={m} defaultChecked={prefs.priorities.includes(m)} />
+              {m}
+            </label>
+          ))}
+        </fieldset>
 
         <div style={group}>
           <label style={label} htmlFor="avoid">
@@ -104,6 +149,33 @@ export default async function PreferencesPage() {
           </label>
           <textarea id="equipment" name="equipment" rows={3} style={field} defaultValue={prefs.equipment} />
         </div>
+
+        <div style={group}>
+          <label style={label} htmlFor="enjoys">
+            What you love
+            <span style={hint}>Movements and formats you want more of. The finishers lean this way.</span>
+          </label>
+          <textarea id="enjoys" name="enjoys" rows={2} style={field} defaultValue={prefs.enjoys} />
+        </div>
+
+        <fieldset style={{ ...group, border: 0, padding: 0, margin: "0 0 1.75rem" }}>
+          <legend style={label}>Tracking</legend>
+          <label style={{ ...choice, display: "flex" }}>
+            <input type="checkbox" name="weeklyReview" defaultChecked={prefs.weeklyReview} />
+            Weekly review email on Sunday morning
+          </label>
+          <label style={{ ...choice, display: "flex", alignItems: "flex-start" }}>
+            <input type="checkbox" name="cycleTracking" defaultChecked={prefs.cycleTracking} />
+            <span>
+              Cycle tracking
+              <span style={hint}>
+                Reads &ldquo;period started&rdquo; from replies, shows the cycle day on each workout, and
+                mentions an unusually long gap. Sessions are never programmed by phase; how you say
+                you feel is what adjusts them.
+              </span>
+            </span>
+          </label>
+        </fieldset>
 
         <div style={group}>
           <label style={label} htmlFor="brief">

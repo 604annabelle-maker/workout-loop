@@ -4,9 +4,9 @@
  * Pure. The pictures themselves are vendored into assets/exercise-pictures by
  * `npm run vendor:pictures`; reading them off disk is ./picture-library.ts.
  *
- * Only the numbered exercises get pictures. Warm ups and stretches are lines
- * of prose rather than named movements, and a picture beside every one of them
- * would bury the session itself.
+ * Only the main exercises get pictures. Warm ups and stretches are short
+ * items rather than movements to learn, and a picture beside every one of
+ * them would bury the session itself.
  *
  * An exercise with no picture says so. Silently dropping one is worse than
  * admitting it, because on a phone with no browser there is no way to go and
@@ -14,7 +14,6 @@
  */
 
 import { matchExerciseName } from "./exercise-name";
-import { shapePlan } from "./workout-shape";
 
 /** One exercise in the vendored set, as index.json records it. */
 export interface PictureSet {
@@ -52,23 +51,13 @@ function cidFor(id: string, frame: number): string {
 }
 
 /**
- * The exercises a plan actually prescribes, in order.
- *
- * Exported because the prompt side needs the same list to work out what was
- * loaded last time, and two definitions of "the exercises in this plan" would
- * eventually disagree.
+ * Pictures for the exercises named, in the order named. The caller decides
+ * which exercises deserve one; warm up items do not.
  */
-export function exercisesIn(planText: string): string[] {
-  return shapePlan(planText)
-    .sections.flatMap((section) => section.exercises)
-    .map((exercise) => exercise.name)
-    .filter(Boolean);
-}
-
-export function picturesFor(index: PictureIndex, planText: string): Pictured[] {
+export function picturesFor(index: PictureIndex, exercises: string[]): Pictured[] {
   const names = index.exercises.map((e) => e.name);
 
-  return exercisesIn(planText).map((exercise) => {
+  return [...new Set(exercises)].map((exercise) => {
     const match = matchExerciseName(names, exercise);
 
     if (!match) return { exercise, shows: "", frames: [] };

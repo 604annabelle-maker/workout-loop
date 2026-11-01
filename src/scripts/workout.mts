@@ -17,21 +17,23 @@ process.loadEnvFile(".env");
 
 const { recordBooking, deliverWorkout } = await import("../lib/delivery.ts");
 const { pollReplies } = await import("../lib/replies.ts");
-const { recentWorkouts } = await import("../lib/workouts.ts");
+const { trainingLog } = await import("../lib/workouts.ts");
 
 const minutes = Number(process.argv[2]) || 60;
 
 const replies = await pollReplies();
 if (replies.filed > 0) {
-  console.log(`filed ${replies.filed} repl${replies.filed === 1 ? "y" : "ies"} before generating`);
+  console.log(
+    `filed ${replies.filed} repl${replies.filed === 1 ? "y" : "ies"} and read ${replies.read} before generating`,
+  );
 } else if (replies.polled) {
   console.log("no new replies");
 } else {
   console.log("mailbox not configured, skipping the reply check");
 }
 
-const history = await recentWorkouts();
-console.log(`history: ${history.length} past session(s)\n`);
+const history = await trainingLog();
+console.log(`history: ${history.length} session(s) in the log\n`);
 
 const { id } = await recordBooking({
   bookingRef: `manual-${Date.now()}`,

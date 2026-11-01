@@ -5,3 +5,7 @@ node_modules/
 .DS_Store
 *.tsbuildinfo
 next-env.d.ts
+
+# Working folders of the research tool. The report and its notes are kept in docs/.
+research_notes/
+reports/

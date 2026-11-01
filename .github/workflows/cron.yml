@@ -46,7 +46,7 @@ jobs:
           echo "calling $target"
 
           code=$(curl --silent --show-error --fail-with-body --location \
-            --max-time 120 \
+            --max-time 300 \
             --output /tmp/cron.json \
             --write-out '%{http_code}' \
             --request POST \

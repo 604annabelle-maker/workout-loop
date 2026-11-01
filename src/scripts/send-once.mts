@@ -2,19 +2,22 @@
  * Generates one workout and sends it, or prints it if SMTP is not configured.
  *
  * `npm run send:once`, or `npm run send:once -- 45` for a different slot
- * length. Nothing is written to the database; this exercises the generate,
- * compose and send path only.
+ * length. Nothing is written to the database; this exercises the coach,
+ * generate, compose and send path only.
  */
 
 process.loadEnvFile(".env");
 
 const { generateWorkout } = await import("../lib/generate.ts");
+const { buildBrief } = await import("../lib/coach.ts");
 const { composeWorkoutMail } = await import("../lib/workout-mail.ts");
 const { workoutPictures } = await import("../lib/picture-library.ts");
-const { lastTimeFor } = await import("../lib/progression.ts");
 const { sendMail } = await import("../lib/mail-out.ts");
 const { readPreferences, EMPTY } = await import("../lib/preferences.ts");
-const { recentWorkouts } = await import("../lib/workouts.ts");
+const { trainingLog, sessionsSent } = await import("../lib/workouts.ts");
+const { snapshot, heardLines, lastLog } = await import("../lib/summary.ts");
+const { mainExercises } = await import("../lib/plan.ts");
+const { SAMPLE } = await import("./sample.mts");
 
 const to = process.env.OWNER_EMAIL;
 
@@ -29,44 +32,41 @@ const slot = { startsAt: new Date(Date.now() + 60 * 60 * 1000), minutes };
 let preferences = await readPreferences();
 if (JSON.stringify(preferences) === JSON.stringify(EMPTY)) {
   console.log("No preferences saved yet, using a sample.\n");
-  preferences = {
-    goals: "get stronger, keep my back healthy",
-    experience: "three years, comfortable with barbells",
-    trainingDaysPerWeek: 3,
-    avoid: "overhead pressing, my left shoulder",
-    equipment: "barbell, rack, dumbbells to 30kg, one bench, kettlebells",
-    brief: "I would rather do fewer exercises properly than lots of them.",
-  };
+  preferences = SAMPLE;
 }
 
-const history = await recentWorkouts();
+const sessions = await trainingLog();
+const brief = buildBrief({ preferences, sessions, slot, sessionNumber: (await sessionsSent()) + 1 });
+const { plan, canned } = await generateWorkout({ preferences, sessions, brief, slot });
 
-const { planText, canned } = await generateWorkout(preferences, history, slot);
+const pictures = workoutPictures(mainExercises(plan).map((e) => e.name));
+const mail = composeWorkoutMail({
+  plan,
+  brief,
+  slot,
+  snapshot: snapshot(sessions, brief, slot.startsAt, plan),
+  heard: heardLines(lastLog(sessions)?.log ?? null),
+  pictures,
+});
 
 console.log("─".repeat(60));
-console.log(planText);
+console.log(mail.text);
 console.log("─".repeat(60) + "\n");
 
-const pictures = workoutPictures(planText);
-const lastTime = lastTimeFor(planText, history);
-
-const mail = composeWorkoutMail(planText, slot, { pictures, lastTime });
 const result = await sendMail({ to, ...mail });
-
 const missing = pictures.filter((p) => p.frames.length === 0).map((p) => p.exercise);
 
 console.log(`subject:    ${mail.subject}`);
 console.log(`pictures:   ${mail.inline.length} in the body, for ${pictures.length - missing.length} of ${pictures.length} exercises`);
 if (missing.length > 0) console.log(`  no picture: ${missing.join(", ")}`);
-console.log(`last time:  ${lastTime.length} of ${pictures.length} exercises have been done before`);
+console.log(`targets:    ${brief.targets.length} lifts with a number from history`);
 console.log(`plan:       ${canned ? "canned" : "generated"}`);
 console.log(`sent:       ${result.sent}${result.reason ? ` (${result.reason})` : ""}`);
 console.log(`message id: ${result.messageId}`);
 
-const lines = planText.split("\n");
-const over = lines.filter((l) => l.length > 50);
-console.log(`longest line: ${Math.max(...lines.map((l) => l.length))} characters`);
+const lines = mail.text.split("\n");
+const over = lines.filter((l: string) => l.length > 50);
 console.log(`lines over 50: ${over.length} of ${lines.length}`);
-over.slice(0, 5).forEach((l) => console.log(`  ${l.length}: ${l}`));
+over.slice(0, 5).forEach((l: string) => console.log(`  ${l.length}: ${l}`));
 
 process.exit(result.sent ? 0 : 1);
