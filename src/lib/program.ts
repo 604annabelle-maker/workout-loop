@@ -3,14 +3,20 @@
  *
  * Pure. Every number the coach works from is here, in one file, with the
  * reason beside it, so the philosophy can be read and argued with without
- * reading any code. The evidence behind each is in docs/training-research.md.
+ * reading any code. The evidence behind each is in docs/training-research.md,
+ * and the follow-up on sex differences and training to failure is in
+ * docs/training-research-women-and-failure.md.
  *
  * The short version, for a woman in her early twenties training for lean
  * muscle, health and the long run:
  *
  * - Muscle is built by enough hard sets taken close to failure, progressed
- *   over weeks. Women build it at the same relative rate as men, so nothing
- *   here is "toned" or "light weight, high reps".
+ *   over weeks. Young women grow muscle by the same mechanisms and at about
+ *   the same percentage rate as men, but from a smaller start, with about 40%
+ *   less muscle in the upper body, and they fatigue less from one set to the
+ *   next. So the upper body gets full volume, rests sit at the shorter end of
+ *   normal, and loads are chosen to genuinely reach the target effort: the
+ *   commonest mistake is lifting lighter than she can.
  * - Heavy lifting and jumping are the two things that build bone, and the
  *   years before thirty are when there is still bone to build.
  * - A little hard conditioning goes a long way for the heart, and does not
@@ -169,6 +175,10 @@ export const SPLIT_FROM = 3.5;
  * (Pelland 2025). Secondary muscles count half a set, which is the counting
  * that predicted growth best. Smaller muscles get plenty of indirect work from
  * the big lifts, which is why their ranges are lower.
+ *
+ * The upper body is not short changed. Women start with proportionally less
+ * upper body muscle and gain it at the same percentage rate (Refalo 2025;
+ * Roberts 2020), so back, chest and shoulders get the same weight as glutes.
  */
 export const WEEKLY_SETS: Record<Muscle, [number, number]> = {
   glutes: [12, 20],
@@ -177,7 +187,7 @@ export const WEEKLY_SETS: Record<Muscle, [number, number]> = {
   adductors: [4, 8],
   calves: [4, 8],
   back: [12, 20],
-  chest: [8, 14],
+  chest: [10, 16],
   shoulders: [10, 16],
   biceps: [6, 12],
   triceps: [6, 12],
@@ -195,23 +205,70 @@ export const PRIORITY_CEILING = 24;
 export const MAX_SETS_PER_MUSCLE_PER_SESSION = 10;
 
 /**
- * The role an exercise plays decides its reps, effort and rest.
+ * The role an exercise plays decides its reps, how close to failure it goes,
+ * and its rest.
  *
  * Anything from about 5 to 30 reps builds muscle when the set ends close to
  * failure (Schoenfeld 2017), so the ranges are chosen for what else they buy.
- * The heavy anchor builds strength and bone. The moderate work is the
- * efficient middle. Isolation work goes higher, where the joints are happier
- * and the last reps are safe to grind.
  *
- * Rest is at least a minute and often more, because rushing rest between hard
- * sets of the same muscle costs growth (Singer 2024). Supersets of opposing
- * muscles get that rest for free.
+ * Close to failure matters: growth improves as sets end nearer to it
+ * (Robinson 2024). Going all the way adds little on average (Refalo 2023,
+ * 2024; Grgic 2022) and costs a day or two of extra recovery on heavy
+ * compounds (Moran-Navarro 2017). So: heavy barbell work stops a rep or two
+ * short and never fails on purpose; isolation and machine work, where failure
+ * is safe and cheap, takes its last set all the way. Light, high rep sets only
+ * work when taken to or very near failure (Lasevicius 2022).
+ *
+ * Rest is never under a minute, because rushing rest between hard sets costs
+ * growth, with no clear benefit past about 90 seconds for most work (Singer
+ * 2024). Women hold their reps better from set to set (Hunter; Fulco 1999;
+ * Nuckols 2026), so rests sit at the shorter end, set by readiness.
  */
 export const ROLES = {
-  heavy: { reps: "5-8", rir: "2 to 3", restSec: "120 to 180" },
-  moderate: { reps: "8-12", rir: "1 to 2", restSec: "90 to 120" },
-  isolation: { reps: "10-20", rir: "0 to 1 on the last set", restSec: "60 to 90" },
+  heavy: {
+    what: "heavy anchor: barbell squat, deadlift, hip thrust, bench, overhead press",
+    reps: "5-8",
+    rir: "2 to 3 reps in reserve early in a block, 1 to 2 late",
+    failure: "never planned; the set ends when form starts to slip",
+    restSec: "120 to 150",
+  },
+  compound: {
+    what: "machine, cable or dumbbell compound",
+    reps: "8-12",
+    rir: "1 to 2 reps in reserve",
+    failure: "last set may go to failure in weeks 3 and 4, on machines and cables only",
+    restSec: "75 to 120",
+  },
+  isolation: {
+    what: "isolation: curls, raises, extensions, leg curls, abduction",
+    reps: "10-20",
+    rir: "0 to 1 reps in reserve",
+    failure: "last set to failure",
+    restSec: "60 to 75",
+  },
+  bodyweight: {
+    what: "bodyweight: push ups, inverted rows, pull ups, dips",
+    reps: "6-20",
+    rir: "1 to 2 reps in reserve",
+    failure: "last set may go to failure",
+    restSec: "60 to 90",
+  },
+  light: {
+    what: "light, high rep work over 20 reps",
+    reps: "20-30",
+    rir: "0 to 1 reps in reserve",
+    failure: "required: a light set only counts when it ends at or next to failure",
+    restSec: "60 to 75",
+  },
 };
+
+/**
+ * Failure is a tool with a recovery bill, so it is rationed: at most one
+ * failure set per exercise, three per muscle per session, and none at all on
+ * a heavy anchor or in the lighter week. The coach enforces these whatever
+ * the model writes.
+ */
+export const FAILURE_SETS_PER_MUSCLE_PER_SESSION = 3;
 
 /**
  * Training blocks: four weeks building, then one lighter week.
@@ -238,36 +295,36 @@ export const WEEKS: WeekPlan[] = [
   {
     name: "settle in",
     label: "Week 1, settle in",
-    rir: "3 in reserve",
-    note: "First week of a block. New accessories, anchors at a weight she owns. Leave about 3 reps in the tank.",
+    rir: "2 to 3 in reserve on compounds, 1 on isolation",
+    note: "First week of a block. New accessories, anchors at a weight she owns. Calibrate: on one machine or isolation exercise, she calls 2 in reserve on the last set, then keeps going to failure and counts. Four or more extra reps means the weight goes up. Most people underestimate what they have left by about a rep.",
     deload: false,
   },
   {
     name: "build",
     label: "Week 2, build",
-    rir: "2 in reserve",
-    note: "Add load or reps where last week allowed. Leave about 2 reps in the tank.",
+    rir: "2 in reserve on compounds, isolation last set to failure",
+    note: "Add load or reps where last week allowed.",
     deload: false,
   },
   {
     name: "build",
     label: "Week 3, build",
-    rir: "1 to 2 in reserve",
-    note: "Push the anchors. 1 to 2 reps in reserve on compounds; isolation work to 1.",
+    rir: "1 to 2 in reserve on compounds; machine, cable and isolation last sets to failure",
+    note: "Push the anchors.",
     deload: false,
   },
   {
     name: "peak",
     label: "Week 4, peak",
-    rir: "0 to 1 in reserve",
-    note: "The hardest week. Compounds at 1 in reserve. Take the last set of one isolation exercise per muscle to failure and count the reps: it recalibrates what 1 in reserve feels like, which most people underestimate by a rep.",
+    rir: "1 in reserve on heavy compounds; machine, cable and isolation last sets to failure",
+    note: "The hardest week. One drop set on the last set of an isolation exercise is fine here. Heavy barbell work still never fails on purpose.",
     deload: false,
   },
   {
     name: "lighter week",
     label: "Week 5, lighter week",
-    rir: "3 to 4 in reserve",
-    note: "Deload. Same exercises and same days, about half the hard sets, the same load or 10% less, nothing near failure. Keep the jumps and the fun at lower volume.",
+    rir: "4 to 5 in reserve, nothing to failure",
+    note: "Deload. Same exercises and same days, about half the hard sets, the same load or 10% less. Keep the jumps and the fun at lower volume.",
     deload: true,
   },
 ];

@@ -5,6 +5,7 @@ import {
   buildBrief,
   chooseFinisher,
   chooseSession,
+  enforceEffort,
   enforceTargets,
   frequency,
   increment,
@@ -144,6 +145,13 @@ test("a failed set or falling well short drops the load", () => {
   const failed = nextTarget([perf({ logged: sets(60, [10, 10, 9]), effort: "failed" })], ctx)!;
   assert.equal(failed.action, "drop");
   assert.equal(failed.loadKg, 55);
+});
+
+test("she said it was easy, so the weight goes up even short of the top", () => {
+  const t = nextTarget([perf({ logged: sets(60, [10, 10, 10]), effort: "easy" })], ctx)!;
+  assert.equal(t.action, "up");
+  assert.equal(t.loadKg, 65);
+  assert.match(t.reason, /You said it was easy/);
 });
 
 test("a hard top of range holds rather than jumping", () => {
@@ -291,4 +299,34 @@ test("targets are only for lifts in the main work, never jumps or finisher swing
   assert.ok(names.includes("HIP THRUST"));
   assert.ok(!names.includes("BOX JUMP"));
   assert.ok(!names.includes("KETTLEBELL SWING"));
+});
+
+test("failure is rationed: never on the heavy anchor, jumps or in a lighter week", () => {
+  const brief = buildBrief({ preferences: PREFS, sessions: [], slot: { startsAt: at(0), minutes: 60 }, sessionNumber: 1 });
+  const plan = lowerPlan();
+  for (const b of plan.blocks) for (const e of b.exercises) e.lastSetToFailure = true;
+
+  const enforced = enforceEffort(plan, brief);
+  const flagged = enforced.blocks.flatMap((b) => b.exercises.filter((e) => e.lastSetToFailure).map((e) => e.name));
+  assert.deepEqual(flagged, ["ROMANIAN DEADLIFT", "CHEST SUPPORTED ROW"]);
+
+  const lighter = enforceEffort(plan, { ...brief, deload: true });
+  assert.ok(lighter.blocks.every((b) => b.exercises.every((e) => !e.lastSetToFailure)));
+  const back = enforceEffort(plan, { ...brief, reEntry: true });
+  assert.ok(back.blocks.every((b) => b.exercises.every((e) => !e.lastSetToFailure)));
+});
+
+test("failure is capped per muscle per session", () => {
+  const brief = buildBrief({ preferences: PREFS, sessions: [], slot: { startsAt: at(0), minutes: 60 }, sessionNumber: 1 });
+  const plan = lowerPlan();
+  const superset = plan.blocks[3];
+  superset.exercises = Array.from({ length: 5 }, (_, i) => ({
+    ...superset.exercises[0],
+    label: `B${i + 1}`,
+    name: `GLUTE ISOLATION ${i + 1}`,
+    primary: ["glutes" as const],
+    lastSetToFailure: true,
+  }));
+  const kept = enforceEffort(plan, brief).blocks[3].exercises.filter((e) => e.lastSetToFailure);
+  assert.equal(kept.length, 3);
 });

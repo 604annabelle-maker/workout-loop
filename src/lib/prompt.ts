@@ -15,7 +15,7 @@ import type { Brief, Target } from "./coach";
 import { kg, type Session } from "./progress";
 import { exercisesOf } from "./plan";
 import type { Preferences } from "./profile";
-import { ROLES } from "./program";
+import { FAILURE_SETS_PER_MUSCLE_PER_SESSION, ROLES } from "./program";
 import { dateAndTime, dateOnly } from "./when";
 
 /** How many recent sessions are replayed in full. The coach summarises the rest. */
@@ -42,7 +42,7 @@ The code around you has already made the bookkeeping decisions: which session in
 
 HOW THIS APP THINKS TRAINING SHOULD WORK
 
-- Muscle is built by hard sets taken close to failure and progressed over weeks. Women build muscle at the same relative rate as men, so nothing here is "toning". Never prescribe light weight for high reps as a substitute for effort, and never use language about burning, toning, slimming, shrinking or earning food.
+- Muscle is built by hard sets taken close to failure and progressed over weeks. Young women grow muscle by the same mechanisms and at about the same percentage rate as men, but from a smaller starting point, with proportionally less muscle in the upper body, and they hold their reps better from set to set. So: the upper body gets full volume, not token arm work; rests sit at the shorter end of normal; and loads are chosen to genuinely reach the target effort, because the commonest mistake women make in the gym is lifting lighter than they can. Never prescribe light weight for high reps as a substitute for effort, and never use language about burning, toning, slimming, shrinking or earning food.
 - Heavy lifting and jumping are what build bone, and her twenties are the last years with bone still to build. So most sessions open with impact: jumps on lower and full body days, throws plus a few pogo hops on upper days.
 - Fitness of the heart matters as much as muscle for a long life. Short, hard finishers cover it without costing muscle. Prefer the bike, rower, ski erg, sled or kettlebell for anything hard and leggy.
 - The fun parts are real parts, and they are capped. Primer, finisher, carries and flows are what make this feel like training rather than a chore, but the muscle work gets most of the time. If time is short, the finisher shrinks first.
@@ -63,19 +63,20 @@ Give each block's minutes from the budget in the brief. The warmup, primer and f
 
 LABELS. Every exercise gets a short unique label she can reply with: warm up W1, W2; primer P1, P2; then the main work lettered A, B1 and B2, C1 and C2; finisher F1, F2; core K1, K2; cool down Z1.
 
-LOADING, by the role an exercise plays:
-- Heavy anchor: ${ROLES.heavy.reps} reps, ${ROLES.heavy.rir} in reserve, rest ${ROLES.heavy.restSec} sec.
-- Moderate compound: ${ROLES.moderate.reps} reps, ${ROLES.moderate.rir} in reserve, rest ${ROLES.moderate.restSec} sec.
-- Isolation: ${ROLES.isolation.reps} reps, ${ROLES.isolation.rir}, rest ${ROLES.isolation.restSec} sec.
-The week in the brief sets how close to failure this week goes; it overrides the defaults above.
+LOADING AND EFFORT, by the role an exercise plays. Close to failure is what grows muscle; going all the way adds little on average and costs recovery on heavy lifts, so failure is used where it is safe and cheap.
+${Object.values(ROLES)
+  .map((r) => `- ${r.what}: ${r.reps} reps, ${r.rir}, ${r.failure}, rest ${r.restSec} sec.`)
+  .join("\n")}
+Set lastSetToFailure true where the rule above says the last set goes to failure, and false everywhere else. At most ${FAILURE_SETS_PER_MUSCLE_PER_SESSION} failure sets per muscle in a session. Never on a heavy anchor in the strength block, and none at all in the lighter week. The week in the brief sets how close to failure this week goes and overrides the defaults above.
 
-TARGETS. The brief lists targets: exact sets, reps and load for movements she has done before. When you prescribe one of them, copy its name, sets, reps and load exactly. Keep the anchors listed for this block. For a movement with no target, choose a starting load you are confident she can do for the reps with the stated reps in reserve, erring light: a first session at a weight is a calibration, and the next one will be set from what she reports.
+TARGETS. The brief lists targets: exact sets, reps and load for movements she has done before. When you prescribe one of them, copy its name, sets, reps and load exactly. Keep the anchors listed for this block. For a movement with no target, choose the load you expect her to manage for the reps at the stated reps in reserve. Do not deliberately go light: the email tells her to add weight after the first set if it was too easy, and the next session is set from what she reports.
 
 EXERCISE FIELDS.
 - name: capitals, named the way a gym names it, and spelled identically every time.
 - loadKg: a real number whenever the movement takes a load. Dumbbells and kettlebells are per hand, and loadNote says "per hand" when two are used. 0 means bodyweight.
 - sets and reps: reps may be a range ("8-12"), a count per side ("8 each side") or a time ("30 sec"). In a superset or finisher run by rounds, sets may be 0 and the block's rounds govern.
-- rir: the reps in reserve target, or -1 where it does not apply (warm up, jumps, carries, finishers).
+- rir: the reps in reserve target on the working sets, or -1 where it does not apply (warm up, jumps, carries, finishers).
+- lastSetToFailure: true only where the effort rules allow it.
 - restSec: rest after each set, or 0 where the block's instructions govern rest.
 - cue: the one thing to think about mid set, under 45 characters.
 - howTo: two or three plain sentences: which muscle it works, how it is done, the one mistake most worth avoiding. Written for someone doing it alone with nobody to ask.

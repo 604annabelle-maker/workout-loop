@@ -538,3 +538,21 @@ that genuinely feel worse. Every workout says what to do if today feels off.
 Still true: email is the whole product, plain text is complete and capped at
 50 characters a line, replying is optional, and the loop runs with nothing
 configured.
+
+### Follow-up: sex differences and training to failure
+
+A second round of research (`docs/training-research-women-and-failure.md`)
+revisited two simplifications. "Women build muscle on the same rules as men"
+was right about mechanism and percentage gains and misleading about
+everything else: smaller absolute gains, much less upper body muscle to start
+from, and better fatigue resistance across sets. "Stop short of failure" was
+too blunt: proximity to failure matters, full failure adds little on heavy
+compounds and costs recovery, and is cheap and useful on isolation and machine
+work.
+
+The program changed accordingly: effort rules per exercise class, a
+`lastSetToFailure` field on every exercise that the coach rations (never on a
+heavy anchor or in a lighter week, at most three per muscle per session),
+shorter rests by readiness, full upper body volume, starting loads that are
+not deliberately light, "it felt easy" as a reason to add weight, and the
+failure calibration set moved to the first week of each block.

@@ -86,12 +86,13 @@ function setsReps(e: PlanExercise): string {
   return e.reps;
 }
 
-/** "72.5kg per hand · rest 2:30 · 2 in reserve". */
+/** "72.5kg per hand · rest 2:30 · 2 in reserve, last set to failure". */
 function loading(e: PlanExercise): string {
   const load = e.loadKg > 0 ? `${kg(e.loadKg)}${e.loadNote ? ` ${e.loadNote}` : ""}` : e.loadNote;
   const rest = e.restSec > 0 ? `rest ${restText(e.restSec)}` : "";
   const rir = e.rir >= 0 ? `${e.rir} in reserve` : "";
-  return [load, rest, rir].filter(Boolean).join(" · ");
+  const effort = e.lastSetToFailure ? [rir, "last set to failure"].filter(Boolean).join(", ") : rir;
+  return [load, rest, effort].filter(Boolean).join(" · ");
 }
 
 function blockHeading(block: PlanBlock): string {
@@ -104,7 +105,8 @@ function blockHeading(block: PlanBlock): string {
 
 export const OFF_DAY = [
   "Tired, slept badly, crampy or just flat? Keep the weights, drop the last set of each superset and leave one more rep in reserve. Skip the jumps if they feel wrong today.",
-  "First set flew past the top of the range by 2 or more? Add a step for the rest. Missed the bottom of the range? Drop 5 to 10%.",
+  "First set too easy, 2 or more reps past the top of the range? Add a step for the rest; starting too light is the commoner mistake. Missed the bottom of the range? Drop 5 to 10%.",
+  "Failure means the next rep would not come up with good form. Heavy barbell lifts stop a rep or two before that, always.",
 ];
 
 /**

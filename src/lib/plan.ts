@@ -104,6 +104,11 @@ export interface PlanExercise {
   loadNote: string;
   /** Reps in reserve at the end of each set. -1 when it does not apply. */
   rir: number;
+  /**
+   * The last set goes all the way to failure. Rationed and enforced by the
+   * coach: never on a heavy anchor, never in a lighter week.
+   */
+  lastSetToFailure: boolean;
   /** 0 when the block governs rest. */
   restSec: number;
   /** The one thing to think about, short enough to read mid set. */
@@ -154,6 +159,7 @@ const exerciseSchema = {
     "loadKg",
     "loadNote",
     "rir",
+    "lastSetToFailure",
     "restSec",
     "cue",
     "howTo",
@@ -169,7 +175,8 @@ const exerciseSchema = {
     reps: { type: "string", description: "8-12, 30 sec, 6 each side." },
     loadKg: { type: "number", description: "0 for bodyweight. Per hand for dumbbells." },
     loadNote: { type: "string", description: "per hand, bodyweight, band colour, or empty." },
-    rir: { type: "integer", description: "Reps in reserve. -1 when not applicable." },
+    rir: { type: "integer", description: "Reps in reserve on working sets. -1 when not applicable." },
+    lastSetToFailure: { type: "boolean", description: "The last set goes to failure." },
     restSec: { type: "integer", description: "0 when the block governs rest." },
     cue: { type: "string", description: "One short cue, under 45 characters." },
     howTo: { type: "string", description: "Two or three plain sentences." },
@@ -246,6 +253,7 @@ function readExercise(raw: unknown, fallbackLabel: string): PlanExercise | null 
     loadKg: kg(r.loadKg),
     loadNote: text(r.loadNote),
     rir: Math.max(-1, Math.min(5, int(r.rir, -1))),
+    lastSetToFailure: r.lastSetToFailure === true,
     restSec: Math.max(0, int(r.restSec)),
     cue: text(r.cue),
     howTo: text(r.howTo),

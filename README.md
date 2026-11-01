@@ -47,12 +47,23 @@ That is not a detail, it is the design:
 Built for one person: a woman in her early twenties training for lean muscle,
 health and the long run. The rules are in [`lib/program.ts`](src/lib/program.ts),
 one file, each with its reason, and the research behind them is in
-[`docs/training-research.md`](docs/training-research.md). In short:
+[`docs/training-research.md`](docs/training-research.md) and its follow-up on
+sex differences and training to failure,
+[`docs/training-research-women-and-failure.md`](docs/training-research-women-and-failure.md).
+In short:
 
 - **Muscle comes from hard sets, progressed.** About 12 to 20 hard sets per
-  muscle a week, each muscle at least twice, sets stopped 0 to 3 reps short of
-  failure, a lighter week every fifth. Women gain the same relative muscle as
-  men on the same rules, so nothing here is "toning".
+  muscle a week, each muscle at least twice, a lighter week every fifth.
+- **Built for a young woman, not a scaled-down man.** Women grow muscle by the
+  same mechanisms and at about the same percentage rate as men, but from a
+  smaller start (about 40% less upper body muscle) and they hold their reps
+  better from set to set. So the upper body gets full volume, rests sit at the
+  short end of normal, and loads are pushed rather than played safe, because
+  lifting lighter than she can is the commonest mistake.
+- **Close to failure, and failure where it is cheap.** Heavy barbell lifts
+  stop a rep or two short and never fail on purpose. Machine and isolation
+  work takes its last set to failure. Light, high rep sets only count when
+  taken there. The coach rations failure whatever the model writes.
 - **Jump and lift heavy for bone.** Her early twenties are the last years with
   bone still to build, so most sessions open with jumps or throws, aiming for
   100 to 200 foot contacts a week, and every session has a heavy anchor lift.

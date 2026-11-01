@@ -10,7 +10,7 @@
 
 import { askForJson, ClaudeError } from "./claude";
 import type { Brief } from "./coach";
-import { enforceTargets } from "./coach";
+import { applyCoach } from "./coach";
 import { PLAN_SCHEMA, readPlan, PlanError, type Plan } from "./plan";
 import { buildPrompt, type PromptInput } from "./prompt";
 
@@ -31,7 +31,7 @@ export class GenerationError extends Error {}
 
 export async function generateWorkout(input: PromptInput): Promise<Generated> {
   if (!process.env.ANTHROPIC_API_KEY) {
-    return { plan: enforceTargets(cannedPlan(input.brief), input.brief), canned: true };
+    return { plan: applyCoach(cannedPlan(input.brief), input.brief), canned: true };
   }
 
   const { system, user } = buildPrompt(input);
@@ -48,9 +48,10 @@ export async function generateWorkout(input: PromptInput): Promise<Generated> {
       maxTokens: MAX_TOKENS,
     });
 
-    // The model proposes; the progression rules dispose. A load the coach
-    // worked out from what she actually lifted is not the model's to change.
-    return { plan: enforceTargets(readPlan(raw), input.brief), canned: false };
+    // The model proposes; the coach disposes. A load worked out from what she
+    // actually lifted, and the rationing of failure sets, are not the
+    // model's to change.
+    return { plan: applyCoach(readPlan(raw), input.brief), canned: false };
   } catch (err) {
     if (err instanceof ClaudeError || err instanceof PlanError) {
       throw new GenerationError(err.message);
@@ -171,6 +172,7 @@ function ex(
     loadKg,
     loadNote: "",
     rir,
+    lastSetToFailure: false,
     restSec,
     cue,
     howTo: `${name.charAt(0)}${name.slice(1).toLowerCase()}, done with control. ${cue}`,

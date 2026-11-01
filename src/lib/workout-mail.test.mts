@@ -83,6 +83,14 @@ test("each exercise carries its label, sets, load, rest and reps in reserve", ()
   assert.match(html, /HIP THRUST<\/span>\s*<span[^>]*>4 x 6-10</);
 });
 
+test("a last set to failure is said on the loading line", () => {
+  const plan = lowerPlan({ thrustKg: 65 });
+  plan.blocks[3].exercises[1].lastSetToFailure = true;
+  const { text } = composeWorkoutMail(input({ plan }));
+  assert.match(text, /14kg · rest 2 min · 2 in reserve, last set to\s+failure/);
+  assert.match(text.replace(/\s+/g, " "), /Heavy barbell lifts stop a rep or two before that/);
+});
+
 test("last time and what changed sit under the exercise they belong to", () => {
   const { text, html } = composeWorkoutMail(input());
   assert.match(text, /Last Sun 4 Oct: 60kg x 10, 10, 10, 10/);

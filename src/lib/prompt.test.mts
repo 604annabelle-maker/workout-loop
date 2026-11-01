@@ -13,11 +13,21 @@ function input(sessions = [session("2026-10-17T15:00:00Z")], preferences = PREFS
 
 test("the philosophy is in the system prompt, the same every time", () => {
   assert.equal(buildPrompt(input()).system, SYSTEM);
-  assert.match(SYSTEM, /same relative rate as men/);
+  assert.match(SYSTEM, /same percentage rate as men, but from a smaller starting point/);
+  assert.match(SYSTEM, /lifting lighter than they can/);
   assert.match(SYSTEM, /Nothing is programmed by menstrual cycle phase/);
   assert.match(SYSTEM, /jumping are what build bone/);
   assert.match(SYSTEM, /Pull at least as much as push/);
   assert.match(SYSTEM, /never use language about burning, toning, slimming/);
+});
+
+test("the effort rules ration failure by exercise class", () => {
+  assert.match(SYSTEM, /heavy anchor[^\n]*never planned/);
+  assert.match(SYSTEM, /isolation[^\n]*last set to failure/);
+  assert.match(SYSTEM, /light, high rep work[^\n]*required/);
+  assert.match(SYSTEM, /At most 3 failure sets per muscle in a session/);
+  assert.match(SYSTEM, /Do not deliberately go light/);
+  assert.ok(!SYSTEM.includes("in reserve in reserve"));
 });
 
 test("the system prompt asks for every block kind the code knows how to render", () => {
@@ -54,7 +64,7 @@ test("the coach's decisions arrive as facts", () => {
   const { user } = buildPrompt(input());
   assert.match(user, /Session 2: Legs and shoulders \(full body rotation\)/);
   // The fixture's block began on 4 Oct, so the 20th is its third week.
-  assert.match(user, /Block 1, Week 3, build\. Effort this week: 1 to 2 in reserve\./);
+  assert.match(user, /Block 1, Week 3, build\. Effort this week: 1 to 2 in reserve on compounds/);
   assert.match(user, /Time budget in minutes: warm up 7, primer 5, main work 39, finisher 9/);
   assert.match(user, /Jumps: 20 foot contacts in the last 7 days/);
   assert.match(user, /Finisher: /);

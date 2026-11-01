@@ -33,6 +33,7 @@ export function exercise(overrides: Partial<PlanExercise> & { name: string }): P
     loadKg: 40,
     loadNote: "",
     rir: 2,
+    lastSetToFailure: false,
     restSec: 120,
     cue: "Brace.",
     howTo: "Do it well.",

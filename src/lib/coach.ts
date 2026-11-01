@@ -20,6 +20,7 @@ import {
   BLOCK_WEEKS,
   CONDITIONING,
   DELOAD_MIN_SESSIONS,
+  FAILURE_SETS_PER_MUSCLE_PER_SESSION,
   FINISHERS,
   FULL_BODY,
   IMPACT,
@@ -361,6 +362,10 @@ export function nextTarget(
         loadKg: lighter,
         reason: lighter < load ? `Down to ${kg(lighter)}. Own every rep.` : "Same weight. Own every rep.",
       };
+    } else if (last.effort === "easy" && load > 0) {
+      // Said in so many words. Lifting lighter than she can is the commoner
+      // mistake, so "easy" is taken at its word rather than second guessed.
+      target = { ...target, action: "up", loadKg: roundLoad(load + step), reason: `Up ${kg(step)}. You said it was easy.` };
     } else if (reps.every((r) => r >= topNeeded) && last.effort !== "hard") {
       target =
         load > 0
@@ -636,6 +641,48 @@ export function enforceTargets(plan: Plan, brief: Brief): Plan {
       }),
     })),
   };
+}
+
+/**
+ * Rations failure, whatever the model wrote.
+ *
+ * Failure on the last set is allowed only where it is safe and cheap: lifts
+ * outside the heavy strength block, never in a lighter week or the first
+ * session back from a break, and at most a few per muscle per session.
+ * Beyond that it buys fatigue, not muscle.
+ */
+export function enforceEffort(plan: Plan, brief: Brief): Plan {
+  const used = new Map<Muscle, number>();
+  const none = brief.deload || brief.reEntry;
+
+  return {
+    ...plan,
+    blocks: plan.blocks.map((block) => ({
+      ...block,
+      exercises: block.exercises.map((exercise) => {
+        if (!exercise.lastSetToFailure) return exercise;
+
+        const allowed =
+          !none &&
+          exercise.kind === "lift" &&
+          block.kind !== "strength" &&
+          block.kind !== "warmup" &&
+          block.kind !== "primer" &&
+          block.kind !== "finisher" &&
+          block.kind !== "cooldown" &&
+          exercise.primary.every((m) => (used.get(m) ?? 0) < FAILURE_SETS_PER_MUSCLE_PER_SESSION);
+
+        if (!allowed) return { ...exercise, lastSetToFailure: false };
+        for (const m of exercise.primary) used.set(m, (used.get(m) ?? 0) + 1);
+        return exercise;
+      }),
+    })),
+  };
+}
+
+/** Everything the coach insists on, applied to a plan the model wrote. */
+export function applyCoach(plan: Plan, brief: Brief): Plan {
+  return enforceEffort(enforceTargets(plan, brief), brief);
 }
 
 /** "Thu 5 Nov" for a target's last time. Here so the mailer need not know. */
