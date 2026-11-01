@@ -222,7 +222,9 @@ export const MAX_SETS_PER_MUSCLE_PER_SESSION = 10;
  * Rest is never under a minute, because rushing rest between hard sets costs
  * growth, with no clear benefit past about 90 seconds for most work (Singer
  * 2024). Women hold their reps better from set to set (Hunter; Fulco 1999;
- * Nuckols 2026), so rests sit at the shorter end, set by readiness.
+ * Nuckols 2026), so she rests by readiness toward the short end of each
+ * range. That shorter rest is tolerable, not better, so the ranges are the
+ * normal ones.
  */
 export const ROLES = {
   heavy: {
@@ -230,7 +232,7 @@ export const ROLES = {
     reps: "5-8",
     rir: "2 to 3 reps in reserve early in a block, 1 to 2 late",
     failure: "never planned; the set ends when form starts to slip",
-    restSec: "120 to 150",
+    restSec: "120 to 180",
   },
   compound: {
     what: "machine, cable or dumbbell compound",
@@ -244,7 +246,7 @@ export const ROLES = {
     reps: "10-20",
     rir: "0 to 1 reps in reserve",
     failure: "last set to failure",
-    restSec: "60 to 75",
+    restSec: "60 to 90",
   },
   bodyweight: {
     what: "bodyweight: push ups, inverted rows, pull ups, dips",
@@ -412,5 +414,7 @@ export const ALWAYS = [
   "Hamstrings are trained lengthened at least once a week: Romanian deadlift, Nordic curl or seated curl.",
   "Adductors and calves get direct work at least once a week each.",
   "Pulling sets at least equal pushing sets across the week.",
+  "A vertical pull at least once a week, progressing from assisted pull ups to slow negatives to bodyweight pull ups.",
+  "A new eccentric heavy movement (Nordic curls, slow negatives, a first RDL) starts with fewer sets and builds over two or three sessions.",
   "Carries at least once a week.",
 ];
