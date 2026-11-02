@@ -50,6 +50,8 @@ export async function recordBooking(
       bookingRef: booking.bookingRef,
       slotStartsAt: booking.slotStartsAt,
       slotMinutes: booking.slotMinutes,
+      focus: booking.focus ?? null,
+      note: booking.note ?? null,
     })
     .onConflictDoNothing({ target: workouts.bookingRef })
     .returning({ id: workouts.id });
@@ -110,6 +112,11 @@ export async function deliverWorkout(workoutId: string): Promise<Delivery> {
         sessions,
         slot,
         sessionNumber: (await sessionsSent()) + 1,
+        // Kept on the row, so a retry asks for the same session.
+        request: {
+          focus: workout.focus === "upper" || workout.focus === "lower" || workout.focus === "full" ? workout.focus : null,
+          note: workout.note,
+        },
       });
 
       const generated = await generateWorkout({ preferences, sessions, brief, slot });

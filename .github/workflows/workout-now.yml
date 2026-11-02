@@ -14,6 +14,20 @@ on:
         description: "How long the session is, in minutes"
         required: false
         default: "60"
+      focus:
+        description: "What today is: auto follows the rotation; upper means no legs"
+        type: choice
+        required: false
+        default: auto
+        options:
+          - auto
+          - upper
+          - lower
+          - full
+      note:
+        description: "Anything else for today, in your own words (optional)"
+        required: false
+        default: ""
 
 jobs:
   send:
@@ -32,7 +46,12 @@ jobs:
           esac
 
           target="$url/api/workout"
-          echo "calling $target for a ${MINUTES}-minute session"
+          echo "calling $target for a ${MINUTES}-minute session, focus: ${FOCUS}"
+
+          # Built with jq from the environment, so whatever is typed in the
+          # note arrives as a string and never as part of the JSON.
+          body=$(jq -n --arg minutes "$MINUTES" --arg focus "$FOCUS" --arg note "$NOTE" \
+            '{minutes: $minutes, focus: $focus, note: $note}')
 
           code=$(curl --silent --show-error --fail-with-body --location \
             --max-time 300 \
@@ -41,7 +60,7 @@ jobs:
             --request POST \
             --header "authorization: Bearer $CRON_SECRET" \
             --header "content-type: application/json" \
-            --data "{\"minutes\": \"${MINUTES}\"}" \
+            --data "$body" \
             "$target") || true
 
           echo "HTTP $code"
@@ -63,3 +82,5 @@ jobs:
           APP_URL: ${{ vars.APP_URL || secrets.APP_URL }}
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
           MINUTES: ${{ inputs.minutes }}
+          FOCUS: ${{ inputs.focus }}
+          NOTE: ${{ inputs.note }}

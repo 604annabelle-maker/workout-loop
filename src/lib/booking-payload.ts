@@ -11,7 +11,16 @@ export interface Booking {
   bookingRef: string;
   slotStartsAt: Date;
   slotMinutes: number;
+  /** Only from a workout asked for by hand: upper, lower or full body. */
+  focus?: "upper" | "lower" | "full" | null;
+  /** Only from a workout asked for by hand: anything she wanted to say. */
+  note?: string | null;
 }
+
+const FOCUSES = ["upper", "lower", "full"] as const;
+
+/** How long a note may be. Enough for a sentence or two, not an essay. */
+const MAX_NOTE = 300;
 
 export type ParseResult =
   | { ok: true; booking: Booking }
@@ -93,6 +102,18 @@ export function manualBooking(raw: string, now = new Date()): ParseResult {
     return { ok: false, error: "minutes must be a whole number from 15 to 180" };
   }
 
+  // "auto", empty or absent leaves it to the rotation. Anything else that is
+  // not one of the three is a mistake worth saying so about.
+  const rawFocus = typeof body.focus === "string" ? body.focus.trim().toLowerCase().split(/\s+/)[0] : "";
+  if (rawFocus && rawFocus !== "auto" && !FOCUSES.includes(rawFocus as (typeof FOCUSES)[number])) {
+    return { ok: false, error: "focus must be auto, upper, lower or full" };
+  }
+  const focus = FOCUSES.includes(rawFocus as (typeof FOCUSES)[number])
+    ? (rawFocus as (typeof FOCUSES)[number])
+    : null;
+
+  const note = typeof body.note === "string" && body.note.trim() ? body.note.trim().slice(0, MAX_NOTE) : null;
+
   const minute = new Date(Math.floor(now.getTime() / 60_000) * 60_000);
 
   return {
@@ -101,6 +122,8 @@ export function manualBooking(raw: string, now = new Date()): ParseResult {
       bookingRef: `manual-${minute.toISOString()}`,
       slotStartsAt: minute,
       slotMinutes: minutes,
+      focus,
+      note,
     },
   };
 }

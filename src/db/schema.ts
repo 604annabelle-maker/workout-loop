@@ -85,6 +85,10 @@ export const workouts = pgTable("workouts", {
   bookingRef: text("booking_ref").notNull().unique(),
   slotStartsAt: timestamp("slot_starts_at", { withTimezone: true }).notNull(),
   slotMinutes: integer("slot_minutes").notNull(),
+  /** Upper, lower or full body, when she asked for one by hand. */
+  focus: text("focus"),
+  /** What she wrote when she asked for this workout by hand. */
+  note: text("note"),
   status: workoutStatus("status").notNull().default("pending"),
   /**
    * The workout as plain text, as sent. For workouts from before plans were

@@ -143,3 +143,12 @@ test("a jump day says so, with the dose", () => {
   assert.match(user, /two foot jumps in place and forward/);
   assert.match(user, /power and landing practice/);
 });
+
+test("an asked-for session says what she asked, in her words", () => {
+  const sessions = [session("2026-10-17T15:00:00Z")];
+  const brief = buildBrief({ preferences: PREFS, sessions, slot: SLOT, sessionNumber: 2, request: { focus: "upper", note: "no legs today" } });
+  const { user } = buildPrompt({ preferences: PREFS, sessions, brief, slot: SLOT });
+  assert.match(user, /she asked for this one/);
+  assert.match(user, /She asked for no legs today\. No leg exercise anywhere/);
+  assert.match(user, /She wrote, asking for this session: "no legs today"/);
+});
