@@ -15,7 +15,7 @@ import type { Brief, Target } from "./coach";
 import { kg, type Session } from "./progress";
 import { exercisesOf } from "./plan";
 import type { Preferences } from "./profile";
-import { FAILURE_SETS_PER_MUSCLE_PER_SESSION, JUMP_DAY, ROLES } from "./program";
+import { FAILURE_SETS_PER_MUSCLE_PER_SESSION, JUMPS, ROLES } from "./program";
 import { dateAndTime, dateOnly } from "./when";
 
 /** How many recent sessions are replayed in full. The coach summarises the rest. */
@@ -53,7 +53,7 @@ HOW THIS APP THINKS TRAINING SHOULD WORK
 THE SESSION, in this order. Use the block kinds exactly.
 
 1. warmup: 3 to 5 items. Raise temperature and open up the joints today's lifts use. One balance or single leg item every time. Kind mobility or cardio, no load.
-2. primer: power at full intent, low reps, full rest, never to fatigue. On a jump day it is jumps to the dose in the brief: kind jump, reps are foot contacts per set, a mix of directions (up, forward, lateral), soft quiet landings, and stepping down from boxes rather than jumping down. On other days it is throws and swings: med ball slams, rotational throws, chest passes and scoop tosses, kettlebell swings, push presses. Throws are kind throw; swings and presses are kind lift.
+2. primer: power at full intent, low reps, full rest, never to fatigue. On a jump day it is the jumps in the brief: kind jump, reps are foot contacts per set, the kind of jump the brief names, soft quiet landings with knees over toes, and stepping down from boxes rather than jumping down. On other days it is throws and swings: med ball slams, rotational throws, chest passes and scoop tosses, kettlebell swings, push presses. Throws are kind throw; swings and presses are kind lift.
 3. strength: the heavy anchor or anchors, straight sets.
 4. superset: the accessories, in pairs or a tri-set that do not compete (opposing muscles, or upper with lower), so neither limits the other. One or two superset blocks.
 5. finisher: the format the brief suggests, made fun and athletic: a clear structure, a number to beat, movements that feel good to do. Hard but short. Never a punishment.
@@ -136,7 +136,7 @@ function briefText(b: Brief): string {
     `Hard sets per muscle in the last 7 days (half sets for secondary): ${v}.`,
     b.behind.length ? `Behind and trainable today, most behind first: ${b.behind.join(", ")}. Add a set or an accessory for these where it fits.` : "No muscle trainable today is behind.",
     b.jumps?.today
-      ? `Jump day: the primer is ${b.jumps.contacts[0]}-${b.jumps.contacts[1]} foot contacts of jumps, in sets of ${JUMP_DAY.perSet} with ${JUMP_DAY.restSec} sec rest between sets.`
+      ? `Jump day: the primer is ${b.jumps.contacts[0] === b.jumps.contacts[1] ? b.jumps.contacts[0] : b.jumps.contacts.join("-")} foot contacts, as single maximal jumps or clusters of 3 to 5, ${JUMPS.restBetweenJumps} sec between jumps and ${JUMPS.restBetweenSets} sec between sets. Kind: ${b.jumps.stage}.${b.jumps.forBone ? "" : " This is power and landing practice; quality over quantity."}${b.jumps.note ? ` ${b.jumps.note}` : ""}`
       : `No jumps today: ${b.jumps?.reason ?? "not a jump day"}.`,
     `Hard conditioning: ${b.conditioning.done} min in the last 7 days, aiming for ${b.conditioning.weekly[0]}-${b.conditioning.weekly[1]}.${b.conditioning.needed ? " Today's finisher should be conditioning." : ""}`,
     `Finisher: ${b.finisher.format}. Idea: ${b.finisher.idea}.`,

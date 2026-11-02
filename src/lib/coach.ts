@@ -24,7 +24,7 @@ import {
   FINISHERS,
   FULL_BODY,
   JUMPING,
-  JUMP_DAY,
+  JUMPS,
   PRIORITY_BONUS,
   PRIORITY_CEILING,
   RE_ENTRY_AFTER_DAYS,
@@ -129,8 +129,14 @@ export interface JumpDay {
   today: boolean;
   /** Foot contacts in the jump block, when today is a jump day. */
   contacts: [number, number];
+  /** What kind of jumps, from how many jump sessions she has done. */
+  stage: string;
+  /** Anything that changes today's jumps, for the prompt. */
+  note: string;
   /** Why not, when it is not: said in the prompt, never in the email. */
   reason: string;
+  /** True when this frequency is the dose shown to build bone. */
+  forBone: boolean;
   doneThisWeek: number;
   perWeek: number;
 }
@@ -517,36 +523,70 @@ function readinessOf(sessions: Session[], now: Date): string[] {
 }
 
 /**
- * Whether today is one of her jump days.
+ * Whether today is one of her jump days, and what the jumps are.
  *
- * Only when she has jump days left this week, only on a lower or full body
- * session, and never after a reply that mentioned pain in the joints that
- * take the landing, or leaking. A lighter week or the first session back
- * keeps the jumps at a smaller dose rather than dropping them.
+ * Only when she has jump days left this week and the session is lower or
+ * full body. Never after a reply that mentioned pain in the joints that take
+ * the landing, never with a red flag that needs a clinician first (pregnancy,
+ * a bone stress injury), and never when cycle tracking shows no period for
+ * two months, because that is under-fuelling until shown otherwise. Leaking
+ * keeps the jumps, gentle and two footed, with pelvic floor training: that
+ * is the advice, not stopping. A lighter week or the first session back gets
+ * the smaller dose.
  */
 export function jumpDay(
   preferences: Preferences,
   session: SessionType,
   sessions: Session[],
   now: Date,
-  ctx: { deload: boolean; reEntry: boolean; pain: string[] },
+  ctx: { deload: boolean; reEntry: boolean; pain: string[]; notes?: string[] },
 ): JumpDay {
   const perWeek = preferences.jumpDays;
+  const forBone = perWeek >= JUMPS.frequentFrom;
   const doneThisWeek = jumpSessionsBetween(sessions, new Date(now.getTime() - 7 * DAY_MS), now);
-  const no = (reason: string): JumpDay => ({ today: false, contacts: [0, 0], reason, doneThisWeek, perWeek });
-
-  if (perWeek <= 0) return no("she has jumping turned off");
-  if (session.half === "upper") return no("an upper body day");
-  if (ctx.pain.some((p) => JUMP_DAY.painStops.test(p))) return no("she mentioned pain or leaking recently");
-  if (doneThisWeek >= perWeek) return no("this week's jump days are done");
-
-  return {
-    today: true,
-    contacts: ctx.deload || ctx.reEntry ? JUMP_DAY.easyContacts : JUMP_DAY.contacts,
-    reason: "",
+  const no = (reason: string): JumpDay => ({
+    today: false,
+    contacts: [0, 0],
+    stage: "",
+    note: "",
+    reason,
+    forBone,
     doneThisWeek,
     perWeek,
-  };
+  });
+
+  const said = [preferences.avoid, preferences.brief, ...ctx.pain, ...(ctx.notes ?? [])];
+  if (perWeek <= 0) return no("she has jumping turned off");
+  if (said.some((t) => JUMPS.redFlags.test(t))) return no("something she wrote needs a clinician's say before any impact work");
+  if (preferences.cycleTracking) {
+    const start = lastPeriodStart(sessions);
+    if (start && days(now.getTime() - start.getTime()) > JUMPS.periodGapDays) {
+      return no("no period logged for over two months");
+    }
+  }
+  if (session.half === "upper") return no("an upper body day");
+  if (ctx.pain.some((p) => JUMPS.painStops.test(p))) return no("she mentioned pain in a joint that takes the landing");
+  if (doneThisWeek >= perWeek) return no("this week's jump days are done");
+
+  const dose = forBone ? JUMPS.frequent : JUMPS.weekly;
+  const leaking = ctx.pain.some((p) => JUMPS.leak.test(p));
+  let contacts: [number, number] = ctx.deload || ctx.reEntry || leaking ? [...dose.easy] : [...dose.contacts];
+  const notes: string[] = [];
+
+  if (JUMPS.heavyLegDays.includes(session.id) && contacts[1] > JUMPS.heavyLegCap) {
+    contacts = [Math.min(contacts[0], JUMPS.heavyLegCap), JUMPS.heavyLegCap];
+    notes.push("Squat day, so keep the jumps short and two footed.");
+  }
+  if (leaking) {
+    notes.push("She mentioned leaking: gentle two foot jumps only, and make the tip about pelvic floor training.");
+  }
+
+  const done = jumpSessionsBetween(sessions, new Date(0), now);
+  const stage = leaking
+    ? JUMPS.stages[0].text
+    : (JUMPS.stages.find((s) => done < s.before) ?? JUMPS.stages[JUMPS.stages.length - 1]).text;
+
+  return { today: true, contacts, stage, note: notes.join(" "), reason: "", forBone, doneThisWeek, perWeek };
 }
 
 export function buildBrief(input: CoachInput): Brief {
@@ -575,7 +615,8 @@ export function buildBrief(input: CoachInput): Brief {
   const likes = recentWords(sessions, (s) => s.logs.flatMap((l) => l.liked), 120, now);
 
   const pain = recentWords(sessions, (s) => s.logs.flatMap((l) => l.checkIn.pain), 21, now);
-  const jumps = jumpDay(preferences, session, sessions, now, { deload, reEntry: pos.reEntry, pain });
+  const notes = recentWords(sessions, (s) => s.notes, 60, now);
+  const jumps = jumpDay(preferences, session, sessions, now, { deload, reEntry: pos.reEntry, pain, notes });
 
   const anchors = anchorsOf(sessions, session.id, pos.reEntry ? -1 : pos.block);
   const previousAnchors =

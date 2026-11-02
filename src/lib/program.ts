@@ -341,25 +341,58 @@ export const DELOAD_MIN_SESSIONS = 8;
 export const RE_ENTRY_AFTER_DAYS = 12;
 
 /**
- * Jumping, on the days she chooses and no others.
+ * Jumping for bone, on the days she chooses.
  *
- * Jump days per week is her setting. On a jump day the primer is a short
- * block of jumps; on every other day anything whose name says it leaves the
- * ground is taken out by the coach (jumps, hops, bounds, pogos, skipping,
- * burpees), whatever the model writes. Words that only sound related are left
- * alone: a skater squat stays on the floor, and a step up onto a plyo box is
- * a step up. Bone gets its everyday stimulus from the heavy anchor lift
- * every session has.
+ * Jumping is for her stage, not a menopause idea. Most of the positive trials
+ * were in women aged about 20 to 45, and the classic one gave the same
+ * programme to both groups: premenopausal women gained 2 to 3% at the hip,
+ * postmenopausal women nothing (Bassey 1998). In college women, 10 maximal
+ * jumps three days a week added about 2.6% at the hip in six months (Kato
+ * 2006). Guidelines for adults include it (ACSM 2004, ESSA 2017, NIH).
+ *
+ * Frequency is the catch. No trial supports once a week for bone, and in
+ * women of 18 to 40 hopping two days a week did nothing while four and seven
+ * did (Bailey & Brooke-Wavell 2010). So the dose depends on her setting:
+ * three jump days a week gets the short dose that works for bone, about a
+ * minute; fewer gets a longer block that is honest power and landing
+ * practice. The gains fade within months of stopping (Winters & Snow 2000),
+ * so it is a habit, not a course.
+ *
+ * Jump days per week is her setting. On a jump day the primer is the jumps;
+ * on every other day anything whose name says it leaves the ground is taken
+ * out by the coach (jumps, hops, bounds, pogos, skipping, burpees), whatever
+ * the model writes. Words that only sound related are left alone: a skater
+ * squat stays on the floor, and a step up onto a plyo box is a step up.
  */
-export const JUMP_DAY = {
-  /** Foot contacts in the session's jump block. */
-  contacts: [20, 40] as [number, number],
-  /** On a lighter week or the first session back. */
-  easyContacts: [10, 20] as [number, number],
-  perSet: "5 to 10",
-  restSec: "15 to 30",
-  /** Pain mentioned recently in any of these means no jumps today. */
-  painStops: /\b(knee|ankle|shin|foot|feet|achilles|calf|hip|back|leak|leaking|pelvic|bladder)\b/i,
+export const JUMPS = {
+  /** At or above this many jump days, each gets the short bone dose. */
+  frequentFrom: 3,
+  frequent: { contacts: [10, 20] as [number, number], easy: [10, 10] as [number, number] },
+  /** Fewer jump days: unproven for bone, so power and landing practice. */
+  weekly: { contacts: [20, 40] as [number, number], easy: [10, 20] as [number, number] },
+  /** Squat days keep the jumps short. */
+  heavyLegDays: ["lower-legs", "full-legs"],
+  heavyLegCap: 20,
+  /** Seconds between single maximal jumps, and between sets. */
+  restBetweenJumps: "10 to 20",
+  restBetweenSets: "about 60",
+  /**
+   * Progression by how many jump sessions she has done. A stage moves on
+   * only with quiet, stable landings and knees that do not cave in.
+   */
+  stages: [
+    { before: 4, text: "two foot jumps in place and forward, landing softly and quietly with knees over toes" },
+    { before: 10, text: "two foot jumps plus lateral jumps and low step off landings" },
+    { before: Infinity, text: "mixed directions, adding single leg hops and skater bounds" },
+  ],
+  /** Pain recently mentioned in any of these means no jumps today. */
+  painStops: /\b(knee|knees|ankle|ankles|shin|shins|foot|feet|achilles|calf|calves|hip|hips|back)\b/i,
+  /** Leaking means gentle two foot jumps and pelvic floor training, not stopping. */
+  leak: /\b(leak|leaks|leaking|leaked|pelvic|bladder|incontinen\w*)\b/i,
+  /** Never with these: they need a clinician first. */
+  redFlags: /\b(pregnan\w*|stress fracture\w*|bone stress)\b/i,
+  /** With cycle tracking on, this long without a logged period stops the jumps. */
+  periodGapDays: 60,
 };
 
 export const JUMPING =

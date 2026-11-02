@@ -137,5 +137,9 @@ test("a jump day says so, with the dose", () => {
   const sessions = [session("2026-10-17T15:00:00Z", { plan: { ...session("2026-10-17T15:00:00Z").plan!, blocks: session("2026-10-17T15:00:00Z").plan!.blocks.filter((b) => b.kind !== "primer") } })];
   const brief = buildBrief({ preferences, sessions, slot: SLOT, sessionNumber: 2 });
   const { user } = buildPrompt({ preferences, sessions, brief, slot: SLOT });
-  assert.match(user, /Jump day: the primer is 20-40 foot contacts of jumps/);
+  // The rotation lands on a squat day here, so the jumps are capped short.
+  assert.match(user, /Jump day: the primer is 20 foot contacts/);
+  assert.match(user, /Squat day, so keep the jumps short and two footed\./);
+  assert.match(user, /two foot jumps in place and forward/);
+  assert.match(user, /power and landing practice/);
 });

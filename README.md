@@ -64,12 +64,15 @@ In short:
   stop a rep or two short and never fail on purpose. Machine and isolation
   work takes its last set to failure. Light, high rep sets only count when
   taken there. The coach rations failure whatever the model writes.
-- **Lift heavy for bone, and jump only when she chooses.** Her early
-  twenties are the last years with bone still to build, and every session has
-  a heavy anchor lift. Jumping is a setting, jump days per week (default one):
-  on a jump day the primer is a short block of jumps; on every other day the
-  coach strips any jump, hop, bound, skip or burpee from the plan whatever the
-  model writes, and the primer is throws and swings instead.
+- **Lift heavy and jump for bone, at a dose she chooses.** Her early
+  twenties are the last years with bone still to build, every session has a
+  heavy anchor lift, and jumping is for her stage, not a menopause idea: the
+  positive trials were in women aged about 20 to 45. Jump days per week is her
+  setting. At three, each session opens with about ten maximal jumps, the dose
+  shown to build hip bone in women her age (Kato 2006). At one or two, a longer
+  block that is honest power and landing practice, since no trial supports
+  once a week for bone. Jumps progress in stages, stop for joint pain or red
+  flags, and are stripped from every other day whatever the model writes.
 - **A little hard conditioning for the heart.** Short finishers on a bike,
   rower, sled or kettlebell, 8 to 20 hard minutes a week, kept after the lifting
   so they cost no muscle.

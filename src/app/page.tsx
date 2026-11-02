@@ -162,8 +162,10 @@ export default async function PreferencesPage() {
           <label style={label} htmlFor="jumpDays">
             Jump days per week
             <span style={hint}>
-              Sessions that open with a short block of jumps, for bone and power. Only lower and full
-              body days, never after you mention knee, ankle or shin pain. 0 means no jumping at all.
+              3 is the dose shown to build bone in women your age: about 10 jumps at the start of
+              three sessions, a minute each. 1 or 2 gives a longer block once or twice a week, good
+              for power and landing but not shown to help bone. 0 means no jumping. Only on lower and
+              full body days, and never after you mention knee, ankle or shin pain.
             </span>
           </label>
           <input

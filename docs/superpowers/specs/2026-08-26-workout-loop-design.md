@@ -575,3 +575,14 @@ session is lower or full body, and no reply in the last three weeks
 mentioned pain in the joints that take the landing, or leaking. Jumps then
 stay in the primer and are stripped everywhere else; on other days the
 original rule applies.
+
+Research then settled it (`docs/training-research-jumping.md`). Jumping is for
+her stage: the positive trials were in premenopausal women, and the same
+programme that helped them did nothing after menopause. Frequency is what
+matters: about ten maximal jumps three days a week built hip bone in women of
+about 21, while no trial supports once a week. So the dose follows her
+setting: three jump days gets the short bone dose; one or two gets a longer
+power and landing block, described as exactly that. Jumps progress in stages
+by how many jump sessions she has done; pain in a landing joint, a red flag
+(pregnancy, a bone stress injury) or two months with no logged period stops
+them; leaking keeps them gentle with a pelvic floor note.

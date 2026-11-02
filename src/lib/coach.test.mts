@@ -395,8 +395,50 @@ test("a jump day needs jump days left, a lower or full body session, and no rece
   assert.equal(jumpDay(once, FULL, [jumped(-8)], at(0), easy).today, true);
   assert.equal(jumpDay({ ...PREFS, jumpDays: 2 }, FULL, [jumped(-3)], at(0), easy).today, true);
   assert.equal(jumpDay(once, FULL, [], at(0), { ...easy, pain: ["left knee on lunges"] }).today, false);
-  assert.equal(jumpDay(once, FULL, [], at(0), { ...easy, pain: ["a bit of leaking on swings"] }).today, false);
   assert.deepEqual(jumpDay(once, FULL, [], at(0), { ...easy, deload: true }).contacts, [10, 20]);
+});
+
+test("three jump days is the short dose shown to build bone; fewer is power practice", () => {
+  const three = jumpDay({ ...PREFS, jumpDays: 3 }, FULL, [], at(0), easy);
+  assert.deepEqual(three.contacts, [10, 20]);
+  assert.equal(three.forBone, true);
+  const one = jumpDay({ ...PREFS, jumpDays: 1 }, FULL, [], at(0), easy);
+  assert.equal(one.forBone, false);
+});
+
+test("jumps progress in stages as jump sessions add up", () => {
+  const once = { ...PREFS, jumpDays: 1 };
+  assert.match(jumpDay(once, FULL, [], at(0), easy).stage, /^two foot jumps in place/);
+  const five = Array.from({ length: 5 }, (_, i) => jumped(-60 + i * 8));
+  assert.match(jumpDay(once, FULL, five, at(0), easy).stage, /lateral jumps/);
+  const twelve = Array.from({ length: 12 }, (_, i) => jumped(-100 + i * 8));
+  assert.match(jumpDay(once, FULL, twelve, at(0), easy).stage, /single leg hops/);
+});
+
+test("leaking keeps gentle two foot jumps, with a pelvic floor note", () => {
+  const twelve = Array.from({ length: 12 }, (_, i) => jumped(-100 + i * 8));
+  const day = jumpDay({ ...PREFS, jumpDays: 1 }, FULL, twelve, at(0), { ...easy, pain: ["a bit of leaking on swings"] });
+  assert.equal(day.today, true);
+  assert.deepEqual(day.contacts, [10, 20]);
+  assert.match(day.stage, /^two foot/);
+  assert.match(day.note, /pelvic floor/);
+});
+
+test("red flags and a long gap in periods stop the jumps", () => {
+  const once = { ...PREFS, jumpDays: 1 };
+  assert.equal(jumpDay({ ...once, avoid: "I'm pregnant" }, FULL, [], at(0), easy).today, false);
+  assert.equal(jumpDay(once, FULL, [], at(0), { ...easy, notes: ["Had a stress fracture last year"] }).today, false);
+
+  const period = session(at(-70), { logs: [log({ checkIn: checkIn({ periodStarted: true }) })] });
+  assert.equal(jumpDay({ ...once, cycleTracking: true }, FULL, [period], at(0), easy).today, false);
+  assert.equal(jumpDay(once, FULL, [period], at(0), easy).today, true);
+});
+
+test("squat days keep the jumps short", () => {
+  const legs = { ...FULL, id: "full-legs" };
+  const day = jumpDay({ ...PREFS, jumpDays: 1 }, legs, [], at(0), easy);
+  assert.deepEqual(day.contacts, [20, 20]);
+  assert.match(day.note, /two footed/);
 });
 
 test("on a jump day the jumps stay in the primer and nowhere else", () => {
