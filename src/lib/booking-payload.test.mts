@@ -114,3 +114,27 @@ test("a manual request with nonsense is refused, not guessed at", () => {
   assert.equal(manualBooking(JSON.stringify({ minutes: 5 }), NOW).ok, false);
   assert.equal(manualBooking(JSON.stringify({ minutes: 45.5 }), NOW).ok, false);
 });
+
+test("a manual request can ask for a focus and leave a note", () => {
+  const result = manualBooking(JSON.stringify({ minutes: "45", focus: "upper", note: "  no legs today  " }), NOW);
+  assert.equal(result.ok, true);
+  if (!result.ok) return;
+  assert.equal(result.booking.focus, "upper");
+  assert.equal(result.booking.note, "no legs today");
+});
+
+test("auto, empty or missing focus leaves it to the rotation", () => {
+  for (const focus of ["auto", "", undefined]) {
+    const result = manualBooking(JSON.stringify({ focus }), NOW);
+    assert.ok(result.ok);
+    if (result.ok) assert.equal(result.booking.focus, null);
+  }
+  const blank = manualBooking(JSON.stringify({ note: "   " }), NOW);
+  assert.ok(blank.ok && blank.booking.note === null);
+});
+
+test("an unknown focus is refused, and a long note is cut", () => {
+  assert.equal(manualBooking(JSON.stringify({ focus: "arms" }), NOW).ok, false);
+  const long = manualBooking(JSON.stringify({ note: "x".repeat(1000) }), NOW);
+  assert.ok(long.ok && long.booking.note!.length === 300);
+});

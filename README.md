@@ -197,7 +197,9 @@ is the reason it was buildable before any account existed.
 **A workout without a booking.** The "Send a workout now" action in the
 repository's Actions tab records a session starting now and sends its workout
 through the same path a booking takes, so it counts in the history and a reply
-to it is matched like any other. It calls `/api/workout` with the cron's
+to it is matched like any other. It can ask for a focus (upper means no legs:
+the coach strips any leg exercise from the plan, whatever the model writes)
+and carry a note in her own words. It calls `/api/workout` with the cron's
 secret.
 
 ```bash

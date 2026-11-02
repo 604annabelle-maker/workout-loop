@@ -29,6 +29,7 @@ export async function POST(request: Request) {
     ok: delivery.status === "sent" || delivery.status === "skipped",
     created,
     minutes: parsed.booking.slotMinutes,
+    focus: parsed.booking.focus ?? "auto",
     ...delivery,
   });
 }

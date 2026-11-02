@@ -120,7 +120,13 @@ function briefText(b: Brief): string {
     .join("; ");
 
   const lines = [
-    `Session ${b.sessionNumber}: ${b.session.name} (${b.rotation} rotation). Focus: ${b.session.focus}.`,
+    `Session ${b.sessionNumber}: ${b.session.name} (${b.rotation === "asked for" ? "she asked for this one" : `${b.rotation} rotation`}). Focus: ${b.session.focus}.`,
+    b.request?.focus === "upper"
+      ? "She asked for no legs today. No leg exercise anywhere, warm up aside: no squats, lunges, deadlifts, hip thrusts, kettlebell swings, step ups, leg machines or jumps, in the finisher too."
+      : b.request?.focus === "lower"
+        ? "She asked for a lower body session today. No upper body pressing or pulling outside the warm up."
+        : "",
+    b.request?.note ? `She wrote, asking for this session: "${b.request.note}". Honour it.` : "",
     `Primary today: ${b.session.primary.join(", ")}. Secondary: ${b.session.secondary.join(", ")}.`,
     `Anchor patterns for this session: ${b.session.anchorPatterns.join("; ")}.`,
     `Primer: ${b.session.primer}.`,

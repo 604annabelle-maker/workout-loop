@@ -6,6 +6,7 @@ import {
   chooseFinisher,
   chooseSession,
   applyCoach,
+  keepToFocus,
   jumpDay,
   enforceEffort,
   enforceTargets,
@@ -455,4 +456,44 @@ test("on a jump day the jumps stay in the primer and nowhere else", () => {
 
   const off = buildBrief({ preferences: PREFS, sessions: [], slot: { startsAt: at(0), minutes: 60 }, sessionNumber: 1 });
   assert.ok(!applyCoach(plan, off).blocks.flatMap((b) => b.exercises.map((e) => e.name)).includes("BOX JUMP"));
+});
+
+/* ---------- a session she asked for ---------- */
+
+test("asking for upper body gets an upper session, whatever the rotation says", () => {
+  const brief = buildBrief({
+    preferences: PREFS,
+    sessions: [session(at(0), { stamp: stamp({ typeId: "full-athletic" }) })],
+    slot: { startsAt: at(2), minutes: 60 },
+    sessionNumber: 2,
+    request: { focus: "upper", note: "no legs today" },
+  });
+  assert.equal(brief.session.half, "upper");
+  assert.equal(brief.rotation, "asked for");
+  assert.equal(brief.jumps.today, false);
+  assert.equal(brief.request.note, "no legs today");
+});
+
+test("of the asked-for half, the one done least recently comes next", () => {
+  const sessions = [session(at(0), { stamp: stamp({ typeId: "upper-pull" }) })];
+  const brief = buildBrief({ preferences: PREFS, sessions, slot: { startsAt: at(3), minutes: 60 }, sessionNumber: 2, request: { focus: "upper" } });
+  assert.equal(brief.session.id, "upper-push");
+});
+
+test("no legs today means no leg exercise anywhere but the warm up", () => {
+  const plan = lowerPlan();
+  plan.blocks[0].exercises.push({ ...plan.blocks[0].exercises[0], label: "W2", name: "GLUTE BRIDGE", primary: ["glutes"] });
+  const kept = keepToFocus(plan, "upper").blocks.flatMap((b) => b.exercises.map((e) => e.name));
+  assert.ok(kept.includes("GLUTE BRIDGE"), "warm up stays");
+  assert.ok(kept.includes("CHEST SUPPORTED ROW"));
+  assert.ok(kept.includes("MED BALL SLAM"));
+  for (const gone of ["HIP THRUST", "ROMANIAN DEADLIFT", "KETTLEBELL SWING"]) assert.ok(!kept.includes(gone), gone);
+  assert.deepEqual(keepToFocus(plan, null), plan);
+  assert.deepEqual(keepToFocus(plan, "full"), plan);
+});
+
+test("a plan with nothing left once the legs come out is regenerated, not sent", () => {
+  const plan = lowerPlan();
+  plan.blocks = plan.blocks.filter((b) => b.kind === "warmup" || b.kind === "strength");
+  assert.throws(() => keepToFocus(plan, "upper"));
 });

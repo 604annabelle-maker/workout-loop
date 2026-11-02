@@ -90,7 +90,9 @@ export interface MuscleStatus {
 export interface Brief {
   sessionNumber: number;
   session: SessionType;
-  rotation: "split" | "full body";
+  rotation: "split" | "full body" | "asked for";
+  /** What she asked for by hand, if she did. */
+  request: Request;
   block: number;
   week: number;
   weekPlan: WeekPlan;
@@ -141,6 +143,16 @@ export interface JumpDay {
   perWeek: number;
 }
 
+/** Upper, lower or full body: what she asked today to be, when she asked. */
+export type Focus = "upper" | "lower" | "full";
+
+/** What she asked for when she sent a workout by hand. */
+export interface Request {
+  focus?: Focus | null;
+  /** In her words: "no legs today", "short on time". */
+  note?: string | null;
+}
+
 export interface CoachInput {
   preferences: Preferences;
   /** Sent sessions before this one, any order. Ninety days is plenty. */
@@ -148,6 +160,7 @@ export interface CoachInput {
   slot: Slot;
   /** All-time count of sessions, including this one. */
   sessionNumber: number;
+  request?: Request;
 }
 
 const days = (ms: number) => ms / DAY_MS;
@@ -237,7 +250,10 @@ export function chooseSession(
   sessions: Session[],
   perWeek: number,
   volume: MuscleStatus[],
-): { session: SessionType; rotation: "split" | "full body" } {
+  focus: Focus | null = null,
+): { session: SessionType; rotation: "split" | "full body" | "asked for" } {
+  if (focus) return { session: askedFor(sessions, focus, volume), rotation: "asked for" };
+
   const rotation = perWeek >= SPLIT_FROM ? SPLIT : FULL_BODY;
   const name = rotation === SPLIT ? "split" : "full body";
   const sorted = byTime(sessions);
@@ -261,6 +277,21 @@ export function chooseSession(
 
   const best = [...candidates].sort((a, b) => deficit(b, volume) - deficit(a, volume))[0];
   return { session: best, rotation: name };
+}
+
+/**
+ * The session she asked for: of the sessions in that half, the one done
+ * least recently, and between two never done, the one whose muscles are
+ * furthest behind. "No legs today" is an upper body session; the rotation
+ * picks up again from what the next session finds.
+ */
+function askedFor(sessions: Session[], focus: Focus, volume: MuscleStatus[]): SessionType {
+  const pool = focus === "full" ? FULL_BODY : SPLIT.filter((t) => t.half === focus);
+  const lastDone = (t: SessionType) => {
+    const hit = byTime(sessions).reverse().find((s) => s.stamp?.typeId === t.id);
+    return hit ? hit.at.getTime() : -Infinity;
+  };
+  return [...pool].sort((a, b) => lastDone(a) - lastDone(b) || deficit(b, volume) - deficit(a, volume))[0];
 }
 
 /* ---------- volume ---------- */
@@ -598,7 +629,11 @@ export function buildBrief(input: CoachInput): Brief {
   const { plan: weekPlan, deload } = weekPlanFor(pos, sessions);
   const perWeek = frequency(sessions, preferences.trainingDaysPerWeek, now);
   const volume = volumeStatus(sessions, preferences, now);
-  const { session, rotation } = chooseSession(sessions, perWeek, volume);
+  const request: Request = {
+    focus: input.request?.focus ?? null,
+    note: input.request?.note?.trim() || null,
+  };
+  const { session, rotation } = chooseSession(sessions, perWeek, volume, request.focus ?? null);
 
   const weekAgo = new Date(now.getTime() - 7 * DAY_MS);
 
@@ -673,6 +708,7 @@ export function buildBrief(input: CoachInput): Brief {
     pain,
     likes,
     dislikes,
+    request,
     requests: recentWords(sessions, (s) => s.logs.map((l) => l.requests).filter(Boolean), 14, now),
     cycleDay: cycleDay !== null && cycleDay <= 45 ? cycleDay : null,
   };
@@ -783,9 +819,38 @@ export function removeJumps(plan: Plan, keepInPrimer = false): Plan {
   return { ...plan, blocks };
 }
 
+const LEG_MUSCLES = new Set<Muscle>(["glutes", "quads", "hamstrings", "adductors", "calves"]);
+const ARM_AND_TORSO = new Set<Muscle>(["back", "chest", "shoulders", "biceps", "triceps"]);
+
+/**
+ * When she asked for upper or lower body, the other half's work comes out:
+ * "no legs today" means no squats in the finisher either. Warm up items stay,
+ * since they are mobility, not training. A plan left empty is regenerated.
+ */
+export function keepToFocus(plan: Plan, focus: Focus | null | undefined): Plan {
+  if (!focus || focus === "full") return plan;
+  const other = focus === "upper" ? LEG_MUSCLES : ARM_AND_TORSO;
+
+  const blocks = plan.blocks
+    .map((block) => ({
+      ...block,
+      exercises:
+        block.kind === "warmup" || block.kind === "cooldown"
+          ? block.exercises
+          : block.exercises.filter((e) => !e.primary.some((m) => other.has(m))),
+    }))
+    .filter((block) => block.exercises.length > 0);
+
+  if (!blocks.some((b) => b.kind !== "warmup" && b.kind !== "cooldown")) {
+    throw new PlanError(`Nothing was left once the ${focus === "upper" ? "leg" : "upper body"} work came out.`);
+  }
+  return { ...plan, blocks };
+}
+
 /** Everything the coach insists on, applied to a plan the model wrote. */
 export function applyCoach(plan: Plan, brief: Brief): Plan {
-  return enforceEffort(enforceTargets(removeJumps(plan, brief.jumps?.today === true), brief), brief);
+  const focused = keepToFocus(plan, brief.request?.focus);
+  return enforceEffort(enforceTargets(removeJumps(focused, brief.jumps?.today === true), brief), brief);
 }
 
 /** "Thu 5 Nov" for a target's last time. Here so the mailer need not know. */
