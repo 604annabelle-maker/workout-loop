@@ -5,8 +5,10 @@ import {
   buildBrief,
   chooseFinisher,
   chooseSession,
+  applyCoach,
   enforceEffort,
   enforceTargets,
+  removeJumps,
   frequency,
   increment,
   nextTarget,
@@ -246,7 +248,7 @@ test("a brief carries the readiness, pain and requests from recent replies", () 
       logs: [
         log({
           checkIn: checkIn({ energy: 2, sleep: 1, symptoms: ["cramps"], pain: ["left knee on lunges"] }),
-          requests: "more jumps please",
+          requests: "more pull ups please",
           disliked: ["burpees"],
         }),
       ],
@@ -255,7 +257,7 @@ test("a brief carries the readiness, pain and requests from recent replies", () 
   const brief = buildBrief({ preferences: PREFS, sessions, slot: { startsAt: at(2), minutes: 60 }, sessionNumber: 2 });
   assert.deepEqual(brief.readiness, ["energy 2 of 5", "sleep 1 of 5", "cramps"]);
   assert.deepEqual(brief.pain, ["left knee on lunges"]);
-  assert.deepEqual(brief.requests, ["more jumps please"]);
+  assert.deepEqual(brief.requests, ["more pull ups please"]);
   assert.deepEqual(brief.dislikes, ["burpees"]);
 });
 
@@ -292,16 +294,16 @@ test("a brief survives being stored as JSON and read back", () => {
   assert.equal(reviveBrief({ stamp: {} }), null);
 });
 
-test("targets are only for lifts in the main work, never jumps or finisher swings", () => {
+test("targets are only for lifts in the main work, never throws or finisher swings", () => {
   const sessions = [session(at(0)), session(at(3))];
   const brief = buildBrief({ preferences: PREFS, sessions, slot: { startsAt: at(6), minutes: 60 }, sessionNumber: 3 });
   const names = brief.targets.map((t) => t.name);
   assert.ok(names.includes("HIP THRUST"));
-  assert.ok(!names.includes("BOX JUMP"));
+  assert.ok(!names.includes("MED BALL SLAM"));
   assert.ok(!names.includes("KETTLEBELL SWING"));
 });
 
-test("failure is rationed: never on the heavy anchor, jumps or in a lighter week", () => {
+test("failure is rationed: never on the heavy anchor, throws or in a lighter week", () => {
   const brief = buildBrief({ preferences: PREFS, sessions: [], slot: { startsAt: at(0), minutes: 60 }, sessionNumber: 1 });
   const plan = lowerPlan();
   for (const b of plan.blocks) for (const e of b.exercises) e.lastSetToFailure = true;
@@ -329,4 +331,44 @@ test("failure is capped per muscle per session", () => {
   }));
   const kept = enforceEffort(plan, brief).blocks[3].exercises.filter((e) => e.lastSetToFailure);
   assert.equal(kept.length, 3);
+});
+
+test("no jumping gets through, whatever the model writes", () => {
+  const plan = lowerPlan();
+  const names = ["BOX JUMP", "LATERAL BOUNDS", "POGO HOPS", "BURPEE", "JUMP ROPE", "JUMPING JACKS", "SKATER HOPS", "TUCK JUMP", "A SKIPS", "PLYOMETRIC PUSH UP"];
+  plan.blocks[1].exercises = names.map((name, i) => ({ ...plan.blocks[1].exercises[0], label: `P${i + 1}`, name, kind: "throw" as const }));
+  plan.blocks[4].exercises.push({ ...plan.blocks[4].exercises[0], label: "F2", name: "JUMP SQUAT", kind: "jump" });
+
+  const cleaned = removeJumps(plan);
+  const left = cleaned.blocks.flatMap((b) => b.exercises.map((e) => e.name));
+  assert.ok(left.every((n) => !names.includes(n) && n !== "JUMP SQUAT"));
+  // The primer was nothing but jumps, so it goes; the rest stays.
+  assert.ok(!cleaned.blocks.some((b) => b.kind === "primer"));
+  assert.ok(left.includes("HIP THRUST"));
+  assert.ok(left.includes("KETTLEBELL SWING"));
+});
+
+test("ordinary lifts with similar words are not mistaken for jumps", () => {
+  const plan = lowerPlan();
+  plan.blocks[3].exercises[0].name = "PLYO BOX STEP UP";
+  plan.blocks[3].exercises[1].name = "SKATER SQUAT";
+  plan.blocks[4].exercises[0].name = "BAND PULL APART";
+  const left = removeJumps(plan).blocks.flatMap((b) => b.exercises.map((e) => e.name));
+  assert.ok(left.includes("PLYO BOX STEP UP"));
+  assert.ok(left.includes("SKATER SQUAT"));
+  assert.ok(left.includes("BAND PULL APART"));
+});
+
+test("a plan that was only jumps is an error, so it is regenerated", () => {
+  const plan = lowerPlan();
+  plan.blocks = [{ ...plan.blocks[1], exercises: [{ ...plan.blocks[1].exercises[0], name: "BOX JUMP", kind: "jump" }] }];
+  assert.throws(() => removeJumps(plan));
+});
+
+test("applying the coach removes jumps too", () => {
+  const brief = buildBrief({ preferences: PREFS, sessions: [], slot: { startsAt: at(0), minutes: 60 }, sessionNumber: 1 });
+  const plan = lowerPlan();
+  plan.blocks[3].exercises.push({ ...plan.blocks[3].exercises[0], label: "B3", name: "JUMP LUNGE" });
+  const names = applyCoach(plan, brief).blocks.flatMap((b) => b.exercises.map((e) => e.name));
+  assert.ok(!names.includes("JUMP LUNGE"));
 });

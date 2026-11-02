@@ -13,7 +13,22 @@
  * look it up, and a gap with no explanation reads as a broken email.
  */
 
-import { matchExerciseName } from "./exercise-name";
+import { matchExerciseName, normalizeExerciseName } from "./exercise-name";
+
+/**
+ * Gym names the picture set spells differently, where word matching would
+ * otherwise pick the wrong movement. "SIDE PLANK" shares every word with
+ * "Push Up to Side Plank", which is a different exercise; the set's side
+ * plank is called a side bridge.
+ */
+const ALIASES: Record<string, string> = {
+  "side plank": "Side Bridge",
+  "farmer carry": "Farmer's Walk",
+  "farmers carry": "Farmer's Walk",
+  "farmer walk": "Farmer's Walk",
+  "med ball slam": "Overhead Slam",
+  "medicine ball slam": "Overhead Slam",
+};
 
 /** One exercise in the vendored set, as index.json records it. */
 export interface PictureSet {
@@ -58,7 +73,9 @@ export function picturesFor(index: PictureIndex, exercises: string[]): Pictured[
   const names = index.exercises.map((e) => e.name);
 
   return [...new Set(exercises)].map((exercise) => {
-    const match = matchExerciseName(names, exercise);
+    const alias = ALIASES[normalizeExerciseName(exercise)];
+    const aliased = alias ? names.indexOf(alias) : -1;
+    const match = aliased !== -1 ? { at: aliased } : matchExerciseName(names, exercise);
 
     if (!match) return { exercise, shows: "", frames: [] };
 
@@ -66,10 +83,10 @@ export function picturesFor(index: PictureIndex, exercises: string[]): Pictured[
 
     return {
       exercise,
-      // Named only when it is not what was asked for, so the caption earns its
-      // line: a picture of a near-enough movement must not pass as the one
-      // prescribed.
-      shows: match.score === 1 ? "" : found.name,
+      // Named whenever the picture is not of exactly the movement asked for,
+      // so a near-enough movement never passes as the one prescribed. A match
+      // that covers every word asked for can still be a different exercise.
+      shows: normalizeExerciseName(found.name) === normalizeExerciseName(exercise) ? "" : found.name,
       frames: found.files.map((file, frame) => ({
         cid: cidFor(found.id, frame),
         file,

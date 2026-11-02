@@ -14,7 +14,7 @@ import {
   describeSets,
   DAY_MS,
   hardMinutesBetween,
-  jumpsBetween,
+  hardSetsBetween,
   kg,
   sessionsBetween,
   setsPerMuscle,
@@ -27,7 +27,8 @@ import type { ReplyLog } from "./reply-log";
 
 export interface Snapshot {
   sessions: number;
-  jumps: number;
+  /** Hard sets in total, each exercise once. */
+  hardSets: number;
   hardMinutes: number;
   volume: MuscleStatus[];
   bests: Best[];
@@ -67,7 +68,7 @@ export function snapshot(
 
   return {
     sessions: sessionsBetween(withToday, from, to),
-    jumps: jumpsBetween(withToday, from, to),
+    hardSets: hardSetsBetween(withToday, from, to),
     hardMinutes: hardMinutesBetween(withToday, from, to),
     volume,
     bests: bestsBetween(sessions, new Date(now.getTime() - 7 * DAY_MS), now),
@@ -117,7 +118,11 @@ export function trendLine(trend: Trend): string {
 
 /** "HIP THRUST" to "Hip thrust", for prose. */
 export function title(name: string): string {
-  const lower = name.toLowerCase();
+  // Words with no vowels are abbreviations, RDL, DB, KB, and stay capitals.
+  const lower = name
+    .split(" ")
+    .map((w) => (/^[^AEIOUY]+$/i.test(w) && w.length > 1 ? w.toUpperCase() : w.toLowerCase()))
+    .join(" ");
   return lower.charAt(0).toUpperCase() + lower.slice(1);
 }
 

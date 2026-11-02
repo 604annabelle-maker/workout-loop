@@ -64,9 +64,11 @@ In short:
   stop a rep or two short and never fail on purpose. Machine and isolation
   work takes its last set to failure. Light, high rep sets only count when
   taken there. The coach rations failure whatever the model writes.
-- **Jump and lift heavy for bone.** Her early twenties are the last years with
-  bone still to build, so most sessions open with jumps or throws, aiming for
-  100 to 200 foot contacts a week, and every session has a heavy anchor lift.
+- **Lift heavy for bone, and no jumping.** Her early twenties are the last
+  years with bone still to build, and every session has a heavy anchor lift.
+  She asked for no jumping, so the coach strips any jump, hop, bound, skip or
+  burpee from every plan whatever the model writes; power comes from med ball
+  throws and kettlebell swings instead.
 - **A little hard conditioning for the heart.** Short finishers on a bike,
   rower, sled or kettlebell, 8 to 20 hard minutes a week, kept after the lifting
   so they cost no muscle.
@@ -81,7 +83,7 @@ In short:
 **The coach decides; the model writes.** Everything that can be decided by
 rule is decided in code before the model is called: which session in the
 rotation today is, which week of which block, whether it is a lighter week,
-which muscles are behind this week, how many jumps the week still wants, and
+which muscles are behind this week, how many hard minutes the week still wants, and
 exactly what every lift she has done before should weigh next. The model gets
 those as facts and does what it is good at: choosing movements, making the
 session feel like a session, and explaining each exercise. If it drifts from a
@@ -107,7 +109,7 @@ API key.
 |---|---|---|
 | `lib/program.ts` | The training rules, as data | yes |
 | `lib/coach.ts` | Rotation, blocks, volume, load targets, finisher choice | yes |
-| `lib/progress.ts` | Counts: sets per muscle, jumps, bests, trends, stalls | yes |
+| `lib/progress.ts` | Counts: sets per muscle, hard sets, bests, trends, stalls | yes |
 | `lib/plan.ts` | The plan's shape, its schema, and checking what came back | yes |
 | `lib/prompt.ts` | The philosophy and the coach's brief, as a prompt | yes |
 | `lib/reply-log.ts` | A reply as data, and a reader for the shorthand | yes |
@@ -147,7 +149,7 @@ reply is filed first, and the cron retries reading it until it works or gives
 up, at which point it still feeds the next session as prose.
 
 **The weekly review is counted, not written.** Sunday morning, one short email:
-sessions, hard sets per muscle against target, jumps, hard minutes, new bests,
+sessions, hard sets per muscle against target, hard minutes, new bests,
 how the lifts have moved this block, what is stuck, and what next week is. No
 model writes it, so it costs nothing and is never wrong about a number. A week
 with no training gets no email.

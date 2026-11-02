@@ -16,14 +16,14 @@ import {
   bestsBetween,
   DAY_MS,
   hardMinutesBetween,
-  jumpsBetween,
+  hardSetsBetween,
   lastPeriodStart,
   setsPerMuscle,
   stalled,
   trendsBetween,
   type Session,
 } from "./progress";
-import { CONDITIONING, IMPACT } from "./program";
+import { CONDITIONING } from "./program";
 import { bar, bestLine, LABELS, PANEL_MUSCLES, title, trendLine } from "./summary";
 import { RULE, wrap } from "./text";
 import { dateOnly } from "./when";
@@ -94,7 +94,7 @@ export function reviewFacts(input: ReviewInput) {
   return {
     week,
     muscles,
-    jumps: jumpsBetween(sessions, from, to),
+    hardSets: hardSetsBetween(sessions, from, to),
     hardMinutes: hardMinutesBetween(sessions, from, to),
     bests: bestsBetween(sessions, from, to),
     trends: trendsBetween(sessions, pos.reEntry ? from : new Date(Math.min(from.getTime(), pos.blockStartedAt.getTime())), to)
@@ -131,7 +131,7 @@ export function composeReview(input: ReviewInput): Review {
       ),
     ],
     [
-      `Jumps ${f.jumps} (aim ${IMPACT.weekly[0]}-${IMPACT.weekly[1]})`,
+      `Hard sets ${f.hardSets}`,
       `Hard minutes ${f.hardMinutes} (aim ${CONDITIONING.weeklyHardMinutes[0]}-${CONDITIONING.weeklyHardMinutes[1]})`,
     ],
   ];
@@ -200,7 +200,7 @@ function reviewHtml(input: ReviewInput, f: ReturnType<typeof reviewFacts>): stri
     ${f.fun !== null ? para(`Average fun rating ${f.fun} out of 5.`) : ""}
     ${heading("Hard sets per muscle")}
     <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="width:100%;table-layout:fixed">${rows}</table>
-    ${para(`Jumps ${f.jumps} (aim ${IMPACT.weekly[0]}-${IMPACT.weekly[1]}) · hard minutes ${f.hardMinutes} (aim ${CONDITIONING.weeklyHardMinutes[0]}-${CONDITIONING.weeklyHardMinutes[1]})`)}
+    ${para(`Hard sets ${f.hardSets} · hard minutes ${f.hardMinutes} (aim ${CONDITIONING.weeklyHardMinutes[0]}-${CONDITIONING.weeklyHardMinutes[1]})`)}
     ${f.bests.length ? heading("New bests", UP) + f.bests.map((b) => para(bestLine(b), INK)).join("") : ""}
     ${f.trends.length ? heading("This block so far") + f.trends.slice(0, 6).map((t) => para(trendLine(t), t.change > 0 ? UP : MUTED)).join("") : ""}
     ${f.stalled.length ? heading("Stuck", WARN) + para(`${f.stalled.map(title).join(", ")}: no progress in three logged sessions. The next block will change the variation or the rep range.`) : ""}

@@ -6,7 +6,7 @@ import {
   e1rm,
   hardMinutesBetween,
   historyByExercise,
-  jumpsBetween,
+  hardSetsBetween,
   kg,
   lastPeriodStart,
   performancesIn,
@@ -88,7 +88,7 @@ test("history is per movement, oldest first, across sessions", () => {
 
 test("volume counts primary sets whole and secondary sets half, main work only", () => {
   const sets = setsPerMuscle([session("2026-10-05T15:00:00Z")], FROM, TO);
-  // Hip thrust 4 (glutes) + RDL 3 (glutes primary) = 7 glutes; box jump and
+  // Hip thrust 4 (glutes) + RDL 3 (glutes primary) = 7 glutes; the slam and
   // the finisher swing do not count; RDL 3 + thrust 4 x 0.5 = 5 hamstrings.
   assert.equal(sets.glutes, 7);
   assert.equal(sets.hamstrings, 5);
@@ -118,10 +118,13 @@ test("volume only counts sessions inside the window", () => {
   assert.deepEqual(sets, {});
 });
 
-test("jumps are foot contacts, doubled when each side", () => {
-  const plan = lowerPlan();
-  plan.blocks[1].exercises.push({ ...plan.blocks[1].exercises[0], label: "P2", name: "SKATER BOUND", reps: "5 each side", sets: 2 });
-  assert.equal(jumpsBetween([session("2026-10-05T15:00:00Z", { plan })], FROM, TO), 4 * 5 + 2 * 10);
+test("hard sets in total count each exercise once, main work only", () => {
+  // Hip thrust 4, RDL 3, row 3. Not the slam, the bike or the finisher.
+  assert.equal(hardSetsBetween([session("2026-10-05T15:00:00Z")], FROM, TO), 10);
+  const skipped = session("2026-10-05T15:00:00Z", {
+    logs: [log({ exercises: [{ label: "B2", name: "CHEST SUPPORTED ROW", sets: [], effort: "", skipped: true, note: "" }] })],
+  });
+  assert.equal(hardSetsBetween([skipped], FROM, TO), 7);
 });
 
 test("hard minutes come from finishers whose format is hard", () => {
@@ -157,7 +160,7 @@ test("trends compare the first and latest logged best in the window", () => {
   assert.equal(trend.change, 10);
 });
 
-test("jumps and finisher swings never show up as records or trends", () => {
+test("finisher swings never show up as records or trends", () => {
   const sessions = [
     session("2026-10-05T15:00:00Z", { logs: [log({ exercises: [lifted("F1", "KETTLEBELL SWING", 16, [15])] })] }),
     session("2026-10-08T15:00:00Z", { logs: [log({ exercises: [lifted("F1", "KETTLEBELL SWING", 20, [15])] })] }),

@@ -4,7 +4,7 @@
  * Pure. Given her preferences, her training log and the slot she booked, this
  * works out what today is: which session in the rotation, which week of which
  * block, whether it is a lighter week, which muscles are behind, how many
- * jumps and hard minutes the week still wants, what every lift she has done
+ * hard minutes the week still wants, what every lift she has done
  * should be loaded at next, and which finisher to reach for.
  *
  * The model is good at choosing movements, writing cues and making a session
@@ -13,7 +13,7 @@
  * handed to the model as facts; `enforceTargets` puts them back if it drifts.
  */
 
-import { exerciseKey, type Muscle, type Plan } from "./plan";
+import { exerciseKey, PlanError, type Muscle, type Plan } from "./plan";
 import type { Preferences } from "./profile";
 import {
   BEGINNER_SCALE,
@@ -23,7 +23,7 @@ import {
   FAILURE_SETS_PER_MUSCLE_PER_SESSION,
   FINISHERS,
   FULL_BODY,
-  IMPACT,
+  JUMPING,
   PRIORITY_BONUS,
   PRIORITY_CEILING,
   RE_ENTRY_AFTER_DAYS,
@@ -42,7 +42,6 @@ import {
   hardMinutesBetween,
   historyByExercise,
   isProgressed,
-  jumpsBetween,
   kg,
   lastPeriodStart,
   recentCheckIns,
@@ -104,7 +103,6 @@ export interface Brief {
   volume: MuscleStatus[];
   /** Under target, and trainable today. Most behind first. */
   behind: Muscle[];
-  impact: { done: number; weekly: readonly [number, number]; today: [number, number] };
   conditioning: { done: number; weekly: readonly [number, number]; needed: boolean };
   /** Keep these this block, in this order. */
   anchors: string[];
@@ -523,14 +521,6 @@ export function buildBrief(input: CoachInput): Brief {
     .sort((a, b) => (b.range[0] - b.done) / b.range[0] - (a.range[0] - a.done) / a.range[0])
     .map((v) => v.muscle);
 
-  const jumps = jumpsBetween(sessions, weekAgo, now);
-  const today: [number, number] =
-    deload || pos.reEntry
-      ? [20, 30]
-      : jumps >= IMPACT.weekly[1]
-        ? [10, 20]
-        : [IMPACT.perSession[0], IMPACT.perSession[1]];
-
   const hard = hardMinutesBetween(sessions, weekAgo, now);
   const needConditioning = hard < CONDITIONING.weeklyHardMinutes[0];
 
@@ -581,7 +571,6 @@ export function buildBrief(input: CoachInput): Brief {
     budget: budgetFor(slot.minutes),
     volume,
     behind,
-    impact: { done: jumps, weekly: IMPACT.weekly, today },
     conditioning: { done: hard, weekly: CONDITIONING.weeklyHardMinutes, needed: needConditioning },
     anchors,
     previousAnchors,
@@ -680,9 +669,27 @@ export function enforceEffort(plan: Plan, brief: Brief): Plan {
   };
 }
 
+/**
+ * Takes out anything that leaves the ground. She asked for no jumping, and a
+ * rule that matters to her should not depend on the model remembering it.
+ * A block left empty goes too. A plan that was nothing but jumps is an error,
+ * so it is regenerated rather than sent half empty.
+ */
+export function removeJumps(plan: Plan): Plan {
+  const blocks = plan.blocks
+    .map((block) => ({
+      ...block,
+      exercises: block.exercises.filter((e) => e.kind !== "jump" && !JUMPING.test(e.name)),
+    }))
+    .filter((block) => block.exercises.length > 0);
+
+  if (blocks.length === 0) throw new PlanError("The plan was nothing but jumps.");
+  return { ...plan, blocks };
+}
+
 /** Everything the coach insists on, applied to a plan the model wrote. */
 export function applyCoach(plan: Plan, brief: Brief): Plan {
-  return enforceEffort(enforceTargets(plan, brief), brief);
+  return enforceEffort(enforceTargets(removeJumps(plan), brief), brief);
 }
 
 /** "Thu 5 Nov" for a target's last time. Here so the mailer need not know. */

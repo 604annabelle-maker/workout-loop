@@ -52,3 +52,25 @@ test("an empty set is not an error, it is a workout without pictures", () => {
   assert.equal(pictures.length, 3);
   assert.ok(pictures.every((p) => p.frames.length === 0));
 });
+
+test("a name that shares every word with a different exercise still gets a caption", () => {
+  const index: PictureIndex = {
+    exercises: [{ id: "Push_Up_to_Side_Plank", name: "Push Up to Side Plank", files: ["a.jpg"] }],
+  };
+  const [plank] = picturesFor(index, ["SIDE PLANK"]);
+  assert.equal(plank.shows, "Push Up to Side Plank");
+});
+
+test("gym names the set spells differently go to the right picture", () => {
+  const index: PictureIndex = {
+    exercises: [
+      { id: "Push_Up_to_Side_Plank", name: "Push Up to Side Plank", files: ["a.jpg"] },
+      { id: "Side_Bridge", name: "Side Bridge", files: ["b.jpg"] },
+      { id: "Farmers_Walk", name: "Farmer's Walk", files: ["c.jpg"] },
+    ],
+  };
+  const [plank, carry] = picturesFor(index, ["SIDE PLANK", "FARMER CARRY"]);
+  assert.equal(plank.frames[0].file, "b.jpg");
+  assert.equal(plank.shows, "Side Bridge");
+  assert.equal(carry.frames[0].file, "c.jpg");
+});

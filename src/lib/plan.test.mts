@@ -66,7 +66,7 @@ test("the main exercises leave out the warm up and cool down", () => {
   const names = mainExercises(lowerPlan()).map((e) => e.name);
   assert.ok(!names.includes("BIKE"));
   assert.ok(names.includes("HIP THRUST"));
-  assert.ok(names.includes("BOX JUMP"));
+  assert.ok(names.includes("MED BALL SLAM"));
 });
 
 test("sets come from the exercise, or the block's rounds when it has none", () => {
@@ -92,4 +92,10 @@ test("the schema closes every object, which structured output requires", () => {
     Object.values(n).forEach(walk);
   };
   walk(PLAN_SCHEMA);
+});
+
+test("the schema never offers jump as a kind of exercise", () => {
+  const kinds = (PLAN_SCHEMA.properties.blocks.items.properties.exercises.items.properties.kind as { enum: string[] }).enum;
+  assert.ok(!kinds.includes("jump"));
+  assert.ok(kinds.includes("throw"));
 });

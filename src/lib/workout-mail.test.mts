@@ -52,7 +52,7 @@ const PICTURES: Pictured[] = [
 ];
 
 test("the subject is today's title and date, so the subject fallback can match it", () => {
-  assert.equal(workoutSubject(lowerPlan(), SLOT), "Glutes and jumps · Wed 7 Oct");
+  assert.equal(workoutSubject(lowerPlan(), SLOT), "Glutes and power · Wed 7 Oct");
 });
 
 test("where in the block is said up front, and the cycle day only when tracked", () => {
@@ -70,7 +70,7 @@ test("no plain text line is wider than a narrow phone", () => {
 
 test("the plain text reads in gym order", () => {
   const { text } = composeWorkoutMail(input());
-  const order = ["GLUTES AND JUMPS", "FROM YOUR LAST REPLY", "WARM UP", "JUMP PRIMER", "GLUTE STRENGTH", "SUPERSET", "EMOM", "IF TODAY FEELS OFF", "THIS WEEK, COUNTING TODAY", "REPLY WITH", "HOW TO DO THESE"];
+  const order = ["GLUTES AND POWER", "FROM YOUR LAST REPLY", "WARM UP", "POWER PRIMER", "GLUTE STRENGTH", "SUPERSET", "EMOM", "IF TODAY FEELS OFF", "THIS WEEK, COUNTING TODAY", "REPLY WITH", "HOW TO DO THESE"];
   const at = order.map((h) => text.indexOf(h));
   assert.ok(at.every((n) => n >= 0), `missing: ${order.filter((_, i) => at[i] < 0)}`);
   assert.deepEqual([...at].sort((a, b) => a - b), at);

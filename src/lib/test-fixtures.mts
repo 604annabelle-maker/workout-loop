@@ -56,10 +56,10 @@ export function block(overrides: Partial<PlanBlock> & { exercises: PlanExercise[
   };
 }
 
-/** A lower body plan: warm up, jumps, a hip thrust anchor, an RDL and row superset, an EMOM. */
+/** A lower body plan: warm up, throws, a hip thrust anchor, an RDL and row superset, an EMOM. */
 export function lowerPlan(over: { thrustKg?: number; rdlKg?: number } = {}): Plan {
   return {
-    title: "Glutes and jumps",
+    title: "Glutes and power",
     focus: "Glutes, hamstrings",
     why: "Glutes lead today.",
     tip: "",
@@ -73,9 +73,9 @@ export function lowerPlan(over: { thrustKg?: number; rdlKg?: number } = {}): Pla
       }),
       block({
         kind: "primer",
-        title: "Jump primer",
+        title: "Power primer",
         minutes: 5,
-        exercises: [exercise({ label: "P1", name: "BOX JUMP", kind: "jump", sets: 4, reps: "5", loadKg: 0, rir: -1, primary: ["quads"], secondary: ["glutes"] })],
+        exercises: [exercise({ label: "P1", name: "MED BALL SLAM", kind: "throw", sets: 4, reps: "6", loadKg: 6, rir: -1, primary: ["core"], secondary: ["back"] })],
       }),
       block({
         kind: "strength",

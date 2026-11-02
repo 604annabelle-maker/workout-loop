@@ -504,7 +504,7 @@ that matters most.
 
 **A coach in code, ahead of the model.** `lib/coach.ts` decides everything
 that can be decided by rule: rotation, five week blocks with a lighter fifth
-week, weekly sets per muscle against targets, jump and conditioning doses, and
+week, weekly sets per muscle against targets, a conditioning dose, and
 the next load for every lift by double progression. The model receives those
 as facts. Progression is bookkeeping, and bookkeeping belongs where it can be
 tested.
@@ -556,3 +556,14 @@ heavy anchor or in a lighter week, at most three per muscle per session),
 shorter rests by readiness, full upper body volume, starting loads that are
 not deliberately light, "it felt easy" as a reason to add weight, and the
 failure calibration set moved to the first week of each block.
+
+### No jumping
+
+At her request, November 2026, jumping is out entirely. The first research
+round recommended jumps for bone at her age; she chose not to, and bone keeps
+its stimulus from the heavy anchor every session has. The rule is enforced in
+code rather than asked for: the plan schema no longer offers `jump` as a kind
+of exercise, and `removeJumps` in the coach strips anything named as a jump,
+hop, bound, skip, pogo, burpee or plyometric from every plan, so it cannot
+depend on the model remembering. The primer became a power primer of throws
+and swings, and the jump counts left the progress panel and the weekly review.

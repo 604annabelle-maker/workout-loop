@@ -17,13 +17,16 @@
  *   next. So the upper body gets full volume, rests sit at the shorter end of
  *   normal, and loads are chosen to genuinely reach the target effort: the
  *   commonest mistake is lifting lighter than she can.
- * - Heavy lifting and jumping are the two things that build bone, and the
- *   years before thirty are when there is still bone to build.
+ * - Heavy lifting builds bone, and the years before thirty are when there is
+ *   still bone to build, so every session has a heavy anchor lift.
+ * - No jumping of any kind. She asked for none, so jumps, hops, bounds,
+ *   skipping and burpees are taken out of every plan, whatever the model
+ *   writes. Power comes from throws and swings instead.
  * - A little hard conditioning goes a long way for the heart, and does not
  *   cost muscle when it is kept short and away from heavy leg days.
  * - Nothing is programmed by cycle phase. The best current trials find no
  *   advantage to it. How she feels on the day is what adjusts the session.
- * - The fun parts are real parts: jumps, throws, carries, finishers. They are
+ * - The fun parts are real parts: throws, swings, carries, finishers. They are
  *   capped so they never eat the time the muscle work needs.
  */
 
@@ -66,7 +69,7 @@ export const SPLIT: SessionType[] = [
       "hip thrust or glute bridge, heavy",
       "hinge: Romanian deadlift, trap bar or conventional deadlift",
     ],
-    primer: "jumps: broad jumps, box jumps or skater bounds",
+    primer: "power: kettlebell swings or med ball scoop tosses",
   },
   {
     id: "upper-pull",
@@ -79,7 +82,7 @@ export const SPLIT: SessionType[] = [
       "vertical pull: pull up, assisted pull up or lat pulldown",
       "horizontal row: chest supported, cable or barbell row",
     ],
-    primer: "throws: med ball slams or rotational throws, plus 20 to 30 pogo hops",
+    primer: "power: med ball slams or rotational throws",
   },
   {
     id: "lower-legs",
@@ -92,7 +95,7 @@ export const SPLIT: SessionType[] = [
       "squat, heavy: back squat, front squat, hack squat or goblet squat",
       "single leg: Bulgarian split squat, step up or walking lunge",
     ],
-    primer: "jumps: lateral bounds, hurdle hops or squat jumps, several directions",
+    primer: "power: med ball rotational throws or kettlebell swings",
   },
   {
     id: "upper-push",
@@ -105,7 +108,7 @@ export const SPLIT: SessionType[] = [
       "overhead press, heavy: barbell, dumbbell or landmine",
       "horizontal press: incline dumbbell press, bench press or deficit push up",
     ],
-    primer: "throws: med ball chest pass or push press, plus 20 to 30 pogo hops",
+    primer: "power: med ball chest passes or push presses",
   },
 ];
 
@@ -129,7 +132,7 @@ export const FULL_BODY: SessionType[] = [
       "vertical pull: pull up, assisted pull up or lat pulldown",
       "hinge or incline press, as the accessory pair",
     ],
-    primer: "jumps: broad jumps or box jumps",
+    primer: "power: kettlebell swings or med ball slams",
   },
   {
     id: "full-legs",
@@ -143,7 +146,7 @@ export const FULL_BODY: SessionType[] = [
       "overhead press: barbell, dumbbell or landmine",
       "row and hamstring curl, as the accessory pair",
     ],
-    primer: "jumps: lateral bounds or squat jumps, several directions",
+    primer: "power: med ball rotational throws or kettlebell swings",
   },
   {
     id: "full-athletic",
@@ -157,7 +160,7 @@ export const FULL_BODY: SessionType[] = [
       "horizontal press: incline dumbbell press, bench press or push up",
       "row and an arms superset",
     ],
-    primer: "power: kettlebell swings or med ball throws, plus 20 to 30 pogo hops",
+    primer: "power: kettlebell swings or med ball chest passes",
   },
 ];
 
@@ -326,7 +329,7 @@ export const WEEKS: WeekPlan[] = [
     name: "lighter week",
     label: "Week 5, lighter week",
     rir: "4 to 5 in reserve, nothing to failure",
-    note: "Deload. Same exercises and same days, about half the hard sets, the same load or 10% less. Keep the jumps and the fun at lower volume.",
+    note: "Deload. Same exercises and same days, about half the hard sets, the same load or 10% less. Keep the power work and the fun at lower volume.",
     deload: true,
   },
 ];
@@ -338,22 +341,18 @@ export const DELOAD_MIN_SESSIONS = 8;
 export const RE_ENTRY_AFTER_DAYS = 12;
 
 /**
- * Impact for bone.
+ * No jumping.
  *
- * Jumping builds bone in young women at doses as small as 10 to 50 jumps a
- * day (Kato 2006, Bassey 1998), and bone responds best to short bouts with
- * rest between jumps rather than one long bout. A hypertrophy program gives
- * almost none of this on its own, which makes it the biggest gap a muscle
- * plan leaves.
+ * She asked for none. Anything whose name says it leaves the ground is taken
+ * out (jumps, hops, bounds, pogos, skipping, burpees). Words that only sound
+ * related are left alone: a skater squat stays on the floor, and a step up
+ * onto a plyo box is a step up. It happens in the coach, on every plan,
+ * whatever the model writes, so the rule does not depend on the model
+ * remembering it. Bone still gets its stimulus from the heavy anchor lift
+ * every session has.
  */
-export const IMPACT = {
-  /** Foot contacts a week. */
-  weekly: [100, 200] as const,
-  perSession: [30, 60] as const,
-  /** Jumps per set, and seconds between sets. */
-  perSet: [5, 10] as const,
-  restSec: [20, 60] as const,
-};
+export const JUMPING =
+  /\b(jumps?|jumping|hops?|hopping|bounds?|bounding|pogos?|skips?|skipping|burpees?|plyometrics?)\b/i;
 
 /**
  * Hard conditioning, for the heart.
@@ -405,11 +404,11 @@ export const FINISHERS: { format: string; idea: string; conditioning: boolean }[
 
 /**
  * Things always in the mix, because they protect the joints of a young woman
- * who jumps and lifts: landing well, strong hamstrings and adductors, calves
- * that can take impact, and as much pulling as pushing.
+ * who lifts: strong hamstrings and adductors, calves, single leg control, and
+ * as much pulling as pushing.
  */
 export const ALWAYS = [
-  "The warm up raises temperature, then rehearses landing: soft knees over toes, hips back, quiet feet.",
+  "The warm up raises temperature and opens up the joints today's lifts use.",
   "Every lower day has single leg work. Balance or a single leg reach belongs in every warm up.",
   "Hamstrings are trained lengthened at least once a week: Romanian deadlift, Nordic curl or seated curl.",
   "Adductors and calves get direct work at least once a week each.",

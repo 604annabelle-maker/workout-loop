@@ -3,7 +3,7 @@
  *
  * Pure. Everything here reads the training log (sessions, their plans and what
  * the replies said) and counts something: what each lift has done over time,
- * how many hard sets each muscle got this week, how many jumps, how many hard
+ * how many hard sets each muscle got this week, how many hard
  * minutes, what was a personal best.
  *
  * Logged beats prescribed. When she replied with what she lifted, that is the
@@ -76,7 +76,7 @@ export interface Performance {
 
 /**
  * Whether a performance is the kind progression and records are about: a lift
- * in the main work. A jump, a throw, a carry or a swing in a finisher is done
+ * in the main work. A throw, a carry or a swing in a finisher is done
  * for what it does, not for a number that has to go up every week.
  */
 export function isProgressed(p: Performance): boolean {
@@ -281,21 +281,21 @@ export function setsPerMuscle(sessions: Session[], from: Date, to: Date): Record
   return total;
 }
 
-/** "5" is 5, "5 each side" is 10, "10 total" is 10. */
-function contactsPerSet(reps: string): number {
-  const n = Number(reps.match(/\d+/)?.[0] ?? 0);
-  return /each|per side|per leg|\/side/i.test(reps) ? n * 2 : n;
-}
-
-/** Foot contacts from jumps, for bone. */
-export function jumpsBetween(sessions: Session[], from: Date, to: Date): number {
+/**
+ * Hard sets in total, each exercise counted once however many muscles it
+ * works. The headline number for "how much did I do".
+ */
+export function hardSetsBetween(sessions: Session[], from: Date, to: Date): number {
   let total = 0;
   for (const session of sessions) {
     if (!within(session, from, to) || !session.plan) continue;
     for (const block of session.plan.blocks) {
+      if (!countsForVolume(block)) continue;
       for (const exercise of block.exercises) {
-        if (exercise.kind !== "jump") continue;
-        total += setsDone(block, exercise) * contactsPerSet(exercise.reps);
+        if (exercise.kind !== "lift" && exercise.kind !== "core" && exercise.kind !== "carry") continue;
+        const logged = loggedFor(exercise, session.logs);
+        if (logged.skipped) continue;
+        total += logged.sets ? logged.sets.length : setsDone(block, exercise);
       }
     }
   }

@@ -6,8 +6,8 @@
  * pictures, last time's load) depended on the model keeping a layout. Now the
  * model returns this structure and the code does the layout, so the email is
  * the same shape every time and every exercise carries what the tracking
- * needs: which muscles it trains, whether it is an anchor lift, whether it is
- * a jump.
+ * needs: which muscles it trains, whether it is an anchor lift, what kind of
+ * work it is.
  *
  * `PLAN_SCHEMA` is what the API is constrained to. `readPlan` is what the code
  * trusts: it checks and tidies whatever came back, because a schema constrains
@@ -72,9 +72,10 @@ export const FORMATS = [
 export type Format = (typeof FORMATS)[number];
 
 /**
- * What kind of work an exercise is. `jump` is counted as foot contacts toward
- * the week's impact dose, `cardio` as conditioning minutes, `lift` as hard
- * sets toward the muscle targets.
+ * What kind of work an exercise is. `lift` counts as hard sets toward the
+ * muscle targets. `jump` is only ever read from old plans: new plans have no
+ * jumping, the schema does not offer it, and the coach removes any that
+ * appear.
  */
 export const EXERCISE_KINDS = [
   "lift",
@@ -123,7 +124,7 @@ export interface PlanExercise {
 
 export interface PlanBlock {
   kind: BlockKind;
-  /** "Jump primer", "Glute strength", "EMOM finisher". */
+  /** "Power primer", "Glute strength", "EMOM finisher". */
   title: string;
   format: Format;
   /** For circuits, complexes and finishers. 0 when sets govern. */
@@ -136,7 +137,7 @@ export interface PlanBlock {
 }
 
 export interface Plan {
-  /** "Glutes and jumps". The subject line and the headline. */
+  /** "Glutes and back". The subject line and the headline. */
   title: string;
   /** "Glutes, hamstrings, upper back". */
   focus: string;
@@ -170,7 +171,7 @@ const exerciseSchema = {
   properties: {
     label: { type: "string", description: "A, B1, B2, C. Unique in the plan." },
     name: { type: "string", description: "Gym name in capitals, spelled identically every session." },
-    kind: { type: "string", enum: [...EXERCISE_KINDS] },
+    kind: { type: "string", enum: EXERCISE_KINDS.filter((k) => k !== "jump") },
     sets: { type: "integer", description: "0 when the block's rounds govern." },
     reps: { type: "string", description: "8-12, 30 sec, 6 each side." },
     loadKg: { type: "number", description: "0 for bodyweight. Per hand for dumbbells." },

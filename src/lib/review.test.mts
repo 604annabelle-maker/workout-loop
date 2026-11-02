@@ -25,7 +25,8 @@ test("the subject counts sessions and new bests", () => {
 test("the review lists the week's sessions and stays narrow", () => {
   const { text } = composeReview({ sessions: week(), preferences: PREFS, from: FROM, to: TO });
   assert.match(text, /WEEK OF SUN 18 OCT/);
-  assert.match(text, /- Mon 19 Oct: Glutes and jumps/);
+  assert.match(text, /- Mon 19 Oct: Glutes and power/);
+  assert.ok(!/jump/i.test(text));
   assert.ok(!text.includes("Mon 12 Oct"));
   assert.deepEqual(text.split("\n").filter((l) => l.length > 50), []);
 });

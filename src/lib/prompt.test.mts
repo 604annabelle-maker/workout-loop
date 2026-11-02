@@ -16,7 +16,8 @@ test("the philosophy is in the system prompt, the same every time", () => {
   assert.match(SYSTEM, /same percentage rate as men, but from a smaller starting point/);
   assert.match(SYSTEM, /lifting lighter than they can/);
   assert.match(SYSTEM, /Nothing is programmed by menstrual cycle phase/);
-  assert.match(SYSTEM, /jumping are what build bone/);
+  assert.match(SYSTEM, /Heavy lifting builds bone/);
+  assert.match(SYSTEM, /No jumping of any kind/);
   assert.match(SYSTEM, /Pull at least as much as push/);
   assert.match(SYSTEM, /never use language about burning, toning, slimming/);
 });
@@ -66,7 +67,7 @@ test("the coach's decisions arrive as facts", () => {
   // The fixture's block began on 4 Oct, so the 20th is its third week.
   assert.match(user, /Block 1, Week 3, build\. Effort this week: 1 to 2 in reserve on compounds/);
   assert.match(user, /Time budget in minutes: warm up 7, primer 5, main work 39, finisher 9/);
-  assert.match(user, /Jumps: 20 foot contacts in the last 7 days/);
+  assert.ok(!/jump/i.test(user.replace(/No jumping/g, "")));
   assert.match(user, /Finisher: /);
 });
 
@@ -88,13 +89,13 @@ test("readiness, pain, likes and requests from replies are passed on", () => {
   const sessions = [
     session("2026-10-17T15:00:00Z", {
       notes: ["Felt flat. Knee niggle on lunges."],
-      logs: [log({ checkIn: checkIn({ energy: 2, pain: ["knee on lunges"] }), liked: ["box jumps"], requests: "more pull ups" })],
+      logs: [log({ checkIn: checkIn({ energy: 2, pain: ["knee on lunges"] }), liked: ["kettlebell swings"], requests: "more pull ups" })],
     }),
   ];
   const { user } = buildPrompt(input(sessions));
   assert.match(user, /Her last reply said: energy 2 of 5\./);
   assert.match(user, /Pain she mentioned recently: knee on lunges\./);
-  assert.match(user, /She said she liked: box jumps\./);
+  assert.match(user, /She said she liked: kettlebell swings\./);
   assert.match(user, /She asked for: more pull ups\./);
   assert.match(user, /Sat 17 Oct: Felt flat\. Knee niggle on lunges\./);
 });
@@ -105,7 +106,7 @@ test("recent sessions are summarised oldest first, within the window", () => {
   );
   const { user } = buildPrompt(input(sessions));
   const recent = user.slice(user.indexOf("RECENT SESSIONS"), user.indexOf("WHAT SHE WROTE"));
-  assert.equal(recent.match(/Glutes and jumps\./g)?.length, HISTORY_WINDOW);
+  assert.equal(recent.match(/Glutes and power\./g)?.length, HISTORY_WINDOW);
   assert.match(recent, /A HIP THRUST 4x6-10 @ 60kg/);
 });
 

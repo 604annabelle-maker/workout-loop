@@ -87,13 +87,13 @@ export function cannedPlan(brief: Brief): Plan {
 
   const primer = {
     kind: "primer" as const,
-    title: lower ? "Jump primer" : "Throw primer",
+    title: "Power primer",
     format: "straight sets" as const,
     rounds: 0,
     minutes: 5,
     instructions: "Fast and crisp. Full rest, these are not cardio.",
     exercises: lower
-      ? [ex("P", "BOX JUMP", "jump", 4, "5", 0, "Land quiet, step down.", ["quads", "glutes"], ["calves"], 45)]
+      ? [ex("P", "MED BALL SCOOP TOSS", "throw", 4, "5", 6, "Hips back, then throw.", ["glutes"], ["hamstrings"], 45)]
       : [ex("P", "MED BALL SLAM", "throw", 4, "6", 6, "Reach tall, slam hard.", ["core"], ["back"], 45)],
   };
 

@@ -29,6 +29,7 @@ import { BLOCK_WEEKS } from "./program";
 import {
   bar,
   bestLine,
+  title as titleCase,
   LABELS,
   PANEL_MUSCLES,
   trendLine,
@@ -104,7 +105,7 @@ function blockHeading(block: PlanBlock): string {
 }
 
 export const OFF_DAY = [
-  "Tired, slept badly, crampy or just flat? Keep the weights, drop the last set of each superset and leave one more rep in reserve. Skip the jumps if they feel wrong today.",
+  "Tired, slept badly, crampy or just flat? Keep the weights, drop the last set of each superset and leave one more rep in reserve.",
   "First set too easy, 2 or more reps past the top of the range? Add a step for the rest; starting too light is the commoner mistake. Missed the bottom of the range? Drop 5 to 10%.",
   "Failure means the next rep would not come up with good form. Heavy barbell lifts stop a rep or two before that, always.",
 ];
@@ -114,7 +115,14 @@ export const OFF_DAY = [
  * is shown rather than described.
  */
 export function replyExample(plan: Plan): string[] {
-  const loaded = mainExercises(plan).filter((e) => e.kind === "lift" && e.sets > 0).slice(0, 2);
+  // From the main work, where the numbers are progressed: the primer and the
+  // finisher are not worth logging.
+  const main = new Set(["strength", "superset", "circuit"]);
+  const loaded = plan.blocks
+    .filter((b) => main.has(b.kind))
+    .flatMap((b) => b.exercises)
+    .filter((e) => e.kind === "lift" && e.sets > 0)
+    .slice(0, 2);
   const lines = loaded.map((e) => {
     const reps = e.reps.match(/\d+/g)?.map(Number) ?? [10];
     const top = reps.at(-1) ?? 10;
@@ -158,7 +166,7 @@ function textBlock(block: PlanBlock, brief: Brief): string[] {
 function textProgress(s: Snapshot, brief: Brief): string[] {
   const out = ["THIS WEEK, COUNTING TODAY"];
   out.push(
-    `Sessions ${s.sessions} · Jumps ${s.jumps} · Hard min ${s.hardMinutes}`,
+    `Sessions ${s.sessions} · Hard sets ${s.hardSets} · Hard min ${s.hardMinutes}`,
     "",
   );
 
@@ -192,10 +200,6 @@ function textHowTo(plan: Plan): string[] {
   return out;
 }
 
-function titleCase(name: string): string {
-  const lower = name.toLowerCase();
-  return lower.charAt(0).toUpperCase() + lower.slice(1);
-}
 
 export function composeText(input: MailInput): string {
   const { plan, brief, slot } = input;
@@ -413,7 +417,7 @@ function htmlProgress(s: Snapshot, brief: Brief): string {
   return `<div style="margin:24px 0 0;padding:16px 0 0;border-top:1px solid ${RULE_COLOUR}">
     ${label("This week, counting today")}
     <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="width:100%;margin:0 0 12px"><tr>
-      ${stat(s.sessions, "sessions")}${stat(s.jumps, "jumps")}${stat(s.hardMinutes, "hard min")}
+      ${stat(s.sessions, "sessions")}${stat(s.hardSets, "hard sets")}${stat(s.hardMinutes, "hard min")}
     </tr></table>
     <p style="margin:0 0 6px;font-size:12px;color:${FAINT}">Hard sets per muscle over 7 days, against the weekly target.</p>
     <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="width:100%;table-layout:fixed">${rows}</table>

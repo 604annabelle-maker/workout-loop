@@ -13,7 +13,7 @@ export const SAMPLE: Preferences = {
   priorities: ["glutes", "back"],
   avoid: "",
   equipment: "Commercial gym: barbells, rack, dumbbells to 30kg, cables, machines, kettlebells, bike, rower, plyo boxes, med balls.",
-  enjoys: "Jumping, kettlebells, anything that feels athletic.",
+  enjoys: "Kettlebells, med ball throws, anything that feels athletic.",
   cycleTracking: false,
   weeklyReview: true,
   brief: "I want it to feel fun and athletic, not like a chore.",

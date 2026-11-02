@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { buildBrief } from "./coach.ts";
-import { bar, heardLines, lastLog, snapshot, trendLine } from "./summary.ts";
+import { bar, heardLines, lastLog, snapshot, title, trendLine } from "./summary.ts";
 import { checkIn, lifted, log, lowerPlan, PREFS, session } from "./test-fixtures.mts";
 
 const NOW = new Date("2026-10-20T15:00:00Z");
@@ -23,7 +23,7 @@ test("the snapshot counts today as planned, and only the last seven days", () =>
   assert.equal(glutes(without), 7);
   assert.equal(glutes(withToday), 14);
   assert.equal(withToday.sessions, 2);
-  assert.equal(withToday.jumps, 40);
+  assert.equal(withToday.hardSets, 20);
   assert.equal(withToday.volume.find((v) => v.muscle === "glutes")!.status, "in");
 });
 
@@ -35,7 +35,7 @@ test("what was heard is said back plainly", () => {
         { label: "B2", name: "CHEST SUPPORTED ROW", sets: [], effort: "", skipped: true, note: "" },
       ],
       checkIn: checkIn({ energy: 3, enjoyment: 5, periodStarted: true, pain: ["left knee"] }),
-      requests: "more jumps",
+      requests: "more pull ups",
     }),
   );
   assert.deepEqual(lines, [
@@ -43,7 +43,7 @@ test("what was heard is said back plainly", () => {
     "Chest supported row: skipped",
     "energy 3/5, fun 5/5, period started",
     "Pain: left knee",
-    "Asked for: more jumps",
+    "Asked for: more pull ups",
   ]);
   assert.deepEqual(heardLines(null), []);
 });
@@ -79,4 +79,11 @@ test("a trend reads as from, to and the change", () => {
     trendLine({ name: "HIP THRUST", from: { weightKg: 60, reps: 8 }, to: { weightKg: 70, reps: 10 }, change: 21 }),
     "Hip thrust 60kg x 8 → 70kg x 10 (+21%)",
   );
+});
+
+test("names read as prose, with abbreviations kept in capitals", () => {
+  assert.equal(title("SINGLE LEG RDL REACH"), "Single leg RDL reach");
+  assert.equal(title("DB BENCH PRESS"), "DB bench press");
+  assert.equal(title("HIP THRUST"), "Hip thrust");
+  assert.equal(title("WORLD'S GREATEST STRETCH"), "World's greatest stretch");
 });
