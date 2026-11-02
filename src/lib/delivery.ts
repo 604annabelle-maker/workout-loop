@@ -13,14 +13,16 @@
 import { eq } from "drizzle-orm";
 import { db, schema } from "@/db";
 import type { Booking } from "./booking-payload";
+import { buildBrief, reviveBrief, storeBrief } from "./coach";
 import { generateWorkout } from "./generate";
 import { sendMail } from "./mail-out";
+import { mainExercises, readPlan, type Plan } from "./plan";
 import { workoutPictures } from "./picture-library";
 import { readPreferences } from "./preferences";
-import { lastTimeFor } from "./progression";
+import { heardLines, lastLog, snapshot } from "./summary";
 import { dateOnly } from "./when";
-import { composeWorkoutMail } from "./workout-mail";
-import { recentWorkouts } from "./workouts";
+import { composeLegacyMail, composeText, composeWorkoutMail } from "./workout-mail";
+import { sessionsSent, trainingLog } from "./workouts";
 
 const { workouts } = schema;
 
@@ -76,40 +78,79 @@ export async function deliverWorkout(workoutId: string): Promise<Delivery> {
   if (!to) return recordFailure(workout, "OWNER_EMAIL is not set");
 
   const slot = { startsAt: workout.slotStartsAt, minutes: workout.slotMinutes };
-  let planText = workout.planText;
 
   /*
    * Read whether or not a plan has to be generated. A retry sends the plan
-   * already in the row, and it has to carry the same pictures and the same
-   * last-time lines the first attempt would have.
+   * already in the row, and it has to carry the same progress panel and the
+   * same last-time lines the first attempt would have.
    */
-  const history = await recentWorkouts();
+  const sessions = (await trainingLog()).filter((s) => s.at < slot.startsAt);
 
-  if (!planText) {
+  let plan: Plan | null = null;
+  try {
+    plan = workout.plan ? readPlan(workout.plan) : null;
+  } catch {
+    plan = null;
+  }
+  let brief = reviveBrief(workout.brief);
+
+  // A plain text plan with no structure is a workout generated before the
+  // coach existed and never sent. Send it as written rather than paying to
+  // write another one.
+  if (!plan && workout.planText) {
+    const mail = composeLegacyMail(workout.planText, slot);
+    return send(workout, to, mail);
+  }
+
+  if (!plan || !brief) {
     try {
-      const generated = await generateWorkout(
-        await readPreferences(),
-        history,
+      const preferences = await readPreferences();
+      brief = buildBrief({
+        preferences,
+        sessions,
         slot,
-      );
-      planText = generated.planText;
+        sessionNumber: (await sessionsSent()) + 1,
+      });
+
+      const generated = await generateWorkout({ preferences, sessions, brief, slot });
+      plan = generated.plan;
 
       // Written down before the send is attempted. If the send fails, the next
       // attempt sends this plan rather than paying to write another one.
       await db
         .update(workouts)
-        .set({ planText, status: "generated" })
+        .set({
+          plan,
+          brief: storeBrief(brief, plan),
+          planText: composeText({ plan, brief, slot, snapshot: null, heard: [] }),
+          status: "generated",
+        })
         .where(eq(workouts.id, workoutId));
     } catch (err) {
       return recordFailure(workout, `generation failed: ${err}`);
     }
   }
 
-  const mail = composeWorkoutMail(planText, slot, {
-    pictures: workoutPictures(planText),
-    lastTime: lastTimeFor(planText, history),
+  const heard = lastLog(sessions);
+  const mail = composeWorkoutMail({
+    plan,
+    brief,
+    slot,
+    snapshot: snapshot(sessions, brief, slot.startsAt, plan),
+    heard: heardLines(heard?.log ?? null),
+    pictures: workoutPictures(mainExercises(plan).map((e) => e.name)),
   });
 
+  return send(workout, to, mail);
+}
+
+type WorkoutRow = typeof workouts.$inferSelect;
+
+async function send(
+  workout: WorkoutRow,
+  to: string,
+  mail: ReturnType<typeof composeWorkoutMail>,
+): Promise<Delivery> {
   const result = await sendMail({ to, ...mail });
 
   if (!result.sent) {
@@ -127,12 +168,10 @@ export async function deliverWorkout(workoutId: string): Promise<Delivery> {
       // attempt before reads as a contradiction the next time anyone looks.
       lastError: null,
     })
-    .where(eq(workouts.id, workoutId));
+    .where(eq(workouts.id, workout.id));
 
   return { status: "sent", messageId: result.messageId };
 }
-
-type WorkoutRow = typeof workouts.$inferSelect;
 
 async function recordFailure(
   workout: WorkoutRow,

@@ -47,7 +47,7 @@ export function pictureFile(file: string): string {
   return path.join(process.cwd(), DIRECTORY, path.basename(file));
 }
 
-export function workoutPictures(planText: string): Pictured[] {
+export function workoutPictures(exercises: string[]): Pictured[] {
   const set = index();
 
   /*
@@ -58,5 +58,5 @@ export function workoutPictures(planText: string): Pictured[] {
    */
   if (set.exercises.length === 0) return [];
 
-  return picturesFor(set, planText);
+  return picturesFor(set, exercises);
 }

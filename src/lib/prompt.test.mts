@@ -1,186 +1,145 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import {
-  HISTORY_WINDOW,
-  buildPrompt,
-  type PastWorkout,
-  type Preferences,
-} from "./prompt.ts";
-import { DESCRIPTIONS_HEADING } from "./workout-shape.ts";
+import { buildBrief } from "./coach.ts";
+import { buildPrompt, HISTORY_WINDOW, NOTES_WINDOW, SYSTEM, type PromptInput } from "./prompt.ts";
+import { checkIn, DAY, lifted, log, PREFS, session } from "./test-fixtures.mts";
 
-const PREFS: Preferences = {
-  goals: "get stronger, keep my back healthy",
-  experience: "three years, comfortable with barbells",
-  trainingDaysPerWeek: 3,
-  avoid: "overhead pressing, my left shoulder",
-  equipment: "barbell, rack, dumbbells to 30kg, one bench, kettlebells",
-  brief: "I would rather do fewer exercises properly than lots of them.",
-};
+const SLOT = { startsAt: new Date("2026-10-20T15:00:00Z"), minutes: 60 };
 
-const SLOT = { startsAt: new Date("2026-08-26T15:00:00Z"), minutes: 60 };
-
-function pastWorkout(i: number, feedback: string[] = []): PastWorkout {
-  return {
-    slotStartsAt: new Date(`2026-08-${String(10 + i).padStart(2, "0")}T15:00:00Z`),
-    planText: `Session ${i}\nBack squat 3x5\n\n${DESCRIPTIONS_HEADING}\nBack squat: sit down between your hips.`,
-    feedback,
-  };
+function input(sessions = [session("2026-10-17T15:00:00Z")], preferences = PREFS): PromptInput {
+  const brief = buildBrief({ preferences, sessions, slot: SLOT, sessionNumber: sessions.length + 1 });
+  return { preferences, sessions, brief, slot: SLOT };
 }
 
-test("preferences all reach the prompt", () => {
-  const { user } = buildPrompt(PREFS, [], SLOT);
-
-  assert.match(user, /get stronger, keep my back healthy/);
-  assert.match(user, /three years, comfortable with barbells/);
-  assert.match(user, /3 days a week/);
-  assert.match(user, /overhead pressing, my left shoulder/);
-  assert.match(user, /kettlebells/);
-  assert.match(user, /fewer exercises properly/);
+test("the philosophy is in the system prompt, the same every time", () => {
+  assert.equal(buildPrompt(input()).system, SYSTEM);
+  assert.match(SYSTEM, /same percentage rate as men, but from a smaller starting point/);
+  assert.match(SYSTEM, /lifting lighter than they can/);
+  assert.match(SYSTEM, /Nothing is programmed by menstrual cycle phase/);
+  assert.match(SYSTEM, /Heavy lifting builds bone/);
+  assert.match(SYSTEM, /Jumping only on the days the brief says/);
+  assert.match(SYSTEM, /stepping down from boxes rather than jumping down/);
+  assert.match(SYSTEM, /Pull at least as much as push/);
+  assert.match(SYSTEM, /never use language about burning, toning, slimming/);
 });
 
-test("the slot's time and length reach the prompt", () => {
-  const { user } = buildPrompt(PREFS, [], SLOT);
-
-  // Jerusalem is three hours ahead of UTC in August.
-  assert.match(user, /Wed, 26 Aug 2026, 18:00/);
-  assert.match(user, /60 minutes/);
+test("the effort rules ration failure by exercise class", () => {
+  assert.match(SYSTEM, /heavy anchor[^\n]*never planned/);
+  assert.match(SYSTEM, /isolation[^\n]*last set to failure/);
+  assert.match(SYSTEM, /light, high rep work[^\n]*required/);
+  assert.match(SYSTEM, /At most 3 failure sets per muscle in a session/);
+  assert.match(SYSTEM, /Do not deliberately go light/);
+  assert.ok(!SYSTEM.includes("in reserve in reserve"));
 });
 
-test("an empty history produces a valid prompt that says so", () => {
-  const { system, user } = buildPrompt(PREFS, [], SLOT);
-
-  assert.ok(system.length > 0);
-  assert.match(user, /This is the first session/);
+test("the system prompt asks for every block kind the code knows how to render", () => {
+  for (const kind of ["warmup", "primer", "strength", "superset", "finisher", "core", "cooldown"]) {
+    assert.match(SYSTEM, new RegExp(`\\b${kind}:`));
+  }
 });
 
-test("history is capped at the window, keeping the most recent", () => {
-  const history = Array.from({ length: HISTORY_WINDOW + 4 }, (_, i) => pastWorkout(i));
-  const { user } = buildPrompt(PREFS, history, SLOT);
-
-  assert.ok(!user.includes("Session 0"), "the oldest should have fallen out");
-  assert.ok(!user.includes("Session 3"), "still outside the window");
-  assert.ok(user.includes("Session 4"), "the first inside the window");
-  assert.ok(user.includes(`Session ${HISTORY_WINDOW + 3}`), "the most recent");
-});
-
-test("history is ordered oldest first, so progression reads forwards", () => {
-  const { user } = buildPrompt(PREFS, [pastWorkout(1), pastWorkout(2)], SLOT);
-
-  assert.ok(user.indexOf("Session 1") < user.indexOf("Session 2"));
-});
-
-test("feedback is attached to the session it belongs to", () => {
-  const history = [pastWorkout(1, ["Too easy, add weight."]), pastWorkout(2)];
-  const { user } = buildPrompt(PREFS, history, SLOT);
-
-  assert.match(user, /Afterwards they said: Too easy, add weight\./);
-});
-
-test("a session with no feedback carries none, and does not say so", () => {
-  const { user } = buildPrompt(PREFS, [pastWorkout(1)], SLOT);
-
-  assert.ok(!user.includes("Afterwards they said"));
-});
-
-test("blank feedback is dropped rather than filed as an empty note", () => {
-  const { user } = buildPrompt(PREFS, [pastWorkout(1, ["  ", ""])], SLOT);
-
-  assert.ok(!user.includes("Afterwards they said"));
-});
-
-test("the explanations are not replayed as history", () => {
-  const { user } = buildPrompt(PREFS, [pastWorkout(1)], SLOT);
-
-  assert.ok(user.includes("Back squat 3x5"), "the session itself is history");
-  assert.ok(
-    !user.includes("sit down between your hips"),
-    "the glossary is boilerplate and would triple the prompt for nothing",
+test("her preferences all reach the prompt", () => {
+  const { user } = buildPrompt(
+    input(undefined, {
+      ...PREFS,
+      priorities: ["glutes", "back"],
+      avoid: "overhead pressing, my left shoulder",
+      enjoys: "kettlebells",
+      brief: "I like to feel athletic.",
+    }),
   );
+  assert.match(user, /Goals: build lean muscle/);
+  assert.match(user, /Level: intermediate\. a year of lifting/);
+  assert.match(user, /Priority muscles: glutes, back/);
+  assert.match(user, /Avoid: overhead pressing, my left shoulder/);
+  assert.match(user, /She loves: kettlebells/);
+  assert.match(user, /In her words: I like to feel athletic\./);
 });
 
-test("a very long past session is excerpted rather than replayed whole", () => {
-  const long: PastWorkout = {
-    slotStartsAt: new Date("2026-08-20T15:00:00Z"),
-    planText: "x".repeat(5000),
-    feedback: [],
-  };
-  const { user } = buildPrompt(PREFS, [long], SLOT);
-
-  assert.ok(user.length < 3000, `prompt ran to ${user.length} characters`);
-  assert.match(user, /\.\.\./);
+test("the slot's local time and length reach the prompt", () => {
+  const { user } = buildPrompt(input());
+  // Jerusalem is three hours ahead of UTC in October before the clocks change.
+  assert.match(user, /Tue, 20 Oct 2026, 18:00, 60 minutes/);
 });
 
-test("the system prompt states the constraints that matter", () => {
-  const { system } = buildPrompt(PREFS, [], SLOT);
-
-  // Whitespace-normalised, because the prompt is hard-wrapped for readability
-  // and a phrase can straddle a line break. The instruction is what matters,
-  // not where it happens to fold.
-  const flat = system.replace(/\s+/g, " ");
-
-  assert.match(flat, /plain text/i);
-  assert.match(flat, /markdown/i);
-  assert.ok(flat.includes(DESCRIPTIONS_HEADING));
-  assert.match(flat, /every exercise/i);
-  assert.match(flat, /under 50 characters/i);
-  // The split follows the recent sessions, not a calendar week. They book
-  // irregularly, so a weekly frame breaks whenever the rhythm changes.
-  assert.match(flat, /recent sessions/i);
-  assert.match(flat, /no week to balance/i);
-  assert.ok(!/across a week/i.test(flat), "no calendar framing");
-  assert.match(flat, /WARM UP/);
-  assert.match(flat, /THE SESSION/);
+test("the coach's decisions arrive as facts", () => {
+  const { user } = buildPrompt(input());
+  assert.match(user, /Session 2: Legs and shoulders \(full body rotation\)/);
+  // The fixture's block began on 4 Oct, so the 20th is its third week.
+  assert.match(user, /Block 1, Week 3, build\. Effort this week: 1 to 2 in reserve on compounds/);
+  assert.match(user, /Time budget in minutes: warm up 7, primer 5, main work 39, finisher 9/);
+  assert.match(user, /No jumps today: she has jumping turned off\./);
+  assert.match(user, /Finisher: /);
 });
 
-test("empty preferences degrade to a usable prompt rather than blanks", () => {
-  const empty: Preferences = {
-    goals: "",
-    experience: "",
-    trainingDaysPerWeek: 0,
-    avoid: "",
-    equipment: "",
-    brief: "",
-  };
-  const { user } = buildPrompt(empty, [], SLOT);
-
-  assert.match(user, /Goals: not stated/);
-  assert.match(user, /Avoid: nothing stated/);
-  assert.ok(!user.includes("In their words"));
-});
-
-function loadedSession(day: number, body: string): PastWorkout {
-  return {
-    slotStartsAt: new Date(`2026-08-${String(day).padStart(2, "0")}T15:00:00Z`),
-    planText: `FOCUS\n\nLegs\n\nTHE SESSION\n\n${body}\n\n${DESCRIPTIONS_HEADING}\nBack squat: sit down between your hips.`,
-    feedback: [],
-  };
-}
-
-test("the model is told what each movement was last loaded at", () => {
-  const history = [
-    loadedSession(12, "1. BACK SQUAT  4 x 6\n   45kg. Rest 3 min."),
-    loadedSession(19, "1. BACK SQUAT  4 x 6\n   50kg. Rest 3 min."),
+test("targets carry the exact load and why", () => {
+  const sessions = [
+    session("2026-10-17T15:00:00Z", { logs: [log({ exercises: [lifted("A", "HIP THRUST", 60, [10, 10, 10, 10])] })] }),
   ];
-
-  const { user } = buildPrompt(PREFS, history, SLOT);
-
-  assert.match(user, /WHAT THEY LAST LIFTED/);
-  // The most recent load, not the first, and only once.
-  assert.match(user, /BACK SQUAT - Wed 19 Aug: 4 x 6, 50kg\. Rest 3 min\./);
-  assert.equal(user.match(/BACK SQUAT -/g)?.length, 1);
+  const { user } = buildPrompt(input(sessions));
+  assert.match(user, /HIP THRUST: 4 x 6-10 at 65kg\. Up 5kg\. You hit 10, 10, 10, 10\. Last \(Sat 17 Oct\): 60kg x 10, 10, 10, 10\./);
 });
 
-test("a first session is told there is nothing to progress from yet", () => {
-  const { user } = buildPrompt(PREFS, [], SLOT);
-
-  assert.match(user, /WHAT THEY LAST LIFTED/);
-  assert.match(user, /Pick sensible starting weights/);
+test("a first session says so and asks for calibration", () => {
+  const { user } = buildPrompt(input([]));
+  assert.match(user, /first session with the app/);
+  assert.match(user, /None yet\. Every load today is a first calibration\./);
 });
 
-test("progressive overload is asked for in so many words", () => {
-  const { system } = buildPrompt(PREFS, [], SLOT);
+test("readiness, pain, likes and requests from replies are passed on", () => {
+  const sessions = [
+    session("2026-10-17T15:00:00Z", {
+      notes: ["Felt flat. Knee niggle on lunges."],
+      logs: [log({ checkIn: checkIn({ energy: 2, pain: ["knee on lunges"] }), liked: ["kettlebell swings"], requests: "more pull ups" })],
+    }),
+  ];
+  const { user } = buildPrompt(input(sessions));
+  assert.match(user, /Her last reply said: energy 2 of 5\./);
+  assert.match(user, /Pain she mentioned recently: knee on lunges\./);
+  assert.match(user, /She said she liked: kettlebell swings\./);
+  assert.match(user, /She asked for: more pull ups\./);
+  assert.match(user, /Sat 17 Oct: Felt flat\. Knee niggle on lunges\./);
+});
 
-  assert.match(system, /PROGRESSIVE OVERLOAD/);
-  assert.match(system, /2\.5kg/);
-  assert.match(system, /same from session to session/);
+test("recent sessions are summarised oldest first, within the window", () => {
+  const sessions = Array.from({ length: HISTORY_WINDOW + 3 }, (_, i) =>
+    session(new Date(Date.parse("2026-10-01T15:00:00Z") + i * 2 * DAY)),
+  );
+  const { user } = buildPrompt(input(sessions));
+  const recent = user.slice(user.indexOf("RECENT SESSIONS"), user.indexOf("WHAT SHE WROTE"));
+  assert.equal(recent.match(/Glutes and power\./g)?.length, HISTORY_WINDOW);
+  assert.match(recent, /A HIP THRUST 4x6-10 @ 60kg/);
+});
+
+test("replies are replayed verbatim for the notes window only", () => {
+  const sessions = Array.from({ length: NOTES_WINDOW + 2 }, (_, i) =>
+    session(new Date(Date.parse("2026-10-01T15:00:00Z") + i * 2 * DAY), { notes: [`note ${i}`] }),
+  );
+  const { user } = buildPrompt(input(sessions));
+  assert.ok(!user.includes("note 0"));
+  assert.ok(!user.includes("note 1"));
+  assert.ok(user.includes(`note ${NOTES_WINDOW + 1}`));
+});
+
+test("a workout from before plans were structured is still shown", () => {
+  const legacy = session("2026-10-15T15:00:00Z", {
+    plan: null,
+    stamp: null,
+    legacyText: "FOCUS\n\nLegs\n\n1. SQUAT  3x5\n   50kg\n\nHOW TO DO THESE\n\nSQUAT\nSit.",
+  });
+  const { user } = buildPrompt(input([legacy]));
+  assert.match(user, /1\. SQUAT {2}3x5/);
+  assert.ok(!user.includes("Sit."));
+});
+
+test("a jump day says so, with the dose", () => {
+  const preferences = { ...PREFS, jumpDays: 1 };
+  const sessions = [session("2026-10-17T15:00:00Z", { plan: { ...session("2026-10-17T15:00:00Z").plan!, blocks: session("2026-10-17T15:00:00Z").plan!.blocks.filter((b) => b.kind !== "primer") } })];
+  const brief = buildBrief({ preferences, sessions, slot: SLOT, sessionNumber: 2 });
+  const { user } = buildPrompt({ preferences, sessions, brief, slot: SLOT });
+  // The rotation lands on a squat day here, so the jumps are capped short.
+  assert.match(user, /Jump day: the primer is 20 foot contacts/);
+  assert.match(user, /Squat day, so keep the jumps short and two footed\./);
+  assert.match(user, /two foot jumps in place and forward/);
+  assert.match(user, /power and landing practice/);
 });

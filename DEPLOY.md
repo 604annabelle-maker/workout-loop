@@ -31,7 +31,10 @@ accepts a whole `.env` file pasted at once: open `.env`, select everything,
 paste it in. That sets all nine values in one go and avoids typing a
 connection string by hand.
 
-Then deploy. The build takes about a minute.
+Then deploy. The build takes about a minute. It applies the database
+migrations first (`vercel-build` in `package.json`), so the schema is always the
+one the code expects. If the build fails at `db:migrate`, `DATABASE_URL` is
+missing from the environment the build ran in; Preview builds need it too.
 
 ## 3. Turn off Vercel's own protection
 

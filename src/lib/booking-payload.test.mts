@@ -76,3 +76,41 @@ test("extra fields are ignored rather than refused", () => {
 
   assert.equal(result.ok, true);
 });
+
+import { manualBooking } from "./booking-payload.ts";
+
+const NOW = new Date("2026-11-02T07:15:42.123Z");
+
+test("a manual request with no body is a 60 minute session starting now", () => {
+  const result = manualBooking("", NOW);
+  assert.equal(result.ok, true);
+  if (!result.ok) return;
+  assert.equal(result.booking.slotMinutes, 60);
+  assert.equal(result.booking.slotStartsAt.toISOString(), "2026-11-02T07:15:00.000Z");
+  assert.equal(result.booking.bookingRef, "manual-2026-11-02T07:15:00.000Z");
+});
+
+test("a manual request can say how long, as a number or the string a form sends", () => {
+  for (const minutes of [45, "45"]) {
+    const result = manualBooking(JSON.stringify({ minutes }), NOW);
+    assert.equal(result.ok, true);
+    if (result.ok) assert.equal(result.booking.slotMinutes, 45);
+  }
+});
+
+test("pressing twice within a minute is one workout; later is another", () => {
+  const a = manualBooking("", NOW);
+  const b = manualBooking("", new Date(NOW.getTime() + 10_000));
+  const c = manualBooking("", new Date(NOW.getTime() + 90_000));
+  assert.ok(a.ok && b.ok && c.ok);
+  if (!a.ok || !b.ok || !c.ok) return;
+  assert.equal(a.booking.bookingRef, b.booking.bookingRef);
+  assert.notEqual(a.booking.bookingRef, c.booking.bookingRef);
+});
+
+test("a manual request with nonsense is refused, not guessed at", () => {
+  assert.equal(manualBooking("not json", NOW).ok, false);
+  assert.equal(manualBooking("[1]", NOW).ok, false);
+  assert.equal(manualBooking(JSON.stringify({ minutes: 5 }), NOW).ok, false);
+  assert.equal(manualBooking(JSON.stringify({ minutes: 45.5 }), NOW).ok, false);
+});

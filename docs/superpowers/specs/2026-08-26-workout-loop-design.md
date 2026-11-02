@@ -480,3 +480,109 @@ sessions, which is not a mechanism. It is now one:
 This stays inside the non-goal above: nothing is tracked as structured data. What is
 read back is what was *prescribed*, and a reply is what corrects it, which is the loop
 the rest of the project already runs on.
+
+
+## The November 2026 restructure
+
+Two months of use showed three things. The sessions were correct but plain:
+one or two muscle groups, straight sets, little that felt athletic. Progress
+was measured against what had been *prescribed*, because nothing knew what she
+actually lifted. And the training philosophy lived nowhere in particular; it
+was whatever the prompt happened to imply.
+
+What changed, and why:
+
+**A training philosophy, researched and written down.** `lib/program.ts`
+holds every rule as data with its reason, and `docs/training-research.md` is
+the research behind it: hypertrophy volume and effort for women, bone and
+impact loading at 22, conditioning for longevity, Stacy Sims' approach graded
+against the evidence, the menstrual cycle question, and which fun formats are
+compatible with a muscle goal. The split moved from one or two muscles a
+session to full body at three sessions a week or fewer and upper and lower at
+four or more, because each muscle trained at least twice a week is the rule
+that matters most.
+
+**A coach in code, ahead of the model.** `lib/coach.ts` decides everything
+that can be decided by rule: rotation, five week blocks with a lighter fifth
+week, weekly sets per muscle against targets, a conditioning dose, and
+the next load for every lift by double progression. The model receives those
+as facts. Progression is bookkeeping, and bookkeeping belongs where it can be
+tested.
+
+**Structured plans.** The model returns JSON against a schema rather than text
+to be parsed back apart. The email is laid out by code, so it is the same
+shape every time, and each exercise carries its muscles, its label and whether
+it is an anchor, which is what the tracking needs.
+
+**Replies read into a log.** This reverses a phase one non-goal ("Tracking
+sets, reps and weights lifted as structured data. Replies are prose."). The
+non-goal was right for phase one: it kept the loop small. But "get stronger"
+is unmeasurable without knowing what was lifted, and the reply was already
+the channel. So a reply is still filed as prose, still replayed verbatim, and
+still never required; it is now also read into a log. A model reads free text;
+a deterministic reader handles the shorthand the email suggests, which also
+keeps the loop testable offline. Filing and reading are separate steps, so a
+reply is never lost to a failed read. What was read appears at the top of the
+next workout, which is how a misreading gets corrected without a browser.
+
+**A weekly review.** Sunday morning, counted from the log, not written by a
+model. It is not a nag: a week with no training sends nothing.
+
+**Cycle tracking without cycle syncing.** Optional. When on, a period start in
+a reply is noted, the cycle day shows on each workout, and an unusually long
+gap is mentioned gently in the review, because a missing period is an early
+sign of under-fuelling. Sessions are never programmed by phase: the best
+recent trials find no advantage, and symptom-based adjustment covers the days
+that genuinely feel worse. Every workout says what to do if today feels off.
+
+Still true: email is the whole product, plain text is complete and capped at
+50 characters a line, replying is optional, and the loop runs with nothing
+configured.
+
+### Follow-up: sex differences and training to failure
+
+A second round of research (`docs/training-research-women-and-failure.md`)
+revisited two simplifications. "Women build muscle on the same rules as men"
+was right about mechanism and percentage gains and misleading about
+everything else: smaller absolute gains, much less upper body muscle to start
+from, and better fatigue resistance across sets. "Stop short of failure" was
+too blunt: proximity to failure matters, full failure adds little on heavy
+compounds and costs recovery, and is cheap and useful on isolation and machine
+work.
+
+The program changed accordingly: effort rules per exercise class, a
+`lastSetToFailure` field on every exercise that the coach rations (never on a
+heavy anchor or in a lighter week, at most three per muscle per session),
+shorter rests by readiness, full upper body volume, starting loads that are
+not deliberately light, "it felt easy" as a reason to add weight, and the
+failure calibration set moved to the first week of each block.
+
+### No jumping
+
+At her request, November 2026, jumping is out entirely. The first research
+round recommended jumps for bone at her age; she chose not to, and bone keeps
+its stimulus from the heavy anchor every session has. The rule is enforced in
+code rather than asked for: the plan schema no longer offers `jump` as a kind
+of exercise, and `removeJumps` in the coach strips anything named as a jump,
+hop, bound, skip, pogo, burpee or plyometric from every plan, so it cannot
+depend on the model remembering. The primer became a power primer of throws
+and swings, and the jump counts left the progress panel and the weekly review.
+
+Revised the same week: jumping came back as her setting, jump days per week
+(0 to 3, default 1), pending research into whether it suits her age. The
+coach marks a session as a jump day only when days remain this week, the
+session is lower or full body, and no reply in the last three weeks
+mentioned pain in the joints that take the landing, or leaking. Jumps then
+stay in the primer and are stripped everywhere else; on other days the
+original rule applies.
+
+Research then settled it (`docs/training-research-jumping.md`). Jumping is for
+her stage: the positive trials were in premenopausal women, and the same
+programme that helped them did nothing after menopause. Frequency is what
+matters: about ten maximal jumps three days a week built hip bone in women of
+about 21, while no trial supports once a week. So the dose follows her
+setting: three jump days gets the short bone dose; one or two gets a longer
+power and landing block, described as exactly that. Jumps progress in stages
+by how many jump sessions she has done; pain in a landing joint, a red flag
+(pregnancy, a bone stress injury) or two months with no logged period stops
+them; leaking keeps them gentle with a pelvic floor note.

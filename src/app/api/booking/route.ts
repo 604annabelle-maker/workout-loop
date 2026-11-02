@@ -21,8 +21,12 @@ import { fingerprint, verify } from "@/lib/signature";
  * was already there.
  */
 
-/** Generation with adaptive thinking runs to most of a minute. */
-export const maxDuration = 60;
+/**
+ * A structured plan with adaptive thinking can run past a minute. Five minutes
+ * is the ceiling on the free plan with fluid compute, and a timeout here costs
+ * a retry, so the ceiling it is.
+ */
+export const maxDuration = 300;
 
 const SIGNATURE_HEADER = "x-workout-signature";
 

@@ -1,0 +1,65 @@
+# Send a workout now, for a session that was never booked in the gym app.
+#
+# Run it from the Actions tab: "Send a workout now", then "Run workflow". It
+# records a session starting now and sends the workout exactly as a booking
+# would, so it lands in the history and a reply to it shapes the next one.
+#
+# Uses the same two settings as the cron: APP_URL and CRON_SECRET.
+name: Send a workout now
+
+on:
+  workflow_dispatch:
+    inputs:
+      minutes:
+        description: "How long the session is, in minutes"
+        required: false
+        default: "60"
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ask the app for a workout
+        run: |
+          # Normalised for the same reasons as the cron: a trailing slash
+          # gives a redirect, and a missing or http scheme strips the
+          # Authorization header on the way to https.
+          url="${APP_URL%/}"
+          case "$url" in
+            https://*) ;;
+            http://*) url="https://${url#http://}" ;;
+            *) url="https://$url" ;;
+          esac
+
+          target="$url/api/workout"
+          echo "calling $target for a ${MINUTES}-minute session"
+
+          code=$(curl --silent --show-error --fail-with-body --location \
+            --max-time 300 \
+            --output /tmp/workout.json \
+            --write-out '%{http_code}' \
+            --request POST \
+            --header "authorization: Bearer $CRON_SECRET" \
+            --header "content-type: application/json" \
+            --data "{\"minutes\": \"${MINUTES}\"}" \
+            "$target") || true
+
+          echo "HTTP $code"
+          cat /tmp/workout.json || true
+          echo
+
+          if [ "$code" -lt 200 ] || [ "$code" -ge 300 ]; then
+            exit 1
+          fi
+
+          # Sent, or already sent by a press a moment ago. Anything else (a
+          # retry or a failure) means no email has arrived, so the run is red.
+          if ! grep -q '"ok":true' /tmp/workout.json; then
+            echo "The app answered, but the workout did not go out. The body above says why."
+            echo "A retry, if there is one, is picked up by the cron within fifteen minutes."
+            exit 1
+          fi
+        env:
+          APP_URL: ${{ vars.APP_URL || secrets.APP_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          MINUTES: ${{ inputs.minutes }}

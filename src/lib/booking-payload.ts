@@ -63,3 +63,44 @@ export function parseBookingPayload(raw: string): ParseResult {
     booking: { bookingRef: bookingRef.trim(), slotStartsAt: startsAt, slotMinutes },
   };
 }
+
+/**
+ * A workout asked for by hand rather than by a booking: from the "Send a
+ * workout now" action, for a session that was never booked in the gym app.
+ *
+ * Forgiving where the booking webhook is strict, because the only caller is
+ * her, pressing a button: no body means a 60 minute session starting now.
+ * The reference is the minute it was asked for, so pressing twice by accident
+ * within a minute sends one workout, and pressing again later sends another.
+ */
+export function manualBooking(raw: string, now = new Date()): ParseResult {
+  let body: Record<string, unknown> = {};
+
+  if (raw.trim()) {
+    try {
+      const parsed = JSON.parse(raw);
+      if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+        return { ok: false, error: "expected an object" };
+      }
+      body = parsed as Record<string, unknown>;
+    } catch {
+      return { ok: false, error: "not JSON" };
+    }
+  }
+
+  const minutes = body.minutes === undefined || body.minutes === "" ? 60 : Number(body.minutes);
+  if (!Number.isInteger(minutes) || minutes < 15 || minutes > 180) {
+    return { ok: false, error: "minutes must be a whole number from 15 to 180" };
+  }
+
+  const minute = new Date(Math.floor(now.getTime() / 60_000) * 60_000);
+
+  return {
+    ok: true,
+    booking: {
+      bookingRef: `manual-${minute.toISOString()}`,
+      slotStartsAt: minute,
+      slotMinutes: minutes,
+    },
+  };
+}
