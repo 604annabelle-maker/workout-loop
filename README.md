@@ -194,6 +194,12 @@ canned plan; without a mailbox, mail prints to the console and the poller does
 nothing. The whole loop is exercisable on a laptop with an empty `.env`, which
 is the reason it was buildable before any account existed.
 
+**A workout without a booking.** The "Send a workout now" action in the
+repository's Actions tab records a session starting now and sends its workout
+through the same path a booking takes, so it counts in the history and a reply
+to it is matched like any other. It calls `/api/workout` with the cron's
+secret.
+
 ```bash
 npm run generate:once      # print a workout, with diagnostics
 npm run send:once          # generate one and send it

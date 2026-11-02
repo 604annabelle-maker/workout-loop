@@ -1,4 +1,5 @@
 import { runCron } from "@/lib/cron";
+import { checkSecret } from "@/lib/secret";
 
 /**
  * The cron endpoint, called by GitHub Actions (design §Entry points).
@@ -10,32 +11,8 @@ import { runCron } from "@/lib/cron";
 export const maxDuration = 300;
 
 export async function POST(request: Request) {
-  const secret = process.env.CRON_SECRET;
-
-  if (secret) {
-    /*
-     * Trimmed on both sides. A value pasted into a secrets form can arrive
-     * carrying a space or a newline that nothing in the interface shows, and
-     * an invisible character is a miserable thing to debug.
-     */
-    const sent = request.headers
-      .get("authorization")
-      ?.trim()
-      .replace(/^Bearer\s+/i, "");
-
-    if (sent !== secret.trim()) {
-      return Response.json(
-        {
-          error: "Not allowed",
-          headerPresent: request.headers.has("authorization"),
-        },
-        { status: 401 },
-      );
-    }
-  } else if (process.env.NODE_ENV === "production") {
-    // Refuse rather than run unguarded on a public URL.
-    return new Response("CRON_SECRET is not set", { status: 500 });
-  }
+  const refused = checkSecret(request);
+  if (refused) return refused;
 
   const report = await runCron();
 
