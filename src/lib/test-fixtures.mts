@@ -20,6 +20,7 @@ export const PREFS: Preferences = {
   equipment: "full gym",
   enjoys: "",
   cycleTracking: false,
+  jumpDays: 0,
   weeklyReview: true,
   brief: "",
 };

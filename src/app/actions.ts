@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { savePreferences } from "@/lib/preferences";
-import { readLevel, readPriorities } from "@/lib/profile";
+import { readJumpDays, readLevel, readPriorities } from "@/lib/profile";
 
 export async function updatePreferences(form: FormData) {
   const text = (name: string) => String(form.get(name) ?? "").trim();
@@ -20,6 +20,7 @@ export async function updatePreferences(form: FormData) {
     equipment: text("equipment"),
     enjoys: text("enjoys"),
     cycleTracking: form.get("cycleTracking") === "on",
+    jumpDays: readJumpDays(form.get("jumpDays")),
     weeklyReview: form.get("weeklyReview") === "on",
     brief: text("brief"),
   });

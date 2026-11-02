@@ -15,7 +15,7 @@ import type { Brief, Target } from "./coach";
 import { kg, type Session } from "./progress";
 import { exercisesOf } from "./plan";
 import type { Preferences } from "./profile";
-import { FAILURE_SETS_PER_MUSCLE_PER_SESSION, ROLES } from "./program";
+import { FAILURE_SETS_PER_MUSCLE_PER_SESSION, JUMP_DAY, ROLES } from "./program";
 import { dateAndTime, dateOnly } from "./when";
 
 /** How many recent sessions are replayed in full. The coach summarises the rest. */
@@ -44,7 +44,7 @@ HOW THIS APP THINKS TRAINING SHOULD WORK
 
 - Muscle is built by hard sets taken close to failure and progressed over weeks. Young women grow muscle by the same mechanisms and at about the same percentage rate as men, but from a smaller starting point, with proportionally less muscle in the upper body, and they hold their reps better from set to set. So: the upper body gets full volume, not token arm work; she rests by readiness toward the shorter end of each range, never under a minute; and loads are chosen to genuinely reach the target effort, because the commonest mistake women make in the gym is lifting lighter than they can. Never prescribe light weight for high reps as a substitute for effort, and never use language about burning, toning, slimming, shrinking or earning food.
 - Heavy lifting builds bone, and her twenties are the last years with bone still to build, so every session has a heavy anchor lift.
-- No jumping of any kind, anywhere in the session: no box jumps, broad jumps, hops, bounds, skips, skipping rope, burpees, jumping jacks, jump squats or jumping lunges, in the warm up and finisher too. She has asked for none. Power comes from throws and swings instead.
+- Jumping only on the days the brief says, as a short block in the primer. On every other day, no jumping of any kind: no box jumps, broad jumps, hops, bounds, skips, skipping rope, burpees, jumping jacks, jump squats or jumping lunges, in the warm up and finisher too. Even on a jump day, jumps stay in the primer.
 - Fitness of the heart matters as much as muscle for a long life. Short, hard finishers cover it without costing muscle. Prefer the bike, rower, ski erg, sled or kettlebell for anything hard and leggy.
 - The fun parts are real parts, and they are capped. Primer, finisher, carries and flows are what make this feel like training rather than a chore, but the muscle work gets most of the time. If time is short, the finisher shrinks first.
 - Nothing is programmed by menstrual cycle phase; the best current evidence finds no advantage to it. What adjusts a session is how she says she feels. If her last reply mentioned symptoms or low energy, keep the session as planned but say plainly in the why line which part to ease off if today is the same.
@@ -53,7 +53,7 @@ HOW THIS APP THINKS TRAINING SHOULD WORK
 THE SESSION, in this order. Use the block kinds exactly.
 
 1. warmup: 3 to 5 items. Raise temperature and open up the joints today's lifts use. One balance or single leg item every time. Kind mobility or cardio, no load.
-2. primer: power at full intent, low reps, full rest, never to fatigue: med ball slams, rotational throws, chest passes and scoop tosses, kettlebell swings, push presses. Throws are kind throw; swings and presses are kind lift. Vary the direction across sessions: overhead, forward, rotational. No jumping.
+2. primer: power at full intent, low reps, full rest, never to fatigue. On a jump day it is jumps to the dose in the brief: kind jump, reps are foot contacts per set, a mix of directions (up, forward, lateral), soft quiet landings, and stepping down from boxes rather than jumping down. On other days it is throws and swings: med ball slams, rotational throws, chest passes and scoop tosses, kettlebell swings, push presses. Throws are kind throw; swings and presses are kind lift.
 3. strength: the heavy anchor or anchors, straight sets.
 4. superset: the accessories, in pairs or a tri-set that do not compete (opposing muscles, or upper with lower), so neither limits the other. One or two superset blocks.
 5. finisher: the format the brief suggests, made fun and athletic: a clear structure, a number to beat, movements that feel good to do. Hard but short. Never a punishment.
@@ -135,6 +135,9 @@ function briefText(b: Brief): string {
     `Time budget in minutes: warm up ${b.budget.warmup}, primer ${b.budget.primer}, main work ${b.budget.main}, finisher ${b.budget.finisher}.`,
     `Hard sets per muscle in the last 7 days (half sets for secondary): ${v}.`,
     b.behind.length ? `Behind and trainable today, most behind first: ${b.behind.join(", ")}. Add a set or an accessory for these where it fits.` : "No muscle trainable today is behind.",
+    b.jumps?.today
+      ? `Jump day: the primer is ${b.jumps.contacts[0]}-${b.jumps.contacts[1]} foot contacts of jumps, in sets of ${JUMP_DAY.perSet} with ${JUMP_DAY.restSec} sec rest between sets.`
+      : `No jumps today: ${b.jumps?.reason ?? "not a jump day"}.`,
     `Hard conditioning: ${b.conditioning.done} min in the last 7 days, aiming for ${b.conditioning.weekly[0]}-${b.conditioning.weekly[1]}.${b.conditioning.needed ? " Today's finisher should be conditioning." : ""}`,
     `Finisher: ${b.finisher.format}. Idea: ${b.finisher.idea}.`,
     "",

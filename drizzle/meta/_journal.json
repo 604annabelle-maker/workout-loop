@@ -15,6 +15,13 @@
       "when": 1793531040840,
       "tag": "0001_coach_and_logs",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1793601355032,
+      "tag": "0002_jump_days",
+      "breakpoints": true
     }
   ]
 }

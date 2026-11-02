@@ -24,6 +24,7 @@ import {
   FINISHERS,
   FULL_BODY,
   JUMPING,
+  JUMP_DAY,
   PRIORITY_BONUS,
   PRIORITY_CEILING,
   RE_ENTRY_AFTER_DAYS,
@@ -42,6 +43,7 @@ import {
   hardMinutesBetween,
   historyByExercise,
   isProgressed,
+  jumpSessionsBetween,
   kg,
   lastPeriodStart,
   recentCheckIns,
@@ -99,6 +101,8 @@ export interface Brief {
   daysSinceLast: number | null;
   perWeek: number;
   budget: { warmup: number; primer: number; main: number; finisher: number };
+  /** Whether today opens with jumps, and how many. */
+  jumps: JumpDay;
   /** Last 7 days, every muscle. */
   volume: MuscleStatus[];
   /** Under target, and trainable today. Most behind first. */
@@ -119,6 +123,16 @@ export interface Brief {
   requests: string[];
   /** Only when she asked for cycle tracking and has logged a start. */
   cycleDay: number | null;
+}
+
+export interface JumpDay {
+  today: boolean;
+  /** Foot contacts in the jump block, when today is a jump day. */
+  contacts: [number, number];
+  /** Why not, when it is not: said in the prompt, never in the email. */
+  reason: string;
+  doneThisWeek: number;
+  perWeek: number;
 }
 
 export interface CoachInput {
@@ -502,6 +516,39 @@ function readinessOf(sessions: Session[], now: Date): string[] {
   return out;
 }
 
+/**
+ * Whether today is one of her jump days.
+ *
+ * Only when she has jump days left this week, only on a lower or full body
+ * session, and never after a reply that mentioned pain in the joints that
+ * take the landing, or leaking. A lighter week or the first session back
+ * keeps the jumps at a smaller dose rather than dropping them.
+ */
+export function jumpDay(
+  preferences: Preferences,
+  session: SessionType,
+  sessions: Session[],
+  now: Date,
+  ctx: { deload: boolean; reEntry: boolean; pain: string[] },
+): JumpDay {
+  const perWeek = preferences.jumpDays;
+  const doneThisWeek = jumpSessionsBetween(sessions, new Date(now.getTime() - 7 * DAY_MS), now);
+  const no = (reason: string): JumpDay => ({ today: false, contacts: [0, 0], reason, doneThisWeek, perWeek });
+
+  if (perWeek <= 0) return no("she has jumping turned off");
+  if (session.half === "upper") return no("an upper body day");
+  if (ctx.pain.some((p) => JUMP_DAY.painStops.test(p))) return no("she mentioned pain or leaking recently");
+  if (doneThisWeek >= perWeek) return no("this week's jump days are done");
+
+  return {
+    today: true,
+    contacts: ctx.deload || ctx.reEntry ? JUMP_DAY.easyContacts : JUMP_DAY.contacts,
+    reason: "",
+    doneThisWeek,
+    perWeek,
+  };
+}
+
 export function buildBrief(input: CoachInput): Brief {
   const { preferences, slot, sessionNumber } = input;
   const now = slot.startsAt;
@@ -526,6 +573,9 @@ export function buildBrief(input: CoachInput): Brief {
 
   const dislikes = recentWords(sessions, (s) => s.logs.flatMap((l) => l.disliked), 120, now);
   const likes = recentWords(sessions, (s) => s.logs.flatMap((l) => l.liked), 120, now);
+
+  const pain = recentWords(sessions, (s) => s.logs.flatMap((l) => l.checkIn.pain), 21, now);
+  const jumps = jumpDay(preferences, session, sessions, now, { deload, reEntry: pos.reEntry, pain });
 
   const anchors = anchorsOf(sessions, session.id, pos.reEntry ? -1 : pos.block);
   const previousAnchors =
@@ -569,6 +619,7 @@ export function buildBrief(input: CoachInput): Brief {
     daysSinceLast: pos.daysSinceLast === null ? null : Math.round(pos.daysSinceLast * 10) / 10,
     perWeek: Math.round(perWeek * 10) / 10,
     budget: budgetFor(slot.minutes),
+    jumps,
     volume,
     behind,
     conditioning: { done: hard, weekly: CONDITIONING.weeklyHardMinutes, needed: needConditioning },
@@ -578,7 +629,7 @@ export function buildBrief(input: CoachInput): Brief {
     stalled: stalled(sessions),
     finisher: chooseFinisher(sessions, needConditioning, dislikes, sessionNumber),
     readiness: readinessOf(sessions, now),
-    pain: recentWords(sessions, (s) => s.logs.flatMap((l) => l.checkIn.pain), 21, now),
+    pain,
     likes,
     dislikes,
     requests: recentWords(sessions, (s) => s.logs.map((l) => l.requests).filter(Boolean), 14, now),
@@ -670,16 +721,20 @@ export function enforceEffort(plan: Plan, brief: Brief): Plan {
 }
 
 /**
- * Takes out anything that leaves the ground. She asked for no jumping, and a
- * rule that matters to her should not depend on the model remembering it.
- * A block left empty goes too. A plan that was nothing but jumps is an error,
- * so it is regenerated rather than sent half empty.
+ * Takes out anything that leaves the ground, except, on a jump day, in the
+ * primer, which is where the jumps belong. A rule that matters to her should
+ * not depend on the model remembering it. A block left empty goes too. A
+ * plan that was nothing but jumps is an error, so it is regenerated rather
+ * than sent half empty.
  */
-export function removeJumps(plan: Plan): Plan {
+export function removeJumps(plan: Plan, keepInPrimer = false): Plan {
   const blocks = plan.blocks
     .map((block) => ({
       ...block,
-      exercises: block.exercises.filter((e) => e.kind !== "jump" && !JUMPING.test(e.name)),
+      exercises:
+        keepInPrimer && block.kind === "primer"
+          ? block.exercises
+          : block.exercises.filter((e) => e.kind !== "jump" && !JUMPING.test(e.name)),
     }))
     .filter((block) => block.exercises.length > 0);
 
@@ -689,7 +744,7 @@ export function removeJumps(plan: Plan): Plan {
 
 /** Everything the coach insists on, applied to a plan the model wrote. */
 export function applyCoach(plan: Plan, brief: Brief): Plan {
-  return enforceEffort(enforceTargets(removeJumps(plan), brief), brief);
+  return enforceEffort(enforceTargets(removeJumps(plan, brief.jumps?.today === true), brief), brief);
 }
 
 /** "Thu 5 Nov" for a target's last time. Here so the mailer need not know. */

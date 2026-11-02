@@ -29,6 +29,8 @@ export interface Preferences {
   enjoys: string;
   /** Show cycle day and read period mentions in replies. Never programs by phase. */
   cycleTracking: boolean;
+  /** How many sessions a week open with jumps. 0 is none at all. */
+  jumpDays: number;
   /** A short progress email once a week. */
   weeklyReview: boolean;
   /** Anything else, in her own words. */
@@ -46,6 +48,7 @@ export const EMPTY: Preferences = {
   equipment: "",
   enjoys: "",
   cycleTracking: false,
+  jumpDays: 1,
   weeklyReview: true,
   brief: "",
 };
@@ -66,4 +69,10 @@ export function readPriorities(raw: string | string[] | null | undefined): Muscl
 
 export function readLevel(raw: unknown): Level {
   return LEVELS.includes(raw as Level) ? (raw as Level) : "intermediate";
+}
+
+/** Jump days a week: whole numbers from 0 to 3. */
+export function readJumpDays(raw: unknown): number {
+  const n = Math.round(Number(raw));
+  return Number.isFinite(n) ? Math.max(0, Math.min(3, n)) : 1;
 }

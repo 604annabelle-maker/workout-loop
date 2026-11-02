@@ -6,6 +6,7 @@ import {
   chooseFinisher,
   chooseSession,
   applyCoach,
+  jumpDay,
   enforceEffort,
   enforceTargets,
   removeJumps,
@@ -371,4 +372,45 @@ test("applying the coach removes jumps too", () => {
   plan.blocks[3].exercises.push({ ...plan.blocks[3].exercises[0], label: "B3", name: "JUMP LUNGE" });
   const names = applyCoach(plan, brief).blocks.flatMap((b) => b.exercises.map((e) => e.name));
   assert.ok(!names.includes("JUMP LUNGE"));
+});
+
+/* ---------- jump days ---------- */
+
+const FULL = { id: "full-glutes", name: "", half: "full" as const, focus: "", primary: [], secondary: [], anchorPatterns: [], primer: "" };
+const UPPER = { ...FULL, id: "upper-pull", half: "upper" as const };
+const jumped = (d: number) => {
+  const plan = lowerPlan();
+  plan.blocks[1].exercises = [{ ...plan.blocks[1].exercises[0], name: "BOX JUMP", kind: "jump" as const }];
+  return session(at(d), { plan });
+};
+const easy = { deload: false, reEntry: false, pain: [] as string[] };
+
+test("a jump day needs jump days left, a lower or full body session, and no recent pain", () => {
+  const once = { ...PREFS, jumpDays: 1 };
+  assert.equal(jumpDay(once, FULL, [], at(0), easy).today, true);
+  assert.deepEqual(jumpDay(once, FULL, [], at(0), easy).contacts, [20, 40]);
+  assert.equal(jumpDay({ ...PREFS, jumpDays: 0 }, FULL, [], at(0), easy).today, false);
+  assert.equal(jumpDay(once, UPPER, [], at(0), easy).today, false);
+  assert.equal(jumpDay(once, FULL, [jumped(-3)], at(0), easy).today, false);
+  assert.equal(jumpDay(once, FULL, [jumped(-8)], at(0), easy).today, true);
+  assert.equal(jumpDay({ ...PREFS, jumpDays: 2 }, FULL, [jumped(-3)], at(0), easy).today, true);
+  assert.equal(jumpDay(once, FULL, [], at(0), { ...easy, pain: ["left knee on lunges"] }).today, false);
+  assert.equal(jumpDay(once, FULL, [], at(0), { ...easy, pain: ["a bit of leaking on swings"] }).today, false);
+  assert.deepEqual(jumpDay(once, FULL, [], at(0), { ...easy, deload: true }).contacts, [10, 20]);
+});
+
+test("on a jump day the jumps stay in the primer and nowhere else", () => {
+  const preferences = { ...PREFS, jumpDays: 1 };
+  const brief = buildBrief({ preferences, sessions: [], slot: { startsAt: at(0), minutes: 60 }, sessionNumber: 1 });
+  assert.equal(brief.jumps.today, true);
+
+  const plan = lowerPlan();
+  plan.blocks[1].exercises = [{ ...plan.blocks[1].exercises[0], name: "BOX JUMP", kind: "jump" as const }];
+  plan.blocks[4].exercises.push({ ...plan.blocks[4].exercises[0], label: "F2", name: "BURPEE" });
+  const names = applyCoach(plan, brief).blocks.flatMap((b) => b.exercises.map((e) => e.name));
+  assert.ok(names.includes("BOX JUMP"));
+  assert.ok(!names.includes("BURPEE"));
+
+  const off = buildBrief({ preferences: PREFS, sessions: [], slot: { startsAt: at(0), minutes: 60 }, sessionNumber: 1 });
+  assert.ok(!applyCoach(plan, off).blocks.flatMap((b) => b.exercises.map((e) => e.name)).includes("BOX JUMP"));
 });

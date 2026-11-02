@@ -17,7 +17,8 @@ test("the philosophy is in the system prompt, the same every time", () => {
   assert.match(SYSTEM, /lifting lighter than they can/);
   assert.match(SYSTEM, /Nothing is programmed by menstrual cycle phase/);
   assert.match(SYSTEM, /Heavy lifting builds bone/);
-  assert.match(SYSTEM, /No jumping of any kind/);
+  assert.match(SYSTEM, /Jumping only on the days the brief says/);
+  assert.match(SYSTEM, /stepping down from boxes rather than jumping down/);
   assert.match(SYSTEM, /Pull at least as much as push/);
   assert.match(SYSTEM, /never use language about burning, toning, slimming/);
 });
@@ -67,7 +68,7 @@ test("the coach's decisions arrive as facts", () => {
   // The fixture's block began on 4 Oct, so the 20th is its third week.
   assert.match(user, /Block 1, Week 3, build\. Effort this week: 1 to 2 in reserve on compounds/);
   assert.match(user, /Time budget in minutes: warm up 7, primer 5, main work 39, finisher 9/);
-  assert.ok(!/jump/i.test(user.replace(/No jumping/g, "")));
+  assert.match(user, /No jumps today: she has jumping turned off\./);
   assert.match(user, /Finisher: /);
 });
 
@@ -129,4 +130,12 @@ test("a workout from before plans were structured is still shown", () => {
   const { user } = buildPrompt(input([legacy]));
   assert.match(user, /1\. SQUAT {2}3x5/);
   assert.ok(!user.includes("Sit."));
+});
+
+test("a jump day says so, with the dose", () => {
+  const preferences = { ...PREFS, jumpDays: 1 };
+  const sessions = [session("2026-10-17T15:00:00Z", { plan: { ...session("2026-10-17T15:00:00Z").plan!, blocks: session("2026-10-17T15:00:00Z").plan!.blocks.filter((b) => b.kind !== "primer") } })];
+  const brief = buildBrief({ preferences, sessions, slot: SLOT, sessionNumber: 2 });
+  const { user } = buildPrompt({ preferences, sessions, brief, slot: SLOT });
+  assert.match(user, /Jump day: the primer is 20-40 foot contacts of jumps/);
 });

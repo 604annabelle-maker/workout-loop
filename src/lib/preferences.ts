@@ -8,7 +8,7 @@
 
 import { eq } from "drizzle-orm";
 import { db, schema } from "@/db";
-import { EMPTY, readLevel, readPriorities, type Preferences } from "./profile";
+import { EMPTY, readJumpDays, readLevel, readPriorities, type Preferences } from "./profile";
 
 const { preferences } = schema;
 
@@ -32,6 +32,7 @@ export async function readPreferences(): Promise<Preferences> {
     equipment: row.equipment,
     enjoys: row.enjoys,
     cycleTracking: row.cycleTracking,
+    jumpDays: readJumpDays(row.jumpDays),
     weeklyReview: row.weeklyReview,
     brief: row.brief,
   };

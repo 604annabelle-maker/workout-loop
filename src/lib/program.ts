@@ -341,16 +341,27 @@ export const DELOAD_MIN_SESSIONS = 8;
 export const RE_ENTRY_AFTER_DAYS = 12;
 
 /**
- * No jumping.
+ * Jumping, on the days she chooses and no others.
  *
- * She asked for none. Anything whose name says it leaves the ground is taken
- * out (jumps, hops, bounds, pogos, skipping, burpees). Words that only sound
- * related are left alone: a skater squat stays on the floor, and a step up
- * onto a plyo box is a step up. It happens in the coach, on every plan,
- * whatever the model writes, so the rule does not depend on the model
- * remembering it. Bone still gets its stimulus from the heavy anchor lift
+ * Jump days per week is her setting. On a jump day the primer is a short
+ * block of jumps; on every other day anything whose name says it leaves the
+ * ground is taken out by the coach (jumps, hops, bounds, pogos, skipping,
+ * burpees), whatever the model writes. Words that only sound related are left
+ * alone: a skater squat stays on the floor, and a step up onto a plyo box is
+ * a step up. Bone gets its everyday stimulus from the heavy anchor lift
  * every session has.
  */
+export const JUMP_DAY = {
+  /** Foot contacts in the session's jump block. */
+  contacts: [20, 40] as [number, number],
+  /** On a lighter week or the first session back. */
+  easyContacts: [10, 20] as [number, number],
+  perSet: "5 to 10",
+  restSec: "15 to 30",
+  /** Pain mentioned recently in any of these means no jumps today. */
+  painStops: /\b(knee|ankle|shin|foot|feet|achilles|calf|hip|back|leak|leaking|pelvic|bladder)\b/i,
+};
+
 export const JUMPING =
   /\b(jumps?|jumping|hops?|hopping|bounds?|bounding|pogos?|skips?|skipping|burpees?|plyometrics?)\b/i;
 

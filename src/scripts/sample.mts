@@ -15,6 +15,7 @@ export const SAMPLE: Preferences = {
   equipment: "Commercial gym: barbells, rack, dumbbells to 30kg, cables, machines, kettlebells, bike, rower, plyo boxes, med balls.",
   enjoys: "Kettlebells, med ball throws, anything that feels athletic.",
   cycleTracking: false,
+  jumpDays: 1,
   weeklyReview: true,
   brief: "I want it to feel fun and athletic, not like a chore.",
 };

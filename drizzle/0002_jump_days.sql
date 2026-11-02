@@ -1,0 +1,1 @@
+ALTER TABLE "preferences" ADD COLUMN "jump_days" integer DEFAULT 1 NOT NULL;

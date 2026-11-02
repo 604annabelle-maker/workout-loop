@@ -158,6 +158,25 @@ export default async function PreferencesPage() {
           <textarea id="enjoys" name="enjoys" rows={2} style={field} defaultValue={prefs.enjoys} />
         </div>
 
+        <div style={group}>
+          <label style={label} htmlFor="jumpDays">
+            Jump days per week
+            <span style={hint}>
+              Sessions that open with a short block of jumps, for bone and power. Only lower and full
+              body days, never after you mention knee, ankle or shin pain. 0 means no jumping at all.
+            </span>
+          </label>
+          <input
+            id="jumpDays"
+            name="jumpDays"
+            type="number"
+            min={0}
+            max={3}
+            style={{ ...field, width: "6rem" }}
+            defaultValue={prefs.jumpDays}
+          />
+        </div>
+
         <fieldset style={{ ...group, border: 0, padding: 0, margin: "0 0 1.75rem" }}>
           <legend style={label}>Tracking</legend>
           <label style={{ ...choice, display: "flex" }}>

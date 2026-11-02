@@ -63,6 +63,8 @@ export const preferences = pgTable(
     enjoys: text("enjoys").notNull().default(""),
     /** Show cycle day and read period mentions. Never programs by phase. */
     cycleTracking: boolean("cycle_tracking").notNull().default(false),
+    /** How many sessions a week open with jumps, 0 to 3. */
+    jumpDays: integer("jump_days").notNull().default(1),
     /** A short progress email once a week. */
     weeklyReview: boolean("weekly_review").notNull().default(true),
     /** Anything else, in their own words. */

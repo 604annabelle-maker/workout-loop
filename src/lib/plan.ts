@@ -73,9 +73,8 @@ export type Format = (typeof FORMATS)[number];
 
 /**
  * What kind of work an exercise is. `lift` counts as hard sets toward the
- * muscle targets. `jump` is only ever read from old plans: new plans have no
- * jumping, the schema does not offer it, and the coach removes any that
- * appear.
+ * muscle targets. `jump` belongs only in the primer on one of her jump days;
+ * the coach removes it anywhere else.
  */
 export const EXERCISE_KINDS = [
   "lift",
@@ -171,7 +170,7 @@ const exerciseSchema = {
   properties: {
     label: { type: "string", description: "A, B1, B2, C. Unique in the plan." },
     name: { type: "string", description: "Gym name in capitals, spelled identically every session." },
-    kind: { type: "string", enum: EXERCISE_KINDS.filter((k) => k !== "jump") },
+    kind: { type: "string", enum: [...EXERCISE_KINDS] },
     sets: { type: "integer", description: "0 when the block's rounds govern." },
     reps: { type: "string", description: "8-12, 30 sec, 6 each side." },
     loadKg: { type: "number", description: "0 for bodyweight. Per hand for dumbbells." },

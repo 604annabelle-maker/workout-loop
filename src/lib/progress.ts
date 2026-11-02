@@ -23,6 +23,7 @@ import {
   type PlanBlock,
   type PlanExercise,
 } from "./plan";
+import { JUMPING } from "./program";
 import type { Effort, LoggedSet, ReplyLog } from "./reply-log";
 import { shapePlan } from "./workout-shape";
 
@@ -300,6 +301,15 @@ export function hardSetsBetween(sessions: Session[], from: Date, to: Date): numb
     }
   }
   return total;
+}
+
+/** Sessions in a window that had jumps in them, wherever they sat. */
+export function jumpSessionsBetween(sessions: Session[], from: Date, to: Date): number {
+  return sessions.filter(
+    (s) =>
+      within(s, from, to) &&
+      s.plan?.blocks.some((b) => b.exercises.some((e) => e.kind === "jump" || JUMPING.test(e.name))),
+  ).length;
 }
 
 const HARD_FORMATS = new Set(["EMOM", "AMRAP", "intervals", "complex", "ladder", "circuit"]);

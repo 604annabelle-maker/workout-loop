@@ -567,3 +567,11 @@ of exercise, and `removeJumps` in the coach strips anything named as a jump,
 hop, bound, skip, pogo, burpee or plyometric from every plan, so it cannot
 depend on the model remembering. The primer became a power primer of throws
 and swings, and the jump counts left the progress panel and the weekly review.
+
+Revised the same week: jumping came back as her setting, jump days per week
+(0 to 3, default 1), pending research into whether it suits her age. The
+coach marks a session as a jump day only when days remain this week, the
+session is lower or full body, and no reply in the last three weeks
+mentioned pain in the joints that take the landing, or leaking. Jumps then
+stay in the primer and are stripped everywhere else; on other days the
+original rule applies.

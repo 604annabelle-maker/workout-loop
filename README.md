@@ -64,11 +64,12 @@ In short:
   stop a rep or two short and never fail on purpose. Machine and isolation
   work takes its last set to failure. Light, high rep sets only count when
   taken there. The coach rations failure whatever the model writes.
-- **Lift heavy for bone, and no jumping.** Her early twenties are the last
-  years with bone still to build, and every session has a heavy anchor lift.
-  She asked for no jumping, so the coach strips any jump, hop, bound, skip or
-  burpee from every plan whatever the model writes; power comes from med ball
-  throws and kettlebell swings instead.
+- **Lift heavy for bone, and jump only when she chooses.** Her early
+  twenties are the last years with bone still to build, and every session has
+  a heavy anchor lift. Jumping is a setting, jump days per week (default one):
+  on a jump day the primer is a short block of jumps; on every other day the
+  coach strips any jump, hop, bound, skip or burpee from the plan whatever the
+  model writes, and the primer is throws and swings instead.
 - **A little hard conditioning for the heart.** Short finishers on a bike,
   rower, sled or kettlebell, 8 to 20 hard minutes a week, kept after the lifting
   so they cost no muscle.

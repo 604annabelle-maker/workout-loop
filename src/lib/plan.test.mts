@@ -94,8 +94,8 @@ test("the schema closes every object, which structured output requires", () => {
   walk(PLAN_SCHEMA);
 });
 
-test("the schema never offers jump as a kind of exercise", () => {
-  const kinds = (PLAN_SCHEMA.properties.blocks.items.properties.exercises.items.properties.kind as { enum: string[] }).enum;
-  assert.ok(!kinds.includes("jump"));
+test("the schema offers jump, and the coach decides where it may stay", () => {
+  const kinds = PLAN_SCHEMA.properties.blocks.items.properties.exercises.items.properties.kind.enum as readonly string[];
+  assert.ok(kinds.includes("jump"));
   assert.ok(kinds.includes("throw"));
 });
