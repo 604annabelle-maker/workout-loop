@@ -58,8 +58,11 @@ function fallbackHtml(): string {
  * AMP for Email rules this follows: the amp4email attribute, the three
  * required scripts plus one per component, the boilerplate style, one
  * amp-custom style, forms with method="post" and an https action-xhr, and no
- * plain links that start with "#". Gmail drops a dynamic part that breaks any
- * of these and shows the fallback instead, which the test would report.
+ * plain links that start with "#". Some attributes that are fine on web pages
+ * are refused in email, disable-session-states on amp-accordion among them:
+ * email never keeps that state, so the attribute is an error. Gmail drops a
+ * dynamic part that breaks any of these and shows the fallback instead, with
+ * INVALID_AMP on the web, which is how the first send failed.
  */
 function ampHtml(logUrl: string): string {
   const buttons = EFFORTS.map((how) => effortForm(logUrl, how)).join("\n");
@@ -91,7 +94,7 @@ body{font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:1.5;color
 <p class="yes">DYNAMIC VERSION: it worked.</p>
 <p class="note">Tap "Swap" to open it, then tap one of the buttons. Tell Claude what happened.</p>
 <p class="ex"><b>${EXERCISE.label}</b> ${EXERCISE.name} &nbsp;${EXERCISE.dose}</p>
-<amp-accordion class="swap" disable-session-states>
+<amp-accordion class="swap">
 <section>
 <h4>Swap &#9662;</h4>
 <div class="inner">or: <b>${SWAP.name}</b> &nbsp;${SWAP.dose}</div>
