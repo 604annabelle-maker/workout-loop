@@ -150,17 +150,39 @@ test("only the pictures the body refers to are sent, each once", () => {
   assert.deepEqual(inline.map((i) => i.filename), ["hip-thrust-1.jpg", "hip-thrust-2.jpg", "romanian-deadlift-1.jpg"]);
 });
 
-test("a near enough picture says what it is of, and a missing one says so", () => {
-  const { html } = composeWorkoutMail(input({ pictures: PICTURES }));
+test("a near enough picture says what it is of, and a missing one is explained in words", () => {
+  const plan = lowerPlan({ thrustKg: 65 });
+  plan.blocks[3].exercises[1].howTo = "Pull to your lower ribs.";
+  const { html } = composeWorkoutMail(input({ plan, pictures: PICTURES }));
   assert.equal(html.match(/Shown: Stiff Legged Deadlift/g)?.length, 1);
+  // The row has no picture, so its explanation sits under it instead.
+  const row = html.indexOf(">CHEST SUPPORTED ROW<");
+  assert.ok(html.indexOf("Pull to your lower ribs.") > row);
+  assert.ok(!html.includes("No picture for this one"));
+});
+
+test("a missing picture with no explanation says so rather than leaving a gap", () => {
+  const plan = lowerPlan({ thrustKg: 65 });
+  plan.blocks[3].exercises[1].howTo = "";
+  const { html } = composeWorkoutMail(input({ plan, pictures: PICTURES }));
   assert.equal(html.match(/No picture for this one\./g)?.length, 1);
 });
 
-test("no pictures offered means no pictures and no apology", () => {
+test("the HTML has no written explanations at the bottom; the pictures do that job", () => {
+  const plan = lowerPlan({ thrustKg: 65 });
+  plan.blocks[2].exercises[0].howTo = "Drive through your heels to lockout.";
+  const { html } = composeWorkoutMail(input({ plan, pictures: PICTURES }));
+  assert.ok(!/How to do these/i.test(html));
+  // The hip thrust has pictures, so it is not also explained in words.
+  assert.ok(!html.includes("Drive through your heels to lockout."));
+});
+
+test("no pictures at all means every movement is explained in words, with no apology", () => {
   const { html, inline } = composeWorkoutMail(input());
   assert.deepEqual(inline, []);
   assert.ok(!html.includes("cid:"));
   assert.ok(!html.includes("No picture for this one"));
+  assert.ok(html.includes("Do it well."));
 });
 
 test("anything the model wrote is escaped in the HTML", () => {

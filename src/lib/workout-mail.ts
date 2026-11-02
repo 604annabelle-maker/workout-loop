@@ -13,7 +13,10 @@
  * 4. What to do if today feels off.
  * 5. Progress over the last seven days and since the block began.
  * 6. How to reply, for whoever wants to.
- * 7. How to do each movement, with pictures.
+ *
+ * Each movement is shown by its pictures, under the exercise. One without a
+ * picture is explained in words there instead. The plain text body, which
+ * has no pictures, keeps a written explanation of every movement at the end.
  *
  * The HTML body is what the phone renders, so colour separates the things
  * scanned for mid set. The plain text body is exact and complete, because it
@@ -312,10 +315,20 @@ function htmlTarget(target: Target | undefined): string {
 /** Half the card each, so two frames fit a phone screen without scrolling. */
 const PICTURE_WIDTH = 238;
 
-function htmlPictures(name: string, pictured: Pictured | undefined): string {
-  if (!pictured) return "";
-  if (pictured.frames.length === 0) {
-    return `<p style="margin:5px 0 0;font-size:12px;line-height:1.4;color:${FAINT}">No picture for this one.</p>`;
+/**
+ * The pictures for an exercise, or, where there are none, how to do it.
+ *
+ * The pictures replaced the written explanations at the bottom of the email,
+ * so a movement without a picture gets its explanation right here instead:
+ * never nothing, because there is no browser on this phone to go and look.
+ */
+function htmlPictures(name: string, pictured: Pictured | undefined, howTo: string): string {
+  if (!pictured || pictured.frames.length === 0) {
+    return howTo
+      ? `<p style="margin:6px 0 0;font-size:14px;line-height:1.55;color:${MUTED}">${esc(howTo)}</p>`
+      : pictured
+        ? `<p style="margin:5px 0 0;font-size:12px;line-height:1.4;color:${FAINT}">No picture for this one.</p>`
+        : "";
   }
 
   const frames = pictured.frames;
@@ -351,7 +364,7 @@ function htmlExercise(e: PlanExercise, brief: Brief, pictured: Pictured | undefi
     ${load ? `<p style="margin:2px 0 0;font-size:14px;line-height:1.45;color:${INK}">${esc(load)}</p>` : ""}
     ${e.cue ? `<p style="margin:2px 0 0;font-size:14px;line-height:1.45;color:${MUTED};font-style:italic">${esc(e.cue)}</p>` : ""}
     ${htmlTarget(targetFor(brief, e.name))}
-    ${htmlPictures(e.name, pictured)}
+    ${htmlPictures(e.name, pictured, e.howTo)}
   </div>`;
 }
 
@@ -432,23 +445,6 @@ function htmlBox(heading: string, lines: string[], mono = false): string {
   </div>`;
 }
 
-function htmlHowTo(plan: Plan): string {
-  const seen = new Set<string>();
-  const items = mainExercises(plan)
-    .filter((e) => {
-      if (seen.has(e.name) || !e.howTo) return false;
-      seen.add(e.name);
-      return true;
-    })
-    .map(
-      (e) => `<div style="margin:0 0 14px">
-        <p style="margin:0 0 3px;font-size:14px;font-weight:700;color:${INK}">${esc(e.name)}</p>
-        <p style="margin:0;font-size:14px;line-height:1.55;color:${MUTED}">${esc(e.howTo)}</p></div>`,
-    )
-    .join("");
-  return `<div style="margin:24px 0 0;padding:16px 0 0;border-top:1px solid ${RULE_COLOUR}">${label("How to do these")}${items}</div>`;
-}
-
 export function composeHtml(input: MailInput, pictures: Map<string, Pictured>): string {
   const { plan, brief } = input;
   return `
@@ -461,7 +457,6 @@ export function composeHtml(input: MailInput, pictures: Map<string, Pictured>): 
     ${input.snapshot ? htmlProgress(input.snapshot, brief) : ""}
     ${plan.tip ? htmlBox("Tip", [plan.tip]) : ""}
     ${htmlBox("Reply with what you did (optional)", replyExample(plan), true)}
-    ${htmlHowTo(plan)}
   </div>
 </div>`;
 }
