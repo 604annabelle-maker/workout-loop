@@ -2,23 +2,29 @@
  * A one-off test of Gmail's dynamic email (AMP for Email) on her phone.
  *
  * Jump links do nothing on her phone, so the plan is a swap that opens when
- * tapped, under its exercise, plus done / easy / hard buttons that save from
- * inside the email. Gmail only shows the dynamic part from a sender she has
- * allowed in its developer settings, and nobody can say in advance whether the
- * Android app honours that, so this sends one sample and nothing else. It
- * stores nothing: a tap is answered with the words it carried, which is enough
- * to prove the round trip.
+ * tapped, under its exercise, plus buttons and boxes that save from inside the
+ * email: done / easy / hard / skipped, a line for what changed, and a box for
+ * anything else. Gmail only shows the dynamic part from a sender she has
+ * allowed in its developer settings, so this sends one sample and nothing
+ * else. It stores nothing: each save is answered with the words it carried,
+ * which is enough to prove the round trip.
  *
  * Temporary. It goes once the rebuild has its answer.
  */
 
 /** What the buttons can say. */
-export const EFFORTS = ["done", "easy", "hard"] as const;
+export const EFFORTS = ["done", "easy", "hard", "skipped"] as const;
+
+/** Longest note kept, in characters. The boxes stop her at the same length. */
+export const NOTE_MAX = 300;
 
 const EXERCISE = { label: "B1", name: "DUMBBELL ROW", dose: "3 × 8-10 · 22kg" };
 const SWAP = { name: "ONE-ARM CABLE ROW", dose: "3 × 8-10" };
 
-export const AMP_TEST_SUBJECT = "Test 4: tap inside the email";
+/** The `ex` of the box at the bottom, for comments about the whole session. */
+const GENERAL = "all";
+
+export const AMP_TEST_SUBJECT = "Test 5: type inside the email";
 
 export interface AmpTestMail {
   subject: string;
@@ -27,7 +33,7 @@ export interface AmpTestMail {
   amp: string;
 }
 
-/** `logUrl` is where the buttons post: this app's /api/amp-log, over https. */
+/** `logUrl` is where the forms post: this app's /api/amp-log, over https. */
 export function ampTestMail(logUrl: string): AmpTestMail {
   return {
     subject: AMP_TEST_SUBJECT,
@@ -85,14 +91,18 @@ body{font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:1.5;color
 .swap h4{margin:0;padding:6px 10px;font-size:14px;font-weight:normal;color:#1a73e8;background-color:#f1f3f4;border:0;border-radius:6px}
 .swap .inner{margin:6px 10px 0;font-size:15px}
 .log{margin:0 6px 8px 0;display:inline-block;vertical-align:top}
-.btn{font-size:15px;font-weight:bold;padding:8px 16px;color:#1a73e8;background-color:#ffffff;border:2px solid #1a73e8;border-radius:6px}
+.btn{font-size:15px;font-weight:bold;padding:8px 14px;color:#1a73e8;background-color:#ffffff;border:2px solid #1a73e8;border-radius:6px}
+.say{margin:4px 0 0}
+.say input,.say textarea{width:100%;box-sizing:border-box;font-size:16px;font-family:Arial,Helvetica,sans-serif;padding:8px;border:1px solid #bbbbbb;border-radius:6px;margin:0 0 6px}
+.label{margin:0 0 4px;font-size:14px;color:#555555}
+.end{margin:28px 0 0;padding:16px 0 0;border-top:1px solid #dddddd}
 .saved{margin:6px 0 0;font-size:14px;font-weight:bold;color:#0b8043}
 .failed{margin:6px 0 0;font-size:14px;color:#c5221f}
 </style>
 </head>
 <body>
 <p class="yes">DYNAMIC VERSION: it worked.</p>
-<p class="note">Tap "Swap" to open it, then tap one of the buttons. Tell Claude what happened.</p>
+<p class="note">Try everything: open Swap, tap a button, type in both boxes and tap Save. Tell Claude what happened.</p>
 <p class="ex"><b>${EXERCISE.label}</b> ${EXERCISE.name} &nbsp;${EXERCISE.dose}</p>
 <amp-accordion class="swap">
 <section>
@@ -101,9 +111,16 @@ body{font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:1.5;color
 </section>
 </amp-accordion>
 ${buttons}
+${noteForm(logUrl, EXERCISE.label, "Changed something?", "e.g. 20kg 10 10 8, or did the swap", "input")}
+<div class="end">
+${noteForm(logUrl, GENERAL, "Anything else about today?", "e.g. gym was packed, felt strong", "textarea")}
+</div>
 </body>
 </html>`;
 }
+
+const RESULT = `<div submit-success><template type="amp-mustache"><p class="saved">Saved: {{saved}} &#10003;</p></template></div>
+<div submit-error><template type="amp-mustache"><p class="failed">Didn't save</p></template></div>`;
 
 /**
  * One form per button. amp-form posts the form's own fields and not which
@@ -114,22 +131,44 @@ function effortForm(logUrl: string, how: (typeof EFFORTS)[number]): string {
 <input type="hidden" name="ex" value="${EXERCISE.label}">
 <input type="hidden" name="how" value="${how}">
 <button type="submit" class="btn">${how}</button>
-<div submit-success><template type="amp-mustache"><p class="saved">Saved: {{saved}} &#10003;</p></template></div>
-<div submit-error><template type="amp-mustache"><p class="failed">Didn't save</p></template></div>
+${RESULT}
 </form>`;
 }
 
 /**
- * The answer to a tap, and the headers Gmail needs before it will show it.
+ * A box to type in and a Save button. A one-line box under an exercise, where
+ * a few words or numbers is all it takes; a taller one at the end, for the
+ * session as a whole.
+ */
+function noteForm(logUrl: string, ex: string, label: string, hint: string, box: "input" | "textarea"): string {
+  const field =
+    box === "input"
+      ? `<input type="text" name="note" maxlength="${NOTE_MAX}" placeholder="${hint}" required>`
+      : `<textarea name="note" rows="3" maxlength="${NOTE_MAX}" placeholder="${hint}" required></textarea>`;
+
+  return `<form class="say" method="post" action-xhr="${logUrl}">
+<p class="label">${label}</p>
+<input type="hidden" name="ex" value="${ex}">
+${field}
+<button type="submit" class="btn">Save</button>
+${RESULT}
+</form>`;
+}
+
+/**
+ * The answer to a save, and the headers Gmail needs before it will show it.
  *
  * Gmail sends the email's sender in AMP-Email-Sender and shows the response
  * only if AMP-Email-Allow-Sender names that same sender. The older form of the
  * same check, with __amp_source_origin, is answered too, in case a client
  * still uses it. Anything not from her workout address is refused.
+ *
+ * What comes back is shown through a mustache template, which escapes it, so
+ * whatever she types is shown as text.
  */
 export function ampLogResponse(
   request: { url: string; headers: Headers },
-  fields: { ex: unknown; how: unknown },
+  fields: { ex: unknown; how?: unknown; note?: unknown },
   sender: string | null,
 ): { status: number; body: Record<string, string>; headers: Record<string, string> } {
   const headers: Record<string, string> = {};
@@ -155,9 +194,18 @@ export function ampLogResponse(
     return { status: 403, body: { error: "not a dynamic email request" }, headers };
   }
 
-  const ex = fields.ex === EXERCISE.label ? EXERCISE.label : null;
-  const how = EFFORTS.find((e) => e === fields.how) ?? null;
-  if (!ex || !how) return { status: 400, body: { error: "unknown button" }, headers };
+  const note = typeof fields.note === "string" ? fields.note.trim().slice(0, NOTE_MAX) : "";
 
-  return { status: 200, body: { saved: `${ex} ${how}` }, headers };
+  if (fields.ex === GENERAL) {
+    if (!note) return { status: 400, body: { error: "nothing typed" }, headers };
+    return { status: 200, body: { saved: `"${note}"` }, headers };
+  }
+
+  if (fields.ex !== EXERCISE.label) return { status: 400, body: { error: "unknown exercise" }, headers };
+  if (note) return { status: 200, body: { saved: `${EXERCISE.label} "${note}"` }, headers };
+
+  const how = EFFORTS.find((e) => e === fields.how);
+  if (!how) return { status: 400, body: { error: "unknown button" }, headers };
+
+  return { status: 200, body: { saved: `${EXERCISE.label} ${how}` }, headers };
 }

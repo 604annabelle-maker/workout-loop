@@ -25,8 +25,11 @@ test("the dynamic part has what Gmail requires", () => {
   for (const refused of ["disable-session-states", "no-verify", "autofocus", "inputmode", "[type]"]) {
     assert.ok(!amp.includes(refused), refused);
   }
-  // Three buttons, each its own form posting to the log address.
-  assert.equal(amp.match(new RegExp(`<form class="log" method="post" action-xhr="${LOG}">`, "g"))?.length, 3);
+  // Four buttons, each its own form, and two boxes, all posting to the log address.
+  assert.equal(amp.match(new RegExp(`<form class="log" method="post" action-xhr="${LOG}">`, "g"))?.length, 4);
+  assert.equal(amp.match(new RegExp(`<form class="say" method="post" action-xhr="${LOG}">`, "g"))?.length, 2);
+  assert.match(amp, /<input type="text" name="note" maxlength="300"/);
+  assert.match(amp, /<textarea name="note" rows="3" maxlength="300"/);
   // A section is a heading and one block, which is what amp-accordion needs.
   assert.match(amp, /<section>\n<h4>Swap &#9662;<\/h4>\n<div class="inner">[^\n]*<\/div>\n<\/section>/);
 });
@@ -54,6 +57,15 @@ test("the older form of the check is answered too", () => {
   assert.equal(answer.status, 200);
   assert.equal(answer.headers["AMP-Access-Control-Allow-Source-Origin"], SENDER);
   assert.equal(answer.headers["Access-Control-Allow-Origin"], "https://mail.google.com");
+});
+
+test("typed notes come back as typed, for an exercise or the whole session", () => {
+  const headers = { "AMP-Email-Sender": SENDER };
+  assert.deepEqual(ampLogResponse(req(headers), { ex: "B1", note: " 20kg 10 10 8 " }, SENDER).body, { saved: 'B1 "20kg 10 10 8"' });
+  assert.deepEqual(ampLogResponse(req(headers), { ex: "all", note: "gym was packed" }, SENDER).body, { saved: '"gym was packed"' });
+  assert.deepEqual(ampLogResponse(req(headers), { ex: "B1", how: "skipped" }, SENDER).body, { saved: "B1 skipped" });
+  assert.equal(ampLogResponse(req(headers), { ex: "all", note: "x".repeat(500) }, SENDER).body.saved.length, 302);
+  assert.equal(ampLogResponse(req(headers), { ex: "all", note: "   " }, SENDER).status, 400);
 });
 
 test("anything else is refused", () => {
