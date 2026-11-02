@@ -21,6 +21,10 @@ test("the dynamic part has what Gmail requires", () => {
   assert.equal(amp.match(/<style amp-custom>/g)?.length, 1);
   assert.ok(!amp.includes("!important"));
   assert.ok(!/href="#/.test(amp));
+  // Valid on web pages, refused in email (disabled_by amp4email in the rules).
+  for (const refused of ["disable-session-states", "no-verify", "autofocus", "inputmode", "[type]"]) {
+    assert.ok(!amp.includes(refused), refused);
+  }
   // Three buttons, each its own form posting to the log address.
   assert.equal(amp.match(new RegExp(`<form class="log" method="post" action-xhr="${LOG}">`, "g"))?.length, 3);
   // A section is a heading and one block, which is what amp-accordion needs.
