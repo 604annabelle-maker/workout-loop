@@ -49,7 +49,9 @@ health and the long run. The rules are in [`lib/program.ts`](src/lib/program.ts)
 one file, each with its reason, and the research behind them is in
 [`docs/training-research.md`](docs/training-research.md) and its follow-up on
 sex differences and training to failure,
-[`docs/training-research-women-and-failure.md`](docs/training-research-women-and-failure.md).
+[`docs/training-research-women-and-failure.md`](docs/training-research-women-and-failure.md),
+and on jumping for bone at her age,
+[`docs/training-research-jumping.md`](docs/training-research-jumping.md).
 In short:
 
 - **Muscle comes from hard sets, progressed.** About 12 to 20 hard sets per
