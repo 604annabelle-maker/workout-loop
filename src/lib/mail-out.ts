@@ -23,6 +23,8 @@ export interface Mail {
   html: string;
   /** Pictures the HTML refers to by Content-ID. */
   inline?: Inline[];
+  /** A dynamic (AMP for Email) version, shown by Gmail when it allows one. */
+  amp?: string;
 }
 
 export interface SendResult {
@@ -56,6 +58,7 @@ export async function sendMail(mail: Mail): Promise<SendResult> {
       subject: mail.subject,
       text: mail.text,
       html: mail.html,
+      ...(mail.amp ? { amp: mail.amp } : {}),
       /*
        * `inline` rather than `attachment`, which is what keeps these in the
        * body where the HTML puts them instead of in a row of files at the
