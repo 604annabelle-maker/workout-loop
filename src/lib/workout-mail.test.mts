@@ -79,20 +79,39 @@ test("plain text lines stay inside 50 characters", () => {
 
 /* ---------- pictures ---------- */
 
-test("pictures only while she is learning an exercise, with the drawings' credit", () => {
+test("no pictures in the plain version: the how-to in words while she is learning it", () => {
   const learning = mail();
-  assert.equal(learning.inline.length, 2);
-  assert.match(learning.html, /cid:drawing-0001-0@workout-loop/);
-  assert.match(learning.html, /Everkinetic/);
-
-  const learnt = mail({ learning: new Set() });
-  assert.equal(learnt.inline.length, 0);
-  assert.ok(!learnt.html.includes("Everkinetic"));
-  assert.ok(!learnt.amp!.includes("amp-img"));
+  assert.equal(learning.inline.length, 0);
+  assert.ok(!learning.html.includes("<img"));
+  assert.match(learning.html, /Do it well\./);
+  assert.ok(!mail({ learning: new Set() }).html.includes("Do it well."));
 });
 
-test("the dynamic version loads its pictures over https, sized", () => {
-  assert.match(mail().amp!, /<amp-img src="https:\/\/workout\.example\.app\/pictures\/d\/0001-0\.png" alt="DEADLIFT" width="400" height="315" layout="responsive">/);
+test("no frame around the email: it uses the whole of a small screen", () => {
+  const { html, amp } = mail();
+  assert.ok(!html.includes("border-radius:10px"));
+  assert.ok(!amp!.includes('class="card"'));
+  assert.match(amp!, /body\{[^}]*margin:0;padding:0 2px\}/);
+});
+
+test("the drawings are behind How to, full width, one frame under the other, with the credit", () => {
+  const amp = mail().amp!;
+  const how = amp.slice(amp.indexOf('<amp-accordion class="how"'), amp.indexOf("</amp-accordion>", amp.indexOf('<amp-accordion class="how"')));
+  assert.match(how, /<h4>How to &#9662;<\/h4>/);
+  assert.equal(how.match(/<div class="frame"><amp-img /g)?.length, 2);
+  assert.match(how, /<amp-img src="https:\/\/workout\.example\.app\/pictures\/d\/0001-0\.png" alt="DEADLIFT" width="400" height="315" layout="responsive">/);
+  assert.match(amp, /Everkinetic/);
+});
+
+test("without a drawing, How to opens on two plain sentences; with no words either, there is none", () => {
+  const amp = mail({ pictures: [] }).amp!;
+  assert.match(amp, /<h4>How to &#9662;<\/h4>\n<div class="howbody"><p class="howto">Do it well\.<\/p><\/div>/);
+  assert.ok(!amp.includes("Everkinetic"));
+});
+
+test("photos are never shown, only drawings", () => {
+  const photo: Pictured = { exercise: "DEADLIFT", shows: "", drawn: false, frames: [{ cid: "x@y", source: "p", file: "a.jpg", width: 400, height: 267 }] };
+  assert.ok(!mail({ pictures: [photo] }).amp!.includes("amp-img"));
 });
 
 /* ---------- the dynamic version ---------- */
