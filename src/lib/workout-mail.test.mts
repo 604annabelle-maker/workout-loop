@@ -107,13 +107,21 @@ test("the drawings are behind How to, small and side by side, with the credit", 
 
 test("without a drawing, How to opens on two plain sentences; with no words either, there is none", () => {
   const amp = mail({ pictures: [] }).amp!;
-  assert.match(amp, /<h4>How to &#9662;<\/h4>\n<div class="howbody"><p class="howto">Do it well\.<\/p><\/div>/);
+  assert.match(amp, /<h4>How to &#9662;<\/h4>\n<div class="howbody"><p class="cue">Brace\.<\/p><p class="howto">Do it well\.<\/p><\/div>/);
   assert.ok(!amp.includes("Everkinetic"));
+});
+
+test("the tip is hidden under How to, above the pictures, not shown under the name", () => {
+  const amp = mail().amp!;
+  const start = amp.indexOf('<p class="name"><span class="lab">A</span>');
+  const how = amp.indexOf('<amp-accordion class="how"', start);
+  assert.ok(!amp.slice(start, how).includes("Brace."), "not in the exercise header");
+  assert.match(amp.slice(how), /<div class="howbody"><p class="cue">Brace\.<\/p><table class="pics"/);
 });
 
 test("a near drawing carries its one line on what differs", () => {
   const near: Pictured = { ...DRAWN, shows: "Shown seated; standing, it is the same press." };
-  assert.match(mail({ pictures: [near] }).amp!, /<div class="howbody"><p class="shows">Shown seated; standing, it is the same press\.<\/p><table class="pics"/);
+  assert.match(mail({ pictures: [near] }).amp!, /<div class="howbody"><p class="cue">Brace\.<\/p><p class="shows">Shown seated; standing, it is the same press\.<\/p><table class="pics"/);
 });
 
 test("photos are never shown, only drawings", () => {
