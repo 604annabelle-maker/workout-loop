@@ -157,7 +157,7 @@ function textExercise(e: PlanExercise, brief: Brief): string[] {
 
 function textBlock(block: PlanBlock, brief: Brief): string[] {
   const out = [blockHeading(block)];
-  if (block.instructions) out.push(...wrap(block.instructions));
+  if (block.instructions && !isSimple(block)) out.push(...wrap(block.instructions));
   for (const e of block.exercises) {
     if (isSimple(block)) {
       out.push(...wrap(`${e.label.padEnd(3)}${titleCase(e.name)}, ${e.reps}${e.cue ? `. ${e.cue}` : ""}`, "   ", ""));

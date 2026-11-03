@@ -83,6 +83,7 @@ EXERCISE FIELDS.
 - primary and secondary: honest. These count her weekly volume, so a hip thrust is primary glutes, secondary hamstrings, and not also quads.
 
 THE REST.
+- Block instructions: empty for the warm up and the main lifts. For a superset or the ab finisher, one short line on how to run it, like "C1 then C2, rest 90 sec after the pair." Never advice, reasons or reminders: she asked for fewer words.
 - title: the session's name as the brief gives it, like "Back + biceps".
 - focus: the two muscle groups.
 - Respect everything she asked to avoid, without exception and without mentioning it. Prescribe only what her equipment allows.
