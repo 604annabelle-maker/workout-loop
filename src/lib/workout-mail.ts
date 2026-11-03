@@ -218,9 +218,9 @@ export function barRows(s: Snapshot, cell: (width: number, colour: string) => st
     const under = v.status === "under";
     const width = Math.max(0, Math.min(100, Math.round((v.done / v.range[1]) * 100)));
     return `<tr>
-      <td style="width:28%;padding:3px 8px 3px 0;font-size:13px;color:${c.ink};white-space:nowrap">${esc(LABELS[m])}</td>
-      <td style="padding:3px 8px 3px 0;vertical-align:middle"><table role="presentation" cellpadding="0" cellspacing="0" border="0" style="width:100%;border-collapse:collapse;table-layout:fixed"><tr>${cell(width, under ? c.warn : c.accent)}${cell(100 - width, c.rule)}</tr></table></td>
-      <td style="width:18%;padding:3px 0;font-size:12px;color:${under ? c.warn : c.muted};text-align:right;white-space:nowrap">${v.done} of ${v.range[0]}-${v.range[1]}</td>
+      <td style="width:25%;padding:3px 6px 3px 0;font-size:12px;color:${c.ink};white-space:nowrap">${esc(LABELS[m])}</td>
+      <td style="padding:3px 6px 3px 0;vertical-align:middle"><table role="presentation" cellpadding="0" cellspacing="0" border="0" style="width:100%;border-collapse:collapse;table-layout:fixed"><tr>${cell(width, under ? c.warn : c.accent)}${cell(100 - width, c.rule)}</tr></table></td>
+      <td style="width:23%;padding:3px 0;font-size:11px;color:${under ? c.warn : c.muted};text-align:right;white-space:nowrap">${v.done}/${v.range[0]}-${v.range[1]}</td>
     </tr>`;
   }).join("");
 }

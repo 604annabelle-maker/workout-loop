@@ -101,11 +101,11 @@ body{font-family:Arial,Helvetica,sans-serif;color:${C.ink};background-color:${C.
 .alldone{display:inline-block;padding:6px 16px;border:0;border-radius:999px;background-color:${C.accentSoft};color:${C.accent};font-size:14px;font-weight:bold}
 .bars{margin:22px 0 0;padding:14px 0 0;border-top:1px solid ${C.rule}}
 .bars table{width:100%;table-layout:fixed;border-collapse:collapse}
-.bars td{font-size:13px;padding:2px 0}
-.bars .m{width:28%;color:${C.ink}}
-.bars .n{width:22%;text-align:right;font-size:12px;color:${C.muted}}
+.bars td{font-size:12px;padding:2px 0}
+.bars .m{width:25%;color:${C.ink}}
+.bars .n{width:23%;text-align:right;font-size:11px;white-space:nowrap;color:${C.muted}}
 .bars .low{color:${C.warn}}
-.bars .track{padding:2px 8px}
+.bars .track{padding:2px 6px}
 .wide{margin:6px 0 0}
 .credit{margin:12px 0 0;font-size:11px;color:${C.faint}}
 `;
@@ -228,7 +228,7 @@ function bars(input: MailInput): string {
     if (!v || v.range[1] === 0) return "";
     const under = v.status === "under";
     const width = Math.max(0, Math.min(100, Math.round((v.done / v.range[1]) * 100)));
-    return `<tr><td class="m">${esc(LABELS[m])}</td><td class="track"><table role="presentation"><tr>${cell(width, under ? C.warn : C.accent)}${cell(100 - width, C.rule)}</tr></table></td><td class="n${under ? " low" : ""}">${v.done} of ${v.range[0]}-${v.range[1]}</td></tr>`;
+    return `<tr><td class="m">${esc(LABELS[m])}</td><td class="track"><table role="presentation"><tr>${cell(width, under ? C.warn : C.accent)}${cell(100 - width, C.rule)}</tr></table></td><td class="n${under ? " low" : ""}">${v.done}/${v.range[0]}-${v.range[1]}</td></tr>`;
   }).join("");
   return `<div class="bars">
 <p class="heading">THIS WEEK</p>
