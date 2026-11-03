@@ -66,9 +66,13 @@ export function pictureFile(source: Source, file: string): string | null {
   return path.join(directory(source), name);
 }
 
+/**
+ * The drawings for a workout. Photos are no longer used: two of them side by
+ * side were too small and too busy to see on her phone, and the drawings are
+ * clear at full width.
+ */
 export function workoutPictures(exercises: string[]): Pictured[] {
-  const photos = index("p");
   const drawings = index("d");
-  if (photos.exercises.length === 0 && drawings.exercises.length === 0) return [];
-  return picturesFor(photos, exercises, drawings);
+  if (drawings.exercises.length === 0) return [];
+  return picturesFor(EMPTY, exercises, drawings);
 }

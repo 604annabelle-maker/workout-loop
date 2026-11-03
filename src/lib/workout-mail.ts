@@ -130,12 +130,6 @@ export function blockHeading(block: PlanBlock): string {
 
 export const isSimple = (block: PlanBlock) => block.kind === "warmup" || block.kind === "cooldown";
 
-/** The pictures for an exercise, if she is still learning it. */
-export function picturedFor(input: MailInput, e: PlanExercise): Pictured | undefined {
-  if (input.learning && !input.learning.has(e.name.trim().toUpperCase())) return undefined;
-  return input.pictures?.find((p) => p.exercise.trim().toUpperCase() === e.name.trim().toUpperCase());
-}
-
 export const CREDIT = "Drawings: Everkinetic (everkinetic.com), CC BY-SA 4.0.";
 
 /** The line that says how to log when there is nothing to tap. */
@@ -239,20 +233,14 @@ function label(text: string, colour = C.faint, margin = "0 0 8px"): string {
   return `<p style="font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:${colour};margin:${margin}">${esc(text)}</p>`;
 }
 
-function htmlPictures(e: PlanExercise, pictured: Pictured | undefined): string {
-  if (!pictured || pictured.frames.length === 0) {
-    return e.howTo ? `<p style="margin:6px 0 0;font-size:14px;line-height:1.5;color:${C.muted}">${esc(e.howTo)}</p>` : "";
-  }
-  const cells = pictured.frames
-    .map(
-      (frame, at) => `<td style="width:50%;padding:0 ${at === 0 && pictured.frames.length > 1 ? "4px" : "0"} 0 0;vertical-align:top">
-        <img src="cid:${frame.cid}" alt="${esc(e.name)}" width="238" style="display:block;width:100%;max-width:238px;height:auto;border:1px solid ${C.rule};border-radius:6px;background:#ffffff"></td>`,
-    )
-    .join("");
-  const shows = pictured.shows
-    ? `<p style="margin:4px 0 0;font-size:11px;color:${C.faint}">Shown: ${esc(pictured.shows)}</p>`
-    : "";
-  return `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:8px 0 0;width:100%;max-width:480px;table-layout:fixed;border-collapse:collapse"><tr>${cells}</tr></table>${shows}`;
+/**
+ * How it is done, in two sentences, while she is still learning it. The plain
+ * version carries no pictures: two side by side were too small to see on her
+ * phone, and it cannot hide them behind a tap the way the dynamic one does.
+ */
+function htmlHowTo(input: MailInput, e: PlanExercise): string {
+  if (!e.howTo || !input.learning?.has(e.name.trim().toUpperCase())) return "";
+  return `<p style="margin:4px 0 0;font-size:13px;line-height:1.45;color:${C.muted}">${esc(e.howTo)}</p>`;
 }
 
 function htmlExercise(input: MailInput, e: PlanExercise): string {
@@ -264,7 +252,7 @@ function htmlExercise(input: MailInput, e: PlanExercise): string {
     <p style="margin:2px 0 0;font-size:14px;line-height:1.45;color:${C.muted}"><span style="color:${C.accent};font-weight:800">${esc(dose(e))}</span>${more ? ` · ${esc(more)}` : ""}</p>
     ${e.cue ? `<p style="margin:2px 0 0;font-size:13px;line-height:1.45;color:${C.muted};font-style:italic">${esc(e.cue)}</p>` : ""}
     ${last ? `<p style="margin:2px 0 0;font-size:13px;line-height:1.45;color:${C.faint}">${esc(last.last)}${last.change ? ` · <span style="color:${last.up ? C.up : C.warn}">${esc(last.change)}</span>` : ""}</p>` : ""}
-    ${htmlPictures(e, picturedFor(input, e))}
+    ${htmlHowTo(input, e)}
     ${swap ? `<p style="margin:6px 0 0;font-size:13px;line-height:1.45;color:${C.faint}">or: ${esc(swap)}</p>` : ""}
   </div>`;
 }
@@ -296,42 +284,20 @@ function htmlBars(s: Snapshot): string {
 
 export function composeHtml(input: MailInput): string {
   const { plan } = input;
-  const drawn = plan.blocks.some((b) => b.exercises.some((e) => picturedFor(input, e)?.drawn));
+  // No frame around it: on a small phone a border and padding only take room.
   return `
-<div style="background:${C.page};padding:12px;font-family:ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif">
-  <div style="max-width:34rem;margin:0 auto;background:${C.card};border:1px solid ${C.rule};border-radius:10px;padding:18px;color:${C.ink}">
+<div style="font-family:ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif;background:${C.card};color:${C.ink}">
+  <div style="max-width:34rem">
     <p style="font-size:24px;font-weight:800;line-height:1.2;color:${C.ink};margin:0 0 4px">${esc(plan.title)}</p>
     <p style="font-size:13px;line-height:1.5;color:${C.faint};margin:0">${esc(subtitle(input))}</p>
     ${plan.blocks.map((b) => htmlBlock(input, b)).join("")}
     ${input.snapshot ? htmlBars(input.snapshot) : ""}
     <p style="margin:18px 0 0;font-size:13px;line-height:1.5;color:${C.muted}">${esc(REPLY_HOW)}</p>
-    ${drawn ? `<p style="margin:10px 0 0;font-size:11px;color:${C.faint}">${esc(CREDIT)}</p>` : ""}
   </div>
 </div>`;
 }
 
 /* ---------------- together ---------------- */
-
-function inlineFor(input: MailInput): Inline[] {
-  const out: Inline[] = [];
-  const seen = new Set<string>();
-  for (const e of mainExercises(input.plan)) {
-    const found = picturedFor(input, e);
-    if (!found) continue;
-    for (const [frame, picture] of found.frames.entries()) {
-      if (seen.has(picture.cid)) continue;
-      seen.add(picture.cid);
-      const ext = picture.file.toLowerCase().endsWith(".png") ? "png" : "jpg";
-      out.push({
-        cid: picture.cid,
-        source: picture.source,
-        file: picture.file,
-        filename: `${e.name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${frame + 1}.${ext}`,
-      });
-    }
-  }
-  return out;
-}
 
 export function composeWorkoutMail(input: MailInput, amp?: (input: MailInput) => string): Composed {
   return {
@@ -339,7 +305,8 @@ export function composeWorkoutMail(input: MailInput, amp?: (input: MailInput) =>
     text: composeText(input),
     html: composeHtml(input),
     ...(amp && input.log ? { amp: amp(input) } : {}),
-    inline: inlineFor(input),
+    // The pictures are only in the dynamic version, loaded from the app.
+    inline: [],
   };
 }
 

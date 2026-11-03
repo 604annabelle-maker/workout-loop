@@ -35,7 +35,6 @@ import {
   esc,
   isSimple,
   lastTime,
-  picturedFor,
   subtitle,
   swapLine,
   type MailInput,
@@ -53,8 +52,7 @@ const PILLS: { how: string; text: string }[] = [
 const idOf = (label: string) => label.replace(/[^A-Za-z0-9]/g, "x");
 
 const CSS = `
-body{font-family:Arial,Helvetica,sans-serif;color:${C.ink};background-color:${C.page};margin:0;padding:10px}
-.card{background-color:${C.card};border:1px solid ${C.rule};border-radius:10px;padding:16px;max-width:34rem}
+body{font-family:Arial,Helvetica,sans-serif;color:${C.ink};background-color:${C.card};margin:0;padding:0 2px}
 .title{margin:0 0 2px;font-size:24px;font-weight:bold;line-height:1.2}
 .sub{margin:0;font-size:13px;color:${C.faint}}
 .logged{margin:6px 0 0;font-size:13px;color:${C.accent}}
@@ -74,10 +72,9 @@ body{font-family:Arial,Helvetica,sans-serif;color:${C.ink};background-color:${C.
 .last{margin:2px 0 0;font-size:13px;color:${C.faint}}
 .up{color:${C.up}}
 .down{color:${C.warn}}
-.pics{margin:8px 0 0;width:100%;max-width:480px;border-collapse:collapse}
-.pics td{width:50%;padding:0 4px 0 0;vertical-align:top}
-.shows{margin:4px 0 0;font-size:11px;color:${C.faint}}
-.howto{margin:6px 0 0;font-size:14px;color:${C.muted}}
+.howbody{margin:4px 0 0}
+.frame{margin:0 0 6px;border:1px solid ${C.rule};border-radius:6px}
+.howto{margin:0 0 4px;font-size:14px;color:${C.muted}}
 .pills{margin:10px 0 0}
 .r{-webkit-appearance:none;appearance:none;width:0;height:0;margin:0;padding:0;border:0}
 .pill{display:inline-block;margin:0 4px 6px 0;padding:5px 12px;border:0;border-radius:999px;background-color:${C.pill};color:${C.muted};font-size:13px;font-family:Arial,Helvetica,sans-serif}
@@ -85,7 +82,8 @@ body{font-family:Arial,Helvetica,sans-serif;color:${C.ink};background-color:${C.
 .undo{display:inline-block;margin:0 0 6px 4px;padding:5px 4px;font-size:12px;color:${C.faint}}
 .r:checked + .undo{color:${C.muted}}
 .swap{margin:2px 0 0}
-.swap h4{margin:0;padding:2px 0;font-size:13px;font-weight:normal;color:${C.accent};background-color:${C.card};border:0}
+.how{margin:4px 0 0}
+.swap h4,.how h4{margin:0;padding:2px 0;font-size:13px;font-weight:normal;color:${C.accent};background-color:${C.card};border:0}
 .swapbody{margin:4px 0 0;padding:8px 10px;border-left:2px solid ${C.rule}}
 .swapbody p{margin:0 0 6px;font-size:13px;color:${C.muted}}
 .say{margin:4px 0 0;width:100%;border-collapse:collapse}
@@ -116,18 +114,35 @@ function action(input: MailInput, token = input.log!.token): string {
 const RESULT = `<div submit-success><template type="amp-mustache"><p class="saved">Saved: {{saved}} &#10003;</p></template></div>
 <div submit-error><template type="amp-mustache"><p class="failed">Didn't save. Try again.</p></template></div>`;
 
-function pictures(input: MailInput, e: PlanExercise, pictured: Pictured | undefined): string {
-  if (!pictured || pictured.frames.length === 0) {
-    return e.howTo ? `<p class="howto">${esc(e.howTo)}</p>` : "";
-  }
-  const cells = pictured.frames
-    .map(
-      (f) =>
-        `<td><amp-img src="${input.log!.base}/pictures/${f.source}/${encodeURIComponent(f.file)}" alt="${esc(e.name)}" width="${f.width}" height="${f.height}" layout="responsive"></amp-img></td>`,
-    )
-    .join("");
-  const shows = pictured.shows ? `<p class="shows">Shown: ${esc(pictured.shows)}</p>` : "";
-  return `<table class="pics" role="presentation"><tr>${cells}</tr></table>${shows}`;
+/** The drawing for an exercise, if there is one. Photos are not used: too small to see on her phone. */
+function drawingOf(input: MailInput, e: PlanExercise): Pictured | undefined {
+  const name = e.name.trim().toUpperCase();
+  return input.pictures?.find((p) => p.drawn && p.frames.length > 0 && p.exercise.trim().toUpperCase() === name);
+}
+
+/**
+ * "How to", closed until she taps it, so the pictures take no room until she
+ * wants one. Open, the drawing fills the width, one frame under the other,
+ * because two side by side were too small to see on her phone. Without a
+ * drawing, two plain sentences instead.
+ */
+function howTo(input: MailInput, e: PlanExercise): string {
+  const drawing = drawingOf(input, e);
+  if (!drawing && !e.howTo) return "";
+  const body = drawing
+    ? drawing.frames
+        .map(
+          (f) =>
+            `<div class="frame"><amp-img src="${input.log!.base}/pictures/${f.source}/${encodeURIComponent(f.file)}" alt="${esc(e.name)}" width="${f.width}" height="${f.height}" layout="responsive"></amp-img></div>`,
+        )
+        .join("")
+    : `<p class="howto">${esc(e.howTo)}</p>`;
+  return `<amp-accordion class="how" animate>
+<section>
+<h4>How to &#9662;</h4>
+<div class="howbody">${body}</div>
+</section>
+</amp-accordion>`;
 }
 
 function exercise(input: MailInput, e: PlanExercise): string {
@@ -151,7 +166,7 @@ function exercise(input: MailInput, e: PlanExercise): string {
 <p class="dose"><b>${esc(dose(e))}</b>${more ? ` · ${esc(more)}` : ""}</p>
 ${e.cue ? `<p class="cue">${esc(e.cue)}</p>` : ""}
 ${last ? `<p class="last">${esc(last.last)}${last.change ? ` · <span class="${last.up ? "up" : "down"}">${esc(last.change)}</span>` : ""}</p>` : ""}
-${pictures(input, e, picturedFor(input, e))}
+${howTo(input, e)}
 <form id="f-${id}" method="post" action-xhr="${action(input)}" on="submit-success:logged.refresh">
 <input type="hidden" name="ex" value="${esc(e.label)}">
 <div class="pills">${PILLS.map((p) => radio(p.how, p.text, "pill")).join("")}${radio("clear", "undo", "undo")}</div>
@@ -215,7 +230,7 @@ function bars(input: MailInput): string {
 export function composeAmp(input: MailInput): string {
   if (!input.log) return "";
   const { plan } = input;
-  const drawn = plan.blocks.some((b) => b.exercises.some((e) => picturedFor(input, e)?.drawn));
+  const drawn = plan.blocks.some((b) => !isSimple(b) && b.exercises.some((e) => drawingOf(input, e)));
 
   return `<!doctype html>
 <html amp4email data-css-strict>
@@ -230,7 +245,6 @@ export function composeAmp(input: MailInput): string {
 <style amp-custom>${CSS}</style>
 </head>
 <body>
-<div class="card">
 <p class="title">${esc(plan.title)}</p>
 <p class="sub">${esc(subtitle(input))}</p>
 <amp-list id="logged" layout="fixed-height" height="40" src="${action(input)}" single-item items="." binding="no">
@@ -250,7 +264,6 @@ ${RESULT}
 </div>
 ${bars(input)}
 ${drawn ? `<p class="credit">${esc(CREDIT)}</p>` : ""}
-</div>
 </body>
 </html>`;
 }

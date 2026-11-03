@@ -57,7 +57,7 @@ const result = await sendMail({ to, ...mail });
 const missing = pictures.filter((p) => p.frames.length === 0).map((p) => p.exercise);
 
 console.log(`subject:    ${mail.subject}`);
-console.log(`pictures:   ${mail.inline.length} in the body, for ${pictures.length - missing.length} of ${pictures.length} exercises`);
+console.log(`drawings:   for ${pictures.length - missing.length} of ${pictures.length} exercises, behind "How to" in the dynamic version`);
 if (missing.length > 0) console.log(`  no picture: ${missing.join(", ")}`);
 console.log(`targets:    ${brief.targets.length} lifts with a number from history`);
 console.log(`plan:       ${canned ? "canned" : "generated"}`);

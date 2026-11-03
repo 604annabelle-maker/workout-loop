@@ -48,13 +48,15 @@ this is what the app does.
   the medicine ball chest pass.
 - Her saved equipment list stays.
 - Jumps once a week, in the warm up.
-- Line drawings for the first 10 times she does an exercise; a photo where
-  there is no drawing.
+- Line drawings behind a tap ("How to"), full width, one frame under the
+  other; two plain sentences where there is no drawing. (Changed after the
+  first preview: the photos, and two frames side by side, were too small and
+  cluttered on her phone, so photos are gone and the drawings open on a tap.)
 
 ## The email
 
 - Just the exercises and the weekly target bars. No tips, no Sunday email,
-  fewer words.
+  fewer words, and no frame around the email, so a small screen is all used.
 - Under each exercise: pills `done · easy · hard · skip`, then `undo` (style A,
   small pills, chosen from three samples), and a "Changed something?" box.
 - **Swap ▾** opens in place, with a "did this instead" pill.
