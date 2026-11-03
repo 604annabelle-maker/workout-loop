@@ -12,7 +12,7 @@
 
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import { picturesFor, type PictureIndex, type Pictured, type Source } from "./exercise-pictures";
+import { drawnNames, picturesFor, type PictureIndex, type Pictured, type Source } from "./exercise-pictures";
 
 /**
  * Relative to the process root, which is the project root both locally and in
@@ -75,4 +75,9 @@ export function workoutPictures(exercises: string[]): Pictured[] {
   const drawings = index("d");
   if (drawings.exercises.length === 0) return [];
   return picturesFor(EMPTY, exercises, drawings);
+}
+
+/** The gym names that come with a drawing, for the coach to prefer. */
+export function drawnExerciseNames(): string[] {
+  return drawnNames(index("d"));
 }

@@ -113,6 +113,48 @@ export const DRAWING_ALIASES: Record<string, string> = {
 };
 
 /**
+ * Gym names whose movement the set draws a little differently: a different
+ * grip, seated rather than standing, on the floor rather than on a bench.
+ * The drawing still shows the movement well, so it is used, with one short
+ * line saying what differs.
+ */
+export const NEAR_DRAWINGS: Record<string, { name: string; note: string }> = {
+  "barbell row": { name: "Reverse Grips Bent Over Barbell Rows", note: "Shown with palms up; grip it either way." },
+  "bent over row": { name: "Reverse Grips Bent Over Barbell Rows", note: "Shown with palms up; grip it either way." },
+  "bent over barbell row": { name: "Reverse Grips Bent Over Barbell Rows", note: "Shown with palms up; grip it either way." },
+  "pendlay row": { name: "Reverse Grips Bent Over Barbell Rows", note: "Shown with palms up. A Pendlay row starts each rep from the floor." },
+  "lat pulldown": { name: "Pull Down: V Bar", note: "Shown with the V-bar handle." },
+  "wide grip lat pulldown": { name: "Pull Down: V Bar", note: "Shown with the V-bar handle; use the wide bar." },
+  "cable lat pulldown": { name: "Pull Down: V Bar", note: "Shown with the V-bar handle." },
+  "chin up": { name: "Narrow Parallel Grip Chin-ups", note: "Shown with palms facing each other; a chin up has palms facing you." },
+  "assisted chin up": { name: "Narrow Parallel Grip Chin-ups", note: "Shown unassisted, palms facing each other." },
+  "overhead press": { name: "Seated Military Press", note: "Shown seated; standing, it is the same press." },
+  "standing overhead press": { name: "Seated Military Press", note: "Shown seated; standing, it is the same press." },
+  "barbell overhead press": { name: "Seated Military Press", note: "Shown seated; standing, it is the same press." },
+  "military press": { name: "Seated Military Press", note: "Shown seated; standing, it is the same press." },
+  "dumbbell shoulder press": { name: "Seated Military Press", note: "Shown with a barbell; with dumbbells, it is the same press." },
+  "seated dumbbell shoulder press": { name: "Seated Military Press", note: "Shown with a barbell; with dumbbells, it is the same press." },
+  "goblet squat": { name: "Squats: Dumbbells", note: "Shown with dumbbells at the sides; hold one at your chest." },
+  "hip thrust": { name: "Bridging", note: "Shown on the floor. For a hip thrust, your upper back rests on a bench and the bar sits across your hips." },
+  "barbell hip thrust": { name: "Bridging", note: "Shown on the floor. For a hip thrust, your upper back rests on a bench and the bar sits across your hips." },
+  plank: { name: "Push Up: Body Weight", note: "Hold the top of a push up, body in one straight line." },
+  "high plank": { name: "Push Up: Body Weight", note: "Hold the top of a push up, body in one straight line." },
+  "ab wheel rollout": { name: "Ab Rollout on Knees with Barbell", note: "Shown with a barbell; a wheel moves the same way." },
+  "ab wheel": { name: "Ab Rollout on Knees with Barbell", note: "Shown with a barbell; a wheel moves the same way." },
+  "trap bar deadlift": { name: "Dead Lifts: Barbell", note: "Shown with a straight bar; with a trap bar you stand inside it." },
+  "reverse crunch": { name: "Bent Knee Hip Raise", note: "" },
+  "lying leg raise": { name: "Flat Bench Leg Raises", note: "" },
+  "smith machine bench press": { name: "Bench Press: Smith Machine", note: "" },
+  "machine chest press": { name: "Bench Press: Machine", note: "Shown lying; a seated machine moves the same way." },
+  "leg curl": { name: "Lying Leg Curl Machine", note: "" },
+  "cable rear delt fly": { name: "Bent-over Lateral Cable Raises", note: "" },
+  "reverse fly": { name: "Bent Over Rear Deltoid Raise With Head On Bench", note: "" },
+  "dumbbell rear delt fly": { name: "Bent Over Rear Deltoid Raise With Head On Bench", note: "" },
+  "close grip pulldown": { name: "Pull Down: V Bar", note: "" },
+  "underhand pulldown": { name: "Pull Down: Underhand", note: "" },
+};
+
+/**
  * Gym names the photo set spells differently, where word matching would
  * otherwise pick the wrong movement. "SIDE PLANK" shares every word with
  * "Push Up to Side Plank", which is a different exercise.
@@ -156,8 +198,8 @@ export interface Pictured {
   /** The exercise as prescribed, which is how the renderer finds its place. */
   exercise: string;
   /**
-   * What the pictures are actually of. Empty when it is the same movement,
-   * which is the usual case and needs no caption.
+   * What differs in the picture from the movement asked for, as a line to
+   * show under it. Empty when it is the same movement, the usual case.
    */
   shows: string;
   /** Empty when nothing in either set matched. */
@@ -184,12 +226,33 @@ const byKey = (aliases: Record<string, string>) =>
 const DRAWN = byKey(DRAWING_ALIASES);
 const PHOTOGRAPHED = byKey(PHOTO_ALIASES);
 
-/** The drawing for an exercise, by a checked alias or an exact name, or null. */
-function drawingFor(drawings: PictureIndex, exercise: string): PictureSet | null {
+const NEAR = new Map(Object.entries(NEAR_DRAWINGS).map(([k, v]) => [normalizeExerciseName(k), v]));
+
+/**
+ * The drawing for an exercise, and what to say about it: by a checked alias or
+ * an exact name (nothing to say), or a near one (one line on what differs).
+ */
+function drawingFor(drawings: PictureIndex, exercise: string): { set: PictureSet; note: string } | null {
   const key = normalizeExerciseName(exercise);
+  const find = (name: string) => drawings.exercises.find((d) => normalizeExerciseName(d.name) === normalizeExerciseName(name)) ?? null;
   const alias = DRAWN.get(key);
-  const wanted = alias ? normalizeExerciseName(alias) : key;
-  return drawings.exercises.find((d) => normalizeExerciseName(d.name) === wanted) ?? null;
+  const exact = find(alias ?? exercise);
+  if (exact) return { set: exact, note: "" };
+  const near = NEAR.get(key);
+  const close = near ? find(near.name) : null;
+  return close ? { set: close, note: near!.note } : null;
+}
+
+/**
+ * The gym names that come with a drawing, for the coach to prefer: a session
+ * where every exercise can be opened and seen is easier to follow alone.
+ */
+export function drawnNames(drawings: PictureIndex): string[] {
+  const have = new Set(drawings.exercises.map((d) => normalizeExerciseName(d.name)));
+  const names = [...Object.entries(DRAWING_ALIASES), ...Object.entries(NEAR_DRAWINGS).map(([k, v]) => [k, v.name] as const)]
+    .filter(([, name]) => have.has(normalizeExerciseName(name)))
+    .map(([gym]) => gym.toUpperCase());
+  return [...new Set(names)].sort();
 }
 
 /**
@@ -202,7 +265,7 @@ export function picturesFor(photos: PictureIndex, exercises: string[], drawings:
 
   return [...new Set(exercises)].map((exercise) => {
     const drawing = drawingFor(drawings, exercise);
-    if (drawing) return { exercise, shows: "", frames: framesOf(drawing, "d"), drawn: true };
+    if (drawing) return { exercise, shows: drawing.note, frames: framesOf(drawing.set, "d"), drawn: true };
 
     const alias = PHOTOGRAPHED.get(normalizeExerciseName(exercise));
     const aliased = alias ? names.indexOf(alias) : -1;

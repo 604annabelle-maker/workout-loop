@@ -75,6 +75,7 @@ body{font-family:Arial,Helvetica,sans-serif;color:${C.ink};background-color:${C.
 .howbody{margin:4px 0 0}
 .frame{margin:0 0 6px;border:1px solid ${C.rule};border-radius:6px}
 .howto{margin:0 0 4px;font-size:14px;color:${C.muted}}
+.shows{margin:0 0 6px;font-size:13px;color:${C.muted};font-style:italic}
 .pills{margin:10px 0 0}
 .r{-webkit-appearance:none;appearance:none;width:0;height:0;margin:0;padding:0;border:0}
 .pill{display:inline-block;margin:0 4px 6px 0;padding:5px 12px;border:0;border-radius:999px;background-color:${C.pill};color:${C.muted};font-size:13px;font-family:Arial,Helvetica,sans-serif}
@@ -129,8 +130,9 @@ function drawingOf(input: MailInput, e: PlanExercise): Pictured | undefined {
 function howTo(input: MailInput, e: PlanExercise): string {
   const drawing = drawingOf(input, e);
   if (!drawing && !e.howTo) return "";
+  const note = drawing?.shows ? `<p class="shows">${esc(drawing.shows)}</p>` : "";
   const body = drawing
-    ? drawing.frames
+    ? note + drawing.frames
         .map(
           (f) =>
             `<div class="frame"><amp-img src="${input.log!.base}/pictures/${f.source}/${encodeURIComponent(f.file)}" alt="${esc(e.name)}" width="${f.width}" height="${f.height}" layout="responsive"></amp-img></div>`,

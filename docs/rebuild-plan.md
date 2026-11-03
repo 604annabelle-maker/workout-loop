@@ -52,6 +52,11 @@ this is what the app does.
   other; two plain sentences where there is no drawing. (Changed after the
   first preview: the photos, and two frames side by side, were too small and
   cluttered on her phone, so photos are gone and the drawings open on a tap.)
+- All drawings come from the one set she liked (Everkinetic). Where it draws
+  a lift slightly differently (a different grip, seated, on the floor), that
+  drawing is used with one line saying what differs, and the coach prefers
+  exercises that have a drawing. Drawing new figures in code was tried and
+  dropped: they could not match that set's detail.
 
 ## The email
 

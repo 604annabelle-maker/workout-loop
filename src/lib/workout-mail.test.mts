@@ -109,6 +109,11 @@ test("without a drawing, How to opens on two plain sentences; with no words eith
   assert.ok(!amp.includes("Everkinetic"));
 });
 
+test("a near drawing carries its one line on what differs", () => {
+  const near: Pictured = { ...DRAWN, shows: "Shown seated; standing, it is the same press." };
+  assert.match(mail({ pictures: [near] }).amp!, /<div class="howbody"><p class="shows">Shown seated; standing, it is the same press\.<\/p><div class="frame">/);
+});
+
 test("photos are never shown, only drawings", () => {
   const photo: Pictured = { exercise: "DEADLIFT", shows: "", drawn: false, frames: [{ cid: "x@y", source: "p", file: "a.jpg", width: 400, height: 267 }] };
   assert.ok(!mail({ pictures: [photo] }).amp!.includes("amp-img"));

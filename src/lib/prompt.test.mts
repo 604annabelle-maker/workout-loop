@@ -147,3 +147,9 @@ test("an asked-for session says what she asked, in her words", () => {
   assert.match(user, /She asked for no legs today\. No leg exercise anywhere/);
   assert.match(user, /She wrote, asking for this session: "no legs today"/);
 });
+
+test("the exercises that come with a drawing are offered, to prefer when equal", () => {
+  const { user } = buildPrompt({ ...input(), drawn: ["BACK SQUAT", "BARBELL ROW"] });
+  assert.match(user, /EXERCISES THAT COME WITH A DRAWING\n[^\n]*choose one of these, and name it exactly as written here[^\n]*\nBACK SQUAT, BARBELL ROW$/);
+  assert.ok(!buildPrompt(input()).user.includes("COME WITH A DRAWING"));
+});

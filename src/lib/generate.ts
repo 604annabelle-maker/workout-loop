@@ -12,6 +12,7 @@ import { askForJson, ClaudeError } from "./claude";
 import type { Brief } from "./coach";
 import { applyCoach } from "./coach";
 import { PLAN_SCHEMA, readPlan, PlanError, type Plan } from "./plan";
+import { drawnExerciseNames } from "./picture-library";
 import { buildPrompt, type PromptInput } from "./prompt";
 
 /**
@@ -34,7 +35,7 @@ export async function generateWorkout(input: PromptInput): Promise<Generated> {
     return { plan: applyCoach(cannedPlan(input.brief), input.brief), canned: true };
   }
 
-  const { system, user } = buildPrompt(input);
+  const { system, user } = buildPrompt({ ...input, drawn: input.drawn ?? drawnExerciseNames() });
 
   try {
     const raw = await askForJson({
