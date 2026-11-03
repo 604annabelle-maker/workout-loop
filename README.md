@@ -144,8 +144,8 @@ API key.
 | `app/pictures/[source]/[file]` | Serves the pictures to the dynamic email | no |
 
 **Pictures on a tap.** Under each exercise, "How to" opens the line drawing
-(Everkinetic, CC BY-SA 4.0, credited in the email) at full width, one frame
-under the other, loaded from this app over https through Gmail's image
+(Everkinetic, CC BY-SA 4.0, credited in the email), two frames small and
+side by side, loaded from this app over https through Gmail's image
 servers. Without a drawing it opens on two plain sentences. Photos were tried
 and dropped: on her phone they were too small to see. The plain version
 carries no pictures, only the two sentences while she is learning a movement.
