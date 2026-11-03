@@ -68,7 +68,7 @@ body{font-family:Arial,Helvetica,sans-serif;color:${C.ink};background-color:${C.
 .name{margin:0;font-size:16px;font-weight:bold;line-height:1.35}
 .dose{margin:2px 0 0;font-size:14px;color:${C.muted}}
 .dose b{color:${C.accent}}
-.cue{margin:2px 0 0;font-size:13px;color:${C.muted};font-style:italic}
+.cue{margin:0 0 6px;font-size:14px;color:${C.ink}}
 .last{margin:2px 0 0;font-size:13px;color:${C.faint}}
 .up{color:${C.up}}
 .down{color:${C.warn}}
@@ -124,13 +124,15 @@ function drawingOf(input: MailInput, e: PlanExercise): Pictured | undefined {
 }
 
 /**
- * "How to", closed until she taps it, so the pictures take no room until she
- * wants one. Open, the two frames sit small, side by side, as she asked once
- * she had seen them full width. Without a drawing, two plain sentences.
+ * "How to", closed until she taps it, so the tip and the pictures take no room
+ * until she wants them. Open: the tip first, then any line on how the drawing
+ * differs, then the two frames small and side by side, as she asked once she
+ * had seen them full width. Without a drawing, the tip and two plain sentences.
  */
 function howTo(input: MailInput, e: PlanExercise): string {
   const drawing = drawingOf(input, e);
-  if (!drawing && !e.howTo) return "";
+  if (!drawing && !e.howTo && !e.cue) return "";
+  const tip = e.cue ? `<p class="cue">${esc(e.cue)}</p>` : "";
   const note = drawing?.shows ? `<p class="shows">${esc(drawing.shows)}</p>` : "";
   const cells = drawing?.frames
     .map(
@@ -138,9 +140,13 @@ function howTo(input: MailInput, e: PlanExercise): string {
         `<td><div class="frame"><amp-img src="${input.log!.base}/pictures/${f.source}/${encodeURIComponent(f.file)}" alt="${esc(e.name)}" width="${f.width}" height="${f.height}" layout="responsive"></amp-img></div></td>`,
     )
     .join("");
-  const body = drawing
-    ? `${note}<table class="pics" role="presentation"><tr>${cells}</tr></table>`
-    : `<p class="howto">${esc(e.howTo)}</p>`;
+  const body =
+    tip +
+    (drawing
+      ? `${note}<table class="pics" role="presentation"><tr>${cells}</tr></table>`
+      : e.howTo
+        ? `<p class="howto">${esc(e.howTo)}</p>`
+        : "");
   return `<amp-accordion class="how" animate>
 <section>
 <h4>How to &#9662;</h4>
@@ -168,7 +174,6 @@ function exercise(input: MailInput, e: PlanExercise): string {
   return `<div class="ex">
 <p class="name"><span class="lab">${esc(e.label)}</span>&nbsp; ${esc(e.name)}</p>
 <p class="dose"><b>${esc(dose(e))}</b>${more ? ` · ${esc(more)}` : ""}</p>
-${e.cue ? `<p class="cue">${esc(e.cue)}</p>` : ""}
 ${last ? `<p class="last">${esc(last.last)}${last.change ? ` · <span class="${last.up ? "up" : "down"}">${esc(last.change)}</span>` : ""}</p>` : ""}
 ${howTo(input, e)}
 <form id="f-${id}" method="post" action-xhr="${action(input)}" on="submit-success:logged.refresh">
