@@ -28,6 +28,11 @@ test("what she banned is named, and jumps belong only in the warm up", () => {
   assert.match(SYSTEM, /No primer, no conditioning finisher/);
 });
 
+test("block instructions are kept to one line of how, because she asked for fewer words", () => {
+  assert.match(SYSTEM, /Block instructions: empty for the warm up and the main lifts/);
+  assert.match(SYSTEM, /Never advice, reasons or reminders/);
+});
+
 test("every exercise asks for a role, an exact target and one swap", () => {
   assert.match(SYSTEM, /reps is one number, today's target, inside range/);
   assert.match(SYSTEM, /exactly one swap/);
