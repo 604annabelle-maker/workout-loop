@@ -33,7 +33,6 @@ export async function readPreferences(): Promise<Preferences> {
     enjoys: row.enjoys,
     cycleTracking: row.cycleTracking,
     jumpDays: readJumpDays(row.jumpDays),
-    weeklyReview: row.weeklyReview,
     brief: row.brief,
   };
 }

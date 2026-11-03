@@ -2,210 +2,203 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { buildBrief } from "./coach.ts";
 import type { Pictured } from "./exercise-pictures.ts";
-import { heardLines, snapshot } from "./summary.ts";
-import { DAY, lifted, log, checkIn, lowerPlan, PREFS, session } from "./test-fixtures.mts";
-import {
-  composeLegacyMail,
-  composeWorkoutMail,
-  replyExample,
-  whereLine,
-  workoutSubject,
-  type MailInput,
-} from "./workout-mail.ts";
+import { forgotten, appUrl } from "./reminders.ts";
+import { snapshot } from "./summary.ts";
+import { lifted, log, lowerPlan, PREFS, session, stamp } from "./test-fixtures.mts";
+import { composeAmp } from "./workout-amp.ts";
+import { composeWorkoutMail, type MailInput } from "./workout-mail.ts";
 
-const SLOT = { startsAt: new Date("2026-10-07T15:00:00Z"), minutes: 60 };
+const SLOT = { startsAt: new Date("2026-10-20T15:00:00Z"), minutes: 60 };
+const BASE = "https://workout.example.app";
+const TOKEN = "tok_0123456789abcdefghij";
 
-const HISTORY = [
-  session(new Date(SLOT.startsAt.getTime() - 3 * DAY), {
-    logs: [log({ exercises: [lifted("A", "HIP THRUST", 60, [10, 10, 10, 10])], checkIn: checkIn({ energy: 4, enjoyment: 5 }) })],
-  }),
-];
+const DRAWN: Pictured = {
+  exercise: "DEADLIFT",
+  shows: "",
+  drawn: true,
+  frames: [
+    { cid: "drawing-0001-0@workout-loop", source: "d", file: "0001-0.png", width: 400, height: 315 },
+    { cid: "drawing-0001-1@workout-loop", source: "d", file: "0001-1.png", width: 400, height: 320 },
+  ],
+};
 
 function input(over: Partial<MailInput> = {}): MailInput {
-  const brief = buildBrief({ preferences: PREFS, sessions: HISTORY, slot: SLOT, sessionNumber: 2 });
-  const plan = lowerPlan({ thrustKg: 65 });
+  const sessions = [
+    session("2026-10-17T15:00:00Z", { logs: [log({ exercises: [lifted("A", "DEADLIFT", 60, [3, 3, 3, 3])] })] }),
+  ];
+  const brief = buildBrief({ preferences: PREFS, sessions, slot: SLOT, sessionNumber: 2 });
+  const plan = lowerPlan();
   return {
     plan,
     brief,
     slot: SLOT,
-    snapshot: snapshot(HISTORY, brief, SLOT.startsAt, plan),
-    heard: heardLines(HISTORY[0].logs[0]),
+    snapshot: snapshot(sessions, brief, SLOT.startsAt, plan),
+    pictures: [DRAWN],
+    learning: new Set(["DEADLIFT"]),
+    log: { base: BASE, token: TOKEN },
+    unlogged: [],
     ...over,
   };
 }
 
-const PICTURES: Pictured[] = [
-  {
-    exercise: "HIP THRUST",
-    shows: "",
-    frames: [
-      { cid: "exercise-hip-thrust-0@workout-loop", file: "Hip_Thrust-0.jpg" },
-      { cid: "exercise-hip-thrust-1@workout-loop", file: "Hip_Thrust-1.jpg" },
-    ],
-  },
-  {
-    exercise: "ROMANIAN DEADLIFT",
-    shows: "Stiff Legged Deadlift",
-    frames: [{ cid: "exercise-sldl-0@workout-loop", file: "SLDL-0.jpg" }],
-  },
-  { exercise: "CHEST SUPPORTED ROW", shows: "", frames: [] },
-];
+const mail = (over: Partial<MailInput> = {}) => composeWorkoutMail(input(over), composeAmp);
 
-test("the subject is today's title and date, so the subject fallback can match it", () => {
-  assert.equal(workoutSubject(lowerPlan(), SLOT), "Glutes and power · Wed 7 Oct");
+/* ---------- what every version says ---------- */
+
+test("the subject is the day and the date", () => {
+  assert.equal(mail().subject, "Glutes + hamstrings · Tue 20 Oct");
 });
 
-test("where in the block is said up front, and the cycle day only when tracked", () => {
-  const { brief } = input();
-  assert.equal(whereLine(brief), "Session 2 · Block 1, week 1 of 5");
-  assert.equal(whereLine({ ...brief, cycleDay: 12 }), "Session 2 · Block 1, week 1 of 5 · Cycle day 12");
-  assert.match(whereLine({ ...brief, deload: true }), /lighter week/);
+test("each exercise shows its target, weight, rest, effort and last time, in few words", () => {
+  const { text } = mail();
+  assert.match(text, /A  DEADLIFT  4 × 3/);
+  assert.match(text, /60kg · rest 2 min · stop 2 short/);
+  assert.match(text, /Last 60kg x 3, 3, 3, 3 · One more rep: 4\./);
+  assert.match(text, /or: TRAP BAR DEADLIFT · 4 × 3 · 60kg/);
 });
 
-test("no plain text line is wider than a narrow phone", () => {
-  const { text } = composeWorkoutMail(input());
-  const over = text.split("\n").filter((l) => l.length > 50);
+test("no tips, no off-day advice, no Sunday review: just the session and the bars", () => {
+  const { text, html } = mail();
+  for (const gone of ["TIP", "IF TODAY FEELS OFF", "FROM YOUR LAST REPLY", "HOW TO DO THESE", "NEW BESTS"]) {
+    assert.ok(!text.includes(gone), gone);
+  }
+  assert.match(text, /THIS WEEK/);
+  assert.match(html, /This week/);
+});
+
+test("the plain versions say how to log by replying", () => {
+  const { text, html } = mail();
+  assert.match(text, /Log by replying: done, or only what was\s+different/);
+  assert.match(html, /Log by replying/);
+});
+
+test("plain text lines stay inside 50 characters", () => {
+  const over = mail().text.split("\n").filter((l) => l.length > 50);
   assert.deepEqual(over, []);
 });
 
-test("the plain text reads in gym order", () => {
-  const { text } = composeWorkoutMail(input());
-  const order = ["GLUTES AND POWER", "FROM YOUR LAST REPLY", "WARM UP", "POWER PRIMER", "GLUTE STRENGTH", "SUPERSET", "EMOM", "IF TODAY FEELS OFF", "THIS WEEK, COUNTING TODAY", "REPLY WITH", "HOW TO DO THESE"];
-  const at = order.map((h) => text.indexOf(h));
-  assert.ok(at.every((n) => n >= 0), `missing: ${order.filter((_, i) => at[i] < 0)}`);
-  assert.deepEqual([...at].sort((a, b) => a - b), at);
+/* ---------- pictures ---------- */
+
+test("pictures only while she is learning an exercise, with the drawings' credit", () => {
+  const learning = mail();
+  assert.equal(learning.inline.length, 2);
+  assert.match(learning.html, /cid:drawing-0001-0@workout-loop/);
+  assert.match(learning.html, /Everkinetic/);
+
+  const learnt = mail({ learning: new Set() });
+  assert.equal(learnt.inline.length, 0);
+  assert.ok(!learnt.html.includes("Everkinetic"));
+  assert.ok(!learnt.amp!.includes("amp-img"));
 });
 
-test("each exercise carries its label, sets, load, rest and reps in reserve", () => {
-  const { text, html } = composeWorkoutMail(input());
-  assert.match(text, /A  HIP THRUST  4 x 6-10/);
-  assert.match(text, /65kg · rest 2 min · 2 in reserve/);
-  assert.match(html, /HIP THRUST<\/span>\s*<span[^>]*>4 x 6-10</);
+test("the dynamic version loads its pictures over https, sized", () => {
+  assert.match(mail().amp!, /<amp-img src="https:\/\/workout\.example\.app\/pictures\/d\/0001-0\.png" alt="DEADLIFT" width="400" height="315" layout="responsive">/);
 });
 
-test("a last set to failure is said on the loading line", () => {
-  const plan = lowerPlan({ thrustKg: 65 });
-  plan.blocks[3].exercises[1].lastSetToFailure = true;
-  const { text } = composeWorkoutMail(input({ plan }));
-  assert.match(text, /14kg · rest 2 min · 2 in reserve, last set to\s+failure/);
-  assert.match(text.replace(/\s+/g, " "), /Heavy barbell lifts stop a rep or two before that/);
+/* ---------- the dynamic version ---------- */
+
+test("no dynamic version without somewhere to log to", () => {
+  assert.equal(mail({ log: null }).amp, undefined);
 });
 
-test("last time and what changed sit under the exercise they belong to", () => {
-  const { text, html } = composeWorkoutMail(input());
-  assert.match(text, /Last Sun 4 Oct: 60kg x 10, 10, 10, 10/);
-  assert.match(text, /Up 5kg\. You hit 10, 10, 10, 10\./);
-  assert.ok(html.indexOf("HIP THRUST") < html.indexOf("Up 5kg"));
-  assert.ok(html.indexOf("Up 5kg") < html.indexOf("ROMANIAN DEADLIFT"));
+test("each exercise has its pills, undo, swap and a box, posting to this workout", () => {
+  const amp = mail().amp!;
+  const form = amp.slice(amp.indexOf('<form id="f-A"'), amp.indexOf("</form>", amp.indexOf('<form id="f-A"')));
+  assert.match(form, new RegExp(`action-xhr="${BASE}/api/log\\?t=${TOKEN}"`));
+  for (const how of ["done", "easy", "hard", "skip", "clear", "swap"]) {
+    assert.match(form, new RegExp(`value="${how}" on="change:f-A.submit"`), how);
+  }
+  assert.match(form, /<amp-accordion class="swap" animate>/);
+  assert.match(form, /TRAP BAR DEADLIFT/);
+  assert.match(form, /did this instead/);
+  assert.match(form, /name="note" maxlength="300"/);
 });
 
-test("what was read from the last reply is shown back, without stale labels", () => {
-  const { text, html } = composeWorkoutMail(input());
-  assert.match(text, /- Hip thrust: 60kg x 10, 10, 10, 10/);
-  assert.match(text, /energy 4\/5, fun 5\/5/);
-  assert.match(html, /Wrong\? Reply and say so\./);
+test("warm up items have no buttons", () => {
+  assert.ok(!mail().amp!.includes('id="f-W1"'));
 });
 
-test("nothing heard means no section for it", () => {
-  const { text, html } = composeWorkoutMail(input({ heard: [] }));
-  assert.ok(!text.includes("FROM YOUR LAST REPLY"));
-  assert.ok(!html.includes("From your last reply"));
+test("the end has all done and a box for anything else", () => {
+  const amp = mail().amp!;
+  assert.match(amp, /name="how" value="alldone">\s*<button class="alldone" type="submit">All done<\/button>/);
+  assert.match(amp, /Anything else about today\?/);
+  assert.match(amp, /<textarea class="box" name="note"/);
 });
 
-test("the progress panel counts today, so today's muscles are not shown as low", () => {
-  const { text } = composeWorkoutMail(input());
-  const glutes = text.split("\n").find((l) => l.startsWith("Glutes ") && l.includes("■"))!;
-  assert.match(glutes, /14\/12-20$/);
+test("the line at the top reads what is logged so far, and every save refreshes it", () => {
+  const amp = mail().amp!;
+  assert.match(amp, /<amp-list id="logged" layout="fixed-height" height="40" src="https:\/\/workout\.example\.app\/api\/log\?t=/);
+  assert.ok((amp.match(/on="submit-success:logged.refresh"/g) ?? []).length >= 6);
 });
 
-test("the reply example uses today's own labels and loads", () => {
-  const example = replyExample(lowerPlan({ thrustKg: 65 }));
-  assert.equal(example[0], "A 65 x 10 10 9");
-  assert.match(example[1], /^B1 40 x /);
+test("forgotten workouts are asked about at the top, logging to their own row", () => {
+  const amp = mail({ unlogged: [{ at: new Date("2026-10-15T15:00:00Z"), title: "Back + biceps", token: "older_token_abcdefghijk" }] }).amp!;
+  assert.match(amp, /Thu 15 Oct, Back \+ biceps, isn't logged\./);
+  assert.match(amp, /api\/log\?t=older_token_abcdefghijk/);
+  assert.match(amp, /value="skipall"/);
 });
 
-test("warm up items are one line each and get no pictures", () => {
-  const { text, inline } = composeWorkoutMail(input({ pictures: [...PICTURES, { exercise: "BIKE", shows: "", frames: [{ cid: "bike@x", file: "bike.jpg" }] }] }));
-  assert.match(text, /W1 Bike, 3 min\. Brace\./);
-  assert.ok(!inline.some((i) => i.cid === "bike@x"));
+/*
+ * Gmail shows the plain version instead of a dynamic one that breaks any AMP
+ * for Email rule, with no error she would ever see. These are the rules this
+ * file can break.
+ */
+test("the dynamic version keeps the AMP for Email rules", () => {
+  const amp = mail({ unlogged: [{ at: new Date("2026-10-15T15:00:00Z"), title: "Back + biceps", token: "older_token_abcdefghijk" }] }).amp!;
+  assert.match(amp, /^<!doctype html>\n<html amp4email data-css-strict>\n<head>\n<meta charset="utf-8">/);
+  assert.match(amp, /<script async src="https:\/\/cdn\.ampproject\.org\/v0\.js"><\/script>/);
+  for (const component of ["amp-accordion", "amp-form", "amp-list"]) {
+    assert.match(amp, new RegExp(`custom-element="${component}" src="https://cdn.ampproject.org/v0/${component}-0.1.js"`));
+  }
+  assert.match(amp, /custom-template="amp-mustache" src="https:\/\/cdn\.ampproject\.org\/v0\/amp-mustache-0\.2\.js"/);
+  assert.match(amp, /<style amp4email-boilerplate>body\{visibility:hidden\}<\/style>/);
+  assert.equal(amp.match(/<style amp-custom>/g)?.length, 1);
+  // Nothing email refuses: inline styles, !important, jump links, plain
+  // actions, and attributes that are fine on the web but disabled in email.
+  assert.ok(!/\sstyle="/.test(amp), "no style attributes");
+  assert.ok(!amp.includes("!important"));
+  assert.ok(!/href="#/.test(amp));
+  assert.ok(!/<form[^>]*\saction="/.test(amp));
+  for (const refused of ["disable-session-states", "no-verify", "autofocus", "inputmode", "enterkeyhint", "[type]", "<img ", "<a "]) {
+    assert.ok(!amp.includes(refused), refused);
+  }
+  // Every form posts by XHR over https.
+  const forms = amp.match(/<form [^>]*>/g) ?? [];
+  assert.ok(forms.length >= 7);
+  for (const f of forms) assert.match(f, /method="post" action-xhr="https:\/\//);
+  assert.ok(amp.length < 200_000);
 });
 
-test("pictures sit under their own exercise, start and finish", () => {
-  const { html } = composeWorkoutMail(input({ pictures: PICTURES }));
-  const thrust = html.indexOf("HIP THRUST");
-  const picture = html.indexOf("cid:exercise-hip-thrust-0@workout-loop");
-  const rdl = html.indexOf(">ROMANIAN DEADLIFT<");
-  assert.ok(thrust < picture && picture < rdl);
-  assert.match(html, /alt="HIP THRUST, start"/);
-  assert.match(html, /alt="HIP THRUST, finish"/);
+/* ---------- small decisions ---------- */
+
+test("two workouts in a row with nothing logged, and the next email asks", () => {
+  const plain = (at: string, token: string) => session(at, { logToken: token });
+  const done = session("2026-10-10T15:00:00Z", { logToken: "a", logs: [log({ exercises: [lifted("A", "DEADLIFT", 60, [3])] })] });
+  assert.deepEqual(forgotten([done, plain("2026-10-13T15:00:00Z", "b")]), []);
+  assert.deepEqual(
+    forgotten([done, plain("2026-10-13T15:00:00Z", "b"), plain("2026-10-16T15:00:00Z", "c")]).map((u) => u.token),
+    ["c", "b"],
+  );
 });
 
-test("only the pictures the body refers to are sent, each once", () => {
-  const { inline } = composeWorkoutMail(input({ pictures: PICTURES }));
-  assert.deepEqual(inline.map((i) => i.cid), [
-    "exercise-hip-thrust-0@workout-loop",
-    "exercise-hip-thrust-1@workout-loop",
-    "exercise-sldl-0@workout-loop",
-  ]);
-  assert.deepEqual(inline.map((i) => i.filename), ["hip-thrust-1.jpg", "hip-thrust-2.jpg", "romanian-deadlift-1.jpg"]);
+test("the app's address comes from APP_URL or Vercel's, always https", () => {
+  const saved = { app: process.env.APP_URL, vercel: process.env.VERCEL_PROJECT_PRODUCTION_URL };
+  delete process.env.APP_URL;
+  delete process.env.VERCEL_PROJECT_PRODUCTION_URL;
+  assert.equal(appUrl(), null);
+  process.env.VERCEL_PROJECT_PRODUCTION_URL = "workout.example.app";
+  assert.equal(appUrl(), "https://workout.example.app");
+  process.env.APP_URL = "http://other.example.app/";
+  assert.equal(appUrl(), "https://other.example.app");
+  if (saved.app === undefined) delete process.env.APP_URL;
+  else process.env.APP_URL = saved.app;
+  if (saved.vercel === undefined) delete process.env.VERCEL_PROJECT_PRODUCTION_URL;
+  else process.env.VERCEL_PROJECT_PRODUCTION_URL = saved.vercel;
 });
 
-test("a near enough picture says what it is of, and a missing one is explained in words", () => {
-  const plan = lowerPlan({ thrustKg: 65 });
-  plan.blocks[3].exercises[1].howTo = "Pull to your lower ribs.";
-  const { html } = composeWorkoutMail(input({ plan, pictures: PICTURES }));
-  assert.equal(html.match(/Shown: Stiff Legged Deadlift/g)?.length, 1);
-  // The row has no picture, so its explanation sits under it instead.
-  const row = html.indexOf(">CHEST SUPPORTED ROW<");
-  assert.ok(html.indexOf("Pull to your lower ribs.") > row);
-  assert.ok(!html.includes("No picture for this one"));
-});
-
-test("a missing picture with no explanation says so rather than leaving a gap", () => {
-  const plan = lowerPlan({ thrustKg: 65 });
-  plan.blocks[3].exercises[1].howTo = "";
-  const { html } = composeWorkoutMail(input({ plan, pictures: PICTURES }));
-  assert.equal(html.match(/No picture for this one\./g)?.length, 1);
-});
-
-test("the HTML has no written explanations at the bottom; the pictures do that job", () => {
-  const plan = lowerPlan({ thrustKg: 65 });
-  plan.blocks[2].exercises[0].howTo = "Drive through your heels to lockout.";
-  const { html } = composeWorkoutMail(input({ plan, pictures: PICTURES }));
-  assert.ok(!/How to do these/i.test(html));
-  // The hip thrust has pictures, so it is not also explained in words.
-  assert.ok(!html.includes("Drive through your heels to lockout."));
-});
-
-test("no pictures at all means every movement is explained in words, with no apology", () => {
-  const { html, inline } = composeWorkoutMail(input());
-  assert.deepEqual(inline, []);
-  assert.ok(!html.includes("cid:"));
-  assert.ok(!html.includes("No picture for this one"));
-  assert.ok(html.includes("Do it well."));
-});
-
-test("anything the model wrote is escaped in the HTML", () => {
-  const plan = lowerPlan();
-  plan.why = `<script>alert("x")</script> & more`;
-  const { html } = composeWorkoutMail(input({ plan }));
-  assert.ok(!html.includes("<script>"));
-  assert.match(html, /&lt;script&gt;alert\(&quot;x&quot;\)&lt;\/script&gt; &amp; more/);
-});
-
-test("every exercise is explained at the bottom, once", () => {
-  const plan = lowerPlan();
-  plan.blocks[3].exercises[0].howTo = "Hinge at the hips.";
-  const { text } = composeWorkoutMail(input({ plan }));
-  const howTo = text.slice(text.indexOf("HOW TO DO THESE"));
-  assert.match(howTo, /ROMANIAN DEADLIFT\nHinge at the hips\./);
-  assert.ok(!howTo.includes("BIKE"));
-});
-
-test("a workout from before plans were structured goes out as written", () => {
-  const mail = composeLegacyMail("FOCUS\n\nLegs\n\n1. SQUAT  3x5 <b>", SLOT);
-  assert.equal(mail.text, "FOCUS\n\nLegs\n\n1. SQUAT  3x5 <b>");
-  assert.equal(mail.subject, "Workout for Wed 7 Oct");
-  assert.match(mail.html, /&lt;b&gt;/);
-  assert.deepEqual(mail.inline, []);
+test("the bars count today as planned, and only what she logged before it", () => {
+  const brief = buildBrief({ preferences: PREFS, sessions: [], slot: SLOT, sessionNumber: 1 });
+  const unloggedBefore = [session("2026-10-17T15:00:00Z", { stamp: stamp() })];
+  const s = snapshot(unloggedBefore, brief, SLOT.startsAt, lowerPlan());
+  assert.equal(s.volume.find((v) => v.muscle === "glutes")!.done, 8.5);
 });

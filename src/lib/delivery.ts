@@ -10,18 +10,23 @@
  * the plan is already in the row.
  */
 
+import { randomBytes } from "node:crypto";
 import { eq } from "drizzle-orm";
 import { db, schema } from "@/db";
 import type { Booking } from "./booking-payload";
-import { buildBrief, reviveBrief, storeBrief } from "./coach";
+import { buildBrief, current, reviveBrief, storeBrief, type Brief } from "./coach";
 import { generateWorkout } from "./generate";
 import { sendMail } from "./mail-out";
-import { mainExercises, readPlan, type Plan } from "./plan";
+import { exerciseKey, mainExercises, readPlan, type Plan } from "./plan";
 import { workoutPictures } from "./picture-library";
 import { readPreferences } from "./preferences";
-import { heardLines, lastLog, snapshot } from "./summary";
+import { PICTURE_EXPOSURES } from "./program";
+import { exposures, type Session } from "./progress";
+import { appUrl, forgotten } from "./reminders";
+import { snapshot } from "./summary";
 import { dateOnly } from "./when";
-import { composeLegacyMail, composeText, composeWorkoutMail } from "./workout-mail";
+import { composeAmp } from "./workout-amp";
+import { composeLegacyMail, composeText, composeWorkoutMail, type Composed } from "./workout-mail";
 import { sessionsSent, trainingLog } from "./workouts";
 
 const { workouts } = schema;
@@ -83,10 +88,11 @@ export async function deliverWorkout(workoutId: string): Promise<Delivery> {
 
   /*
    * Read whether or not a plan has to be generated. A retry sends the plan
-   * already in the row, and it has to carry the same progress panel and the
-   * same last-time lines the first attempt would have.
+   * already in the row, and it has to carry the same bars and the same
+   * last-time lines the first attempt would have. Only sessions planned the
+   * current way count: progress started fresh with it.
    */
-  const sessions = (await trainingLog()).filter((s) => s.at < slot.startsAt);
+  const sessions = current((await trainingLog()).filter((s) => s.at < slot.startsAt));
 
   let plan: Plan | null = null;
   try {
@@ -128,8 +134,8 @@ export async function deliverWorkout(workoutId: string): Promise<Delivery> {
         .update(workouts)
         .set({
           plan,
-          brief: storeBrief(brief, plan),
-          planText: composeText({ plan, brief, slot, snapshot: null, heard: [] }),
+          brief: storeBrief(brief),
+          planText: composeText({ plan, brief, slot, snapshot: null }),
           status: "generated",
         })
         .where(eq(workouts.id, workoutId));
@@ -138,17 +144,53 @@ export async function deliverWorkout(workoutId: string): Promise<Delivery> {
     }
   }
 
-  const heard = lastLog(sessions);
-  const mail = composeWorkoutMail({
-    plan,
-    brief,
-    slot,
-    snapshot: snapshot(sessions, brief, slot.startsAt, plan),
-    heard: heardLines(heard?.log ?? null),
-    pictures: workoutPictures(mainExercises(plan).map((e) => e.name)),
-  });
+  // The secret in this email's log buttons. Kept on a retry, so an email
+  // that did go out despite a reported failure still logs to this row.
+  const token = workout.logToken ?? newLogToken();
+  if (!workout.logToken) {
+    await db.update(workouts).set({ logToken: token }).where(eq(workouts.id, workoutId));
+  }
 
-  return send(workout, to, mail);
+  return send(workout, to, workoutMail({ plan, brief, slot, sessions, token }));
+}
+
+/**
+ * The email for a planned workout, all three versions: pictures for what she
+ * is still learning, the bars, the earlier workouts to ask about, and log
+ * buttons that post with this workout's secret.
+ */
+export function workoutMail(input: {
+  plan: Plan;
+  brief: Brief;
+  slot: { startsAt: Date; minutes: number };
+  sessions: Session[];
+  token: string;
+}): Composed {
+  const { plan, brief, slot, sessions, token } = input;
+  const names = mainExercises(plan).map((e) => e.name);
+  const seen = exposures(sessions, slot.startsAt);
+  const base = appUrl();
+
+  return composeWorkoutMail(
+    {
+      plan,
+      brief,
+      slot,
+      snapshot: snapshot(sessions, brief, slot.startsAt, plan),
+      pictures: workoutPictures(names),
+      learning: new Set(
+        names.filter((n) => (seen.get(exerciseKey(n)) ?? 0) < PICTURE_EXPOSURES).map((n) => n.trim().toUpperCase()),
+      ),
+      log: base ? { base, token } : null,
+      unlogged: forgotten(sessions),
+    },
+    composeAmp,
+  );
+}
+
+/** A new secret for a workout's log buttons. */
+export function newLogToken(): string {
+  return randomBytes(18).toString("base64url");
 }
 
 type WorkoutRow = typeof workouts.$inferSelect;

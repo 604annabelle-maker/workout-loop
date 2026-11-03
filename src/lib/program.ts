@@ -2,198 +2,168 @@
  * The training rules, as data.
  *
  * Pure. Every number the coach works from is here, in one file, with the
- * reason beside it, so the philosophy can be read and argued with without
- * reading any code. The evidence behind each is in docs/training-research.md,
- * and the follow-up on sex differences and training to failure is in
- * docs/training-research-women-and-failure.md.
+ * reason beside it, so the plan can be read and argued with without reading
+ * any code. The evidence is in docs/training-research*.md, and the plan she
+ * approved is in docs/rebuild-plan.md.
  *
- * The short version, for a woman in her early twenties training for lean
- * muscle, health and the long run:
+ * The short version, for a woman of 22 training for lean muscle and strength,
+ * with arms as her priority:
  *
- * - Muscle is built by enough hard sets taken close to failure, progressed
- *   over weeks. Young women grow muscle by the same mechanisms and at about
- *   the same percentage rate as men, but from a smaller start, with about 40%
- *   less muscle in the upper body, and they fatigue less from one set to the
- *   next. So the upper body gets full volume, rests sit at the shorter end of
- *   normal, and loads are chosen to genuinely reach the target effort: the
- *   commonest mistake is lifting lighter than she can.
- * - Heavy lifting builds bone, and the years before thirty are when there is
- *   still bone to build, so every session has a heavy anchor lift.
- * - No jumping of any kind. She asked for none, so jumps, hops, bounds,
- *   skipping and burpees are taken out of every plan, whatever the model
- *   writes. Power comes from throws and swings instead.
- * - A little hard conditioning goes a long way for the heart, and does not
- *   cost muscle when it is kept short and away from heavy leg days.
- * - Nothing is programmed by cycle phase. The best current trials find no
- *   advantage to it. How she feels on the day is what adjusts the session.
- * - The fun parts are real parts: throws, swings, carries, finishers. They are
- *   capped so they never eat the time the muscle work needs.
+ * - Four lifting days, two muscle groups each, in order rather than by
+ *   weekday, plus her own classes. Every other week one day is full body.
+ * - Each main lift is done twice a week: once heavy, 4 to 5 sets of 3 to 5,
+ *   and once lighter, 2 to 3 sets of 6 to 8. Strength grows most with heavy
+ *   weights and is partly a skill practised lift by lift; muscle grows about
+ *   the same at any weight as long as the sets are hard.
+ * - Heavy lifts stop short of failure: 2 to 3 reps short on squats and
+ *   deadlifts, 1 to 2 on presses and pulls. Small exercises can take the last
+ *   set to failure, where it is safe and cheap.
+ * - Every fifth week is lighter.
+ * - Main lifts stay the same so strength can be seen going up. Everything
+ *   else rotates each block.
+ * - Jumps once a week, as a short block in the warm up.
+ * - Nothing is programmed by cycle phase; how she feels is what adjusts a
+ *   session.
  */
 
-import type { Muscle } from "./plan";
+import type { Muscle, Role } from "./plan";
 
 /** Upper and lower halves alternate, so legs are never trained two days running. */
 export type Half = "lower" | "upper" | "full";
 
 export interface SessionType {
   id: string;
-  /** "Glutes and hamstrings". What the email says the day is for. */
+  /** "Back + biceps". The title and subject of the email. */
   name: string;
   half: Half;
-  focus: string;
   /** The muscles this day exists to train. Counted first and hardest. */
   primary: Muscle[];
   /** Trained on the day, but as the supporting act. */
   secondary: Muscle[];
-  /** The movement patterns the anchor lifts come from. */
-  anchorPatterns: string[];
-  /** What the primer usually is. */
-  primer: string;
+  /** What the session is made of, in order, for the prompt. */
+  shape: string[];
 }
 
 /**
- * The upper and lower rotation, for four or more sessions a week.
- *
- * Upper and lower alternate, so legs are never trained two days running, and
- * at four sessions a week every muscle is trained directly twice.
+ * The four days, in order. Each names its heavy main lift and the light day
+ * of another, so every main lift comes twice a week.
  */
 export const SPLIT: SessionType[] = [
   {
-    id: "lower-glutes",
-    name: "Glutes and hamstrings",
+    id: "back-biceps",
+    name: "Back + biceps",
+    half: "upper",
+    primary: ["back", "biceps"],
+    secondary: ["chest", "shoulders", "core"],
+    shape: [
+      "heavy: a vertical pull or a row, the same one every block (weighted or assisted pull up, chin up, or barbell row)",
+      "light: the bench press from the chest day",
+      "second: another back exercise, the other pull direction from the heavy one (lat pulldown, cable row, one-arm dumbbell row)",
+      "accessory: two biceps exercises, one with the arm behind the body (incline curl, bayesian cable curl) and one hammer or straight bar curl",
+      "accessory: rear delts or face pulls if time allows",
+    ],
+  },
+  {
+    id: "glutes-hams",
+    name: "Glutes + hamstrings",
     half: "lower",
-    focus: "Glutes, hamstrings",
     primary: ["glutes", "hamstrings"],
-    secondary: ["adductors", "core", "calves"],
-    anchorPatterns: [
-      "hip thrust or glute bridge, heavy",
-      "hinge: Romanian deadlift, trap bar or conventional deadlift",
+    secondary: ["quads", "adductors", "core"],
+    shape: [
+      "heavy: the deadlift (conventional, sumo or trap bar), the same one every block",
+      "light: the squat from the quads day",
+      "second: hip thrust",
+      "accessory: a hamstring curl (seated or lying)",
+      "core: an ab finisher of 5 to 6 minutes, two or three movements (hanging knee raise, cable crunch, dead bug, Pallof press, ab wheel)",
     ],
-    primer: "power: kettlebell swings or med ball scoop tosses",
   },
   {
-    id: "upper-pull",
-    name: "Back and shoulders",
+    id: "chest-triceps",
+    name: "Chest + triceps",
     half: "upper",
-    focus: "Back, rear and side shoulders, biceps",
-    primary: ["back", "shoulders"],
-    secondary: ["biceps", "core"],
-    anchorPatterns: [
-      "vertical pull: pull up, assisted pull up or lat pulldown",
-      "horizontal row: chest supported, cable or barbell row",
+    primary: ["chest", "triceps"],
+    secondary: ["shoulders", "back", "core"],
+    shape: [
+      "heavy: the bench press (barbell or dumbbell), the same one every block",
+      "light: the heavy pull or row from the back day",
+      "second: a shoulder press or an incline press",
+      "accessory: lateral raises",
+      "accessory: two triceps exercises, one overhead (overhead cable or dumbbell extension) and one pushdown or skull crusher",
     ],
-    primer: "power: med ball slams or rotational throws",
   },
   {
-    id: "lower-legs",
-    name: "Legs and power",
+    id: "quads-glutes",
+    name: "Quads + glutes",
     half: "lower",
-    focus: "Quads, glutes, adductors",
     primary: ["quads", "glutes"],
-    secondary: ["adductors", "hamstrings", "calves", "core"],
-    anchorPatterns: [
-      "squat, heavy: back squat, front squat, hack squat or goblet squat",
-      "single leg: Bulgarian split squat, step up or walking lunge",
+    secondary: ["hamstrings", "adductors", "calves"],
+    shape: [
+      "heavy: the squat (back squat, front squat or hack squat), the same one every block",
+      "light: the deadlift from the glutes day, or its Romanian deadlift",
+      "second: a single leg exercise (Bulgarian split squat, walking lunge or step up)",
+      "accessory: leg extension",
+      "accessory: hip abduction or calf raises",
     ],
-    primer: "power: med ball rotational throws or kettlebell swings",
-  },
-  {
-    id: "upper-push",
-    name: "Shoulders, chest and arms",
-    half: "upper",
-    focus: "Shoulders, chest, arms, upper back",
-    primary: ["shoulders", "chest", "triceps"],
-    secondary: ["back", "biceps", "core"],
-    anchorPatterns: [
-      "overhead press, heavy: barbell, dumbbell or landmine",
-      "horizontal press: incline dumbbell press, bench press or deficit push up",
-    ],
-    primer: "power: med ball chest passes or push presses",
   },
 ];
 
 /**
- * The full body rotation, for three sessions a week or fewer.
- *
- * Training each muscle at least twice a week is the rule that matters, and at
- * two or three sessions only full body sessions keep it. The emphasis rotates
- * so each session still has a headline.
+ * Every other week, one of the four days is full body instead: a practice day
+ * for the main lifts at lower volume, with an arms pair. It replaces a day
+ * rather than adding one.
  */
-export const FULL_BODY: SessionType[] = [
-  {
-    id: "full-glutes",
-    name: "Glutes and back",
-    half: "full",
-    focus: "Glutes, hamstrings, back",
-    primary: ["glutes", "hamstrings", "back"],
-    secondary: ["shoulders", "chest", "biceps", "core"],
-    anchorPatterns: [
-      "hip thrust, heavy",
-      "vertical pull: pull up, assisted pull up or lat pulldown",
-      "hinge or incline press, as the accessory pair",
-    ],
-    primer: "power: kettlebell swings or med ball slams",
-  },
-  {
-    id: "full-legs",
-    name: "Legs and shoulders",
-    half: "full",
-    focus: "Quads, glutes, shoulders, back",
-    primary: ["quads", "glutes", "shoulders"],
-    secondary: ["back", "adductors", "triceps", "core"],
-    anchorPatterns: [
-      "squat, heavy: back, front, hack or goblet squat",
-      "overhead press: barbell, dumbbell or landmine",
-      "row and hamstring curl, as the accessory pair",
-    ],
-    primer: "power: med ball rotational throws or kettlebell swings",
-  },
-  {
-    id: "full-athletic",
-    name: "Single leg, chest and arms",
-    half: "full",
-    focus: "Glutes, quads, chest, back, arms",
-    primary: ["glutes", "quads", "chest", "back"],
-    secondary: ["biceps", "triceps", "hamstrings", "core"],
-    anchorPatterns: [
-      "single leg, heavy: Bulgarian split squat, step up or reverse lunge",
-      "horizontal press: incline dumbbell press, bench press or push up",
-      "row and an arms superset",
-    ],
-    primer: "power: kettlebell swings or med ball chest passes",
-  },
-];
+export const FULL_BODY: SessionType = {
+  id: "full-body",
+  name: "Full body",
+  half: "full",
+  primary: ["quads", "glutes", "back", "chest"],
+  secondary: ["hamstrings", "shoulders", "biceps", "triceps", "core"],
+  shape: [
+    "heavy: three or four of the main lifts (squat, deadlift, bench press, the heavy pull), each 2 to 3 sets of 3 to 5",
+    "accessory: a biceps and triceps pair to finish",
+  ],
+};
 
-export const SESSION_TYPES = [...SPLIT, ...FULL_BODY];
-
-/** Below this many sessions a week, every session is full body. */
-export const SPLIT_FROM = 3.5;
+export const SESSION_TYPES = [...SPLIT, FULL_BODY];
 
 /**
- * Hard sets per muscle per week, as a range, for someone past her first few
- * months of lifting.
+ * The order sessions come in, eight to a cycle: two rounds of the four days,
+ * with the full body day standing in for the last day of the second round.
+ * At four sessions a week that is full body every other week.
+ */
+export const ROTATION: string[] = [
+  "back-biceps",
+  "glutes-hams",
+  "chest-triceps",
+  "quads-glutes",
+  "back-biceps",
+  "glutes-hams",
+  "chest-triceps",
+  "full-body",
+];
+
+/**
+ * Hard sets per muscle per week, as a range.
  *
  * At least 10 sets a week (ACSM 2026), with most of the growth between about
- * 12 and 20 (Baz-Valle 2022), and diminishing but real returns above that
- * (Pelland 2025). Secondary muscles count half a set, which is the counting
- * that predicted growth best. Smaller muscles get plenty of indirect work from
- * the big lifts, which is why their ranges are lower.
- *
- * The upper body is not short changed. Women start with proportionally less
- * upper body muscle and gain it at the same percentage rate (Refalo 2025;
- * Roberts 2020), so back, chest and shoulders get the same weight as glutes.
+ * 12 and 20 (Baz-Valle 2022). Secondary muscles count half a set, which is
+ * the counting that predicted growth best (Pelland 2025). Arms are her
+ * priority (a setting, so it can change): a priority muscle's range becomes
+ * the top of its normal one and a little past, which takes biceps and
+ * triceps to 12 to 16. Glutes get a normal share, since squats and deadlifts
+ * already work them hard.
  */
 export const WEEKLY_SETS: Record<Muscle, [number, number]> = {
-  glutes: [12, 20],
+  glutes: [12, 16],
   quads: [10, 16],
   hamstrings: [8, 14],
-  adductors: [4, 8],
-  calves: [4, 8],
+  adductors: [0, 8],
+  calves: [0, 8],
   back: [12, 20],
   chest: [10, 16],
-  shoulders: [10, 16],
-  biceps: [6, 12],
-  triceps: [6, 12],
+  shoulders: [8, 14],
+  biceps: [8, 12],
+  triceps: [8, 12],
   core: [4, 10],
 };
 
@@ -207,89 +177,104 @@ export const PRIORITY_CEILING = 24;
 /** Past about 10 hard sets for one muscle in one session, the rest is junk. */
 export const MAX_SETS_PER_MUSCLE_PER_SESSION = 10;
 
+export interface RoleRule {
+  what: string;
+  sets: string;
+  /** The range the rep target moves through. */
+  range: string;
+  rir: string;
+  failure: string;
+  restSec: string;
+}
+
 /**
- * The role an exercise plays decides its reps, how close to failure it goes,
- * and its rest.
+ * The job an exercise does decides its sets, its rep range, how close to
+ * failure it goes and its rest.
  *
- * Anything from about 5 to 30 reps builds muscle when the set ends close to
- * failure (Schoenfeld 2017), so the ranges are chosen for what else they buy.
+ * Close to failure is what grows muscle (Robinson 2024). Going all the way
+ * adds little on average (Refalo 2023, 2024) and costs a day or two of extra
+ * recovery on heavy lifts (Moran-Navarro 2017), and the last grinding reps of
+ * a heavy lift are where form breaks down. So heavy lifts stop short, by more
+ * on squats and deadlifts than on presses and pulls, and failure is kept for
+ * small exercises, on the last set only.
  *
- * Close to failure matters: growth improves as sets end nearer to it
- * (Robinson 2024). Going all the way adds little on average (Refalo 2023,
- * 2024; Grgic 2022) and costs a day or two of extra recovery on heavy
- * compounds (Moran-Navarro 2017). So: heavy barbell work stops a rep or two
- * short and never fails on purpose; isolation and machine work, where failure
- * is safe and cheap, takes its last set all the way. Light, high rep sets only
- * work when taken to or very near failure (Lasevicius 2022).
- *
- * Rest is never under a minute, because rushing rest between hard sets costs
- * growth, with no clear benefit past about 90 seconds for most work (Singer
- * 2024). Women hold their reps better from set to set (Hunter; Fulco 1999;
- * Nuckols 2026), so she rests by readiness toward the short end of each
- * range. That shorter rest is tolerable, not better, so the ranges are the
- * normal ones.
+ * Heavy sets get long rests, because strength needs full recovery between
+ * sets (Schoenfeld 2016); everything else rests by readiness, never under a
+ * minute (Singer 2024).
  */
-export const ROLES = {
+export const ROLES: Record<Role, RoleRule> = {
   heavy: {
-    what: "heavy anchor: barbell squat, deadlift, hip thrust, bench, overhead press",
-    reps: "5-8",
-    rir: "2 to 3 reps in reserve early in a block, 1 to 2 late",
-    failure: "never planned; the set ends when form starts to slip",
-    restSec: "120 to 180",
-  },
-  compound: {
-    what: "machine, cable or dumbbell compound",
-    reps: "8-12",
-    rir: "1 to 2 reps in reserve",
-    failure: "last set may go to failure in weeks 3 and 4, on machines and cables only",
-    restSec: "75 to 120",
-  },
-  isolation: {
-    what: "isolation: curls, raises, extensions, leg curls, abduction",
-    reps: "10-20",
-    rir: "0 to 1 reps in reserve",
-    failure: "last set to failure",
-    restSec: "60 to 90",
-  },
-  bodyweight: {
-    what: "bodyweight: push ups, inverted rows, pull ups, dips",
-    reps: "6-20",
-    rir: "1 to 2 reps in reserve",
-    failure: "last set may go to failure",
-    restSec: "60 to 90",
+    what: "a main lift on its heavy day",
+    sets: "4 to 5",
+    range: "3-5",
+    rir: "2 to 3 in reserve on squats and deadlifts, 1 to 2 on presses and pulls",
+    failure: "never",
+    restSec: "150 to 240",
   },
   light: {
-    what: "light, high rep work over 20 reps",
-    reps: "20-30",
-    rir: "0 to 1 reps in reserve",
-    failure: "required: a light set only counts when it ends at or next to failure",
-    restSec: "60 to 75",
+    what: "a main lift on its light day",
+    sets: "2 to 3",
+    range: "6-8",
+    rir: "2 to 3 in reserve",
+    failure: "never",
+    restSec: "120 to 180",
+  },
+  second: {
+    what: "the session's second lift",
+    sets: "2 to 3",
+    range: "6-10",
+    rir: "1 to 2 in reserve",
+    failure: "never",
+    restSec: "90 to 150",
+  },
+  accessory: {
+    what: "small exercises: curls, extensions, raises, leg curls and extensions, abduction",
+    sets: "2 to 3",
+    range: "8-15",
+    rir: "0 to 1 in reserve",
+    failure: "the last set may go to failure",
+    restSec: "60 to 90",
+  },
+  core: {
+    what: "the ab finisher",
+    sets: "2 to 3 rounds",
+    range: "8-15",
+    rir: "1 to 2 in reserve",
+    failure: "never",
+    restSec: "30 to 60",
+  },
+  warmup: {
+    what: "warm up, and the jumps on a jump day",
+    sets: "1 to 2",
+    range: "",
+    rir: "not applicable",
+    failure: "never",
+    restSec: "0 to 60",
   },
 };
 
 /**
  * Failure is a tool with a recovery bill, so it is rationed: at most one
  * failure set per exercise, three per muscle per session, and none at all on
- * a heavy anchor or in the lighter week. The coach enforces these whatever
- * the model writes.
+ * a main lift or in the lighter week. The coach enforces these whatever the
+ * model writes.
  */
 export const FAILURE_SETS_PER_MUSCLE_PER_SESSION = 3;
 
 /**
  * Training blocks: four weeks building, then one lighter week.
  *
- * Effort rises through the block, from three reps in reserve to one, and the
- * fifth week halves the sets and backs off, so the next block starts fresh.
- * A deload every four to eight weeks is the expert consensus (Bell 2023); the
- * five week rhythm is short enough to fit around a life.
+ * Effort rises through the block, and the fifth week halves the sets and
+ * backs off, so the next block starts fresh. A deload every four to eight
+ * weeks is the expert consensus (Bell 2023).
  */
 export const BLOCK_WEEKS = 5;
 
 export interface WeekPlan {
-  /** "build", "lighter week". Said as "week 3 of block 2, build". */
+  /** "build", "lighter week". */
   name: string;
   label: string;
-  /** Reps in reserve for the main work this week. */
+  /** How close to failure the week goes, for the prompt. */
   rir: string;
   /** What changes, in one line, for the prompt. */
   note: string;
@@ -300,36 +285,36 @@ export const WEEKS: WeekPlan[] = [
   {
     name: "settle in",
     label: "Week 1, settle in",
-    rir: "2 to 3 in reserve on compounds, 1 on isolation",
-    note: "First week of a block. New accessories, anchors at a weight she owns. Calibrate: on one machine or isolation exercise, she calls 2 in reserve on the last set, then keeps going to failure and counts. Four or more extra reps means the weight goes up. Most people underestimate what they have left by about a rep.",
+    rir: "one rep more in reserve than the role says, on everything",
+    note: "First week of a block. New accessories; main lifts at a weight she owns.",
     deload: false,
   },
   {
     name: "build",
     label: "Week 2, build",
-    rir: "2 in reserve on compounds, isolation last set to failure",
-    note: "Add load or reps where last week allowed.",
+    rir: "as the role says",
+    note: "Add a rep or a step of load where last time allowed.",
     deload: false,
   },
   {
     name: "build",
     label: "Week 3, build",
-    rir: "1 to 2 in reserve on compounds; machine, cable and isolation last sets to failure",
-    note: "Push the anchors.",
+    rir: "as the role says",
+    note: "Push the main lifts.",
     deload: false,
   },
   {
     name: "peak",
     label: "Week 4, peak",
-    rir: "1 in reserve on heavy compounds; machine, cable and isolation last sets to failure",
-    note: "The hardest week. One drop set on the last set of an isolation exercise is fine here. Heavy barbell work still never fails on purpose.",
+    rir: "the low end of each role's range",
+    note: "The hardest week. Heavy lifts still never go to failure.",
     deload: false,
   },
   {
     name: "lighter week",
     label: "Week 5, lighter week",
     rir: "4 to 5 in reserve, nothing to failure",
-    note: "Deload. Same exercises and same days, about half the hard sets, the same load or 10% less. Keep the power work and the fun at lower volume.",
+    note: "Deload. Same exercises, about half the sets, the same load or 10% less.",
     deload: true,
   },
 ];
@@ -341,38 +326,39 @@ export const DELOAD_MIN_SESSIONS = 8;
 export const RE_ENTRY_AFTER_DAYS = 12;
 
 /**
- * Jumping for bone, on the days she chooses.
+ * Two skips in a row of the same exercise, and its swap takes over. Something
+ * skipped twice is either disliked or never free.
+ */
+export const SKIPS_BEFORE_SWAP = 2;
+
+/** Drawings are shown the first this many times she is given an exercise. */
+export const PICTURE_EXPOSURES = 10;
+
+/**
+ * Jumping for bone, in the warm up, on the days she chooses.
  *
- * Jumping is for her stage, not a menopause idea. Most of the positive trials
- * were in women aged about 20 to 45, and the classic one gave the same
- * programme to both groups: premenopausal women gained 2 to 3% at the hip,
- * postmenopausal women nothing (Bassey 1998). In college women, 10 maximal
- * jumps three days a week added about 2.6% at the hip in six months (Kato
- * 2006). Guidelines for adults include it (ACSM 2004, ESSA 2017, NIH).
+ * Jumping suits her stage: most of the positive trials were in women of about
+ * 20 to 45, and premenopausal women gained at the hip on the same programme
+ * that did nothing after menopause (Bassey 1998). In college women, 10
+ * maximal jumps three days a week added about 2.6% at the hip in six months
+ * (Kato 2006).
  *
- * Frequency is the catch. No trial supports once a week for bone, and in
- * women of 18 to 40 hopping two days a week did nothing while four and seven
- * did (Bailey & Brooke-Wavell 2010). So the dose depends on her setting:
- * three jump days a week gets the short dose that works for bone, about a
- * minute; fewer gets a longer block that is honest power and landing
- * practice. The gains fade within months of stopping (Winters & Snow 2000),
- * so it is a habit, not a course.
+ * Frequency is the catch. No trial supports once a week for bone, so at one
+ * day a week the jumps are power and landing practice, kept short so the
+ * warm up stays a warm up. Three days a week gets the short bone dose.
  *
- * Jump days per week is her setting. On a jump day the primer is the jumps;
- * on every other day anything whose name says it leaves the ground is taken
- * out by the coach (jumps, hops, bounds, pogos, skipping, burpees), whatever
- * the model writes. Words that only sound related are left alone: a skater
- * squat stays on the floor, and a step up onto a plyo box is a step up.
+ * On a jump day the warm up carries the jumps; anywhere else, anything whose
+ * name says it leaves the ground is taken out by the coach.
  */
 export const JUMPS = {
   /** At or above this many jump days, each gets the short bone dose. */
   frequentFrom: 3,
   frequent: { contacts: [10, 20] as [number, number], easy: [10, 10] as [number, number] },
-  /** Fewer jump days: unproven for bone, so power and landing practice. */
-  weekly: { contacts: [20, 40] as [number, number], easy: [10, 20] as [number, number] },
+  /** Fewer jump days: power and landing practice, kept warm-up sized. */
+  weekly: { contacts: [15, 25] as [number, number], easy: [10, 15] as [number, number] },
   /** Squat days keep the jumps short. */
-  heavyLegDays: ["lower-legs", "full-legs"],
-  heavyLegCap: 20,
+  heavyLegDays: ["quads-glutes", "full-body"],
+  heavyLegCap: 15,
   /** Seconds between single maximal jumps, and between sets. */
   restBetweenJumps: "10 to 20",
   restBetweenSets: "about 60",
@@ -399,65 +385,22 @@ export const JUMPING =
   /\b(jumps?|jumping|hops?|hopping|bounds?|bounding|pogos?|skips?|skipping|burpees?|plyometrics?)\b/i;
 
 /**
- * Hard conditioning, for the heart.
- *
- * Cardiorespiratory fitness is among the strongest predictors of long life,
- * and short hard intervals raise it efficiently (Helgerud 2007, Gillen 2016).
- * Adding cardio does not measurably cost muscle (Schumann 2022), especially on
- * a bike or rower rather than running.
+ * Minutes for each part of a session. The warm up is short and the ab
+ * finisher only comes on the glutes day; everything else is the lifting.
  */
-export const CONDITIONING = {
-  /** Hard minutes a week, from finishers and intervals. */
-  weeklyHardMinutes: [8, 20] as const,
-  preferredModes: ["bike", "rower", "ski erg", "sled", "kettlebell"],
+export const BUDGET = {
+  warmup: [6, 8] as const,
+  core: 6,
 };
 
 /**
- * The share of a session each part gets.
- *
- * At least 70% of the time is the muscle work. The fun parts (primer, finisher,
- * core and carries) are real, and capped: when time is short the finisher is
- * cut first, the primer second, and the muscle work last.
- */
-export const BUDGET = {
-  warmup: 0.12,
-  primer: 0.08,
-  main: 0.65,
-  finisher: 0.15,
-} as const;
-
-/**
- * The fun, as a menu.
- *
- * Every format here keeps the muscle work honest when it is used in its
- * place. Supersets of opposing muscles build the same muscle in less time
- * (Zhang 2025). Finishers are where the variety lives, because nothing there
- * has to be progressed week to week.
- */
-export const FINISHERS: { format: string; idea: string; conditioning: boolean }[] = [
-  { format: "EMOM", idea: "8 to 12 min alternating a swing, a carry and a bodyweight move", conditioning: true },
-  { format: "intervals", idea: "Norwegian style: 4 x 3 to 4 min hard on bike or rower, 2 to 3 min easy", conditioning: true },
-  { format: "intervals", idea: "sprint ladder: 6 to 8 x 15 to 20 sec all out on the bike, 60 to 90 sec easy", conditioning: true },
-  { format: "AMRAP", idea: "8 to 10 min of three movements, steady, counting rounds to beat next time", conditioning: true },
-  { format: "complex", idea: "dumbbell or kettlebell complex: 4 to 5 moves back to back without putting it down", conditioning: true },
-  { format: "carries", idea: "carry medley: farmer, suitcase, front rack, overhead, 30 to 40 m each", conditioning: false },
-  { format: "ladder", idea: "up and down ladder of two moves, 1 to 5 to 1", conditioning: true },
-  { format: "flow", idea: "ground flow: bear crawl, crab reach, beast to lateral step, 6 to 8 min", conditioning: false },
-  { format: "intervals", idea: "sled push and pull, 6 to 8 lengths", conditioning: true },
-];
-
-/**
  * Things always in the mix, because they protect the joints of a young woman
- * who lifts: strong hamstrings and adductors, calves, single leg control, and
- * as much pulling as pushing.
+ * who lifts.
  */
 export const ALWAYS = [
-  "The warm up raises temperature and opens up the joints today's lifts use.",
-  "Every lower day has single leg work. Balance or a single leg reach belongs in every warm up.",
-  "Hamstrings are trained lengthened at least once a week: Romanian deadlift, Nordic curl or seated curl.",
-  "Adductors and calves get direct work at least once a week each.",
+  "The warm up raises temperature and opens up the joints today's lifts use, with warm up sets of the first lift.",
+  "Hamstrings are trained lengthened at least once a week: Romanian deadlift or seated leg curl.",
   "Pulling sets at least equal pushing sets across the week.",
-  "A vertical pull at least once a week, progressing from assisted pull ups to slow negatives to bodyweight pull ups.",
-  "A new eccentric heavy movement (Nordic curls, slow negatives, a first RDL) starts with fewer sets and builds over two or three sessions.",
-  "Carries at least once a week.",
+  "Prefer exercises that load the muscle stretched: deep squats and lunges, RDLs, incline curls, overhead triceps extensions, seated leg curls.",
+  "A new eccentric heavy movement (slow negatives, a first RDL) starts with fewer sets and builds over two or three sessions.",
 ];

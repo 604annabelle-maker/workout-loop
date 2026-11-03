@@ -15,7 +15,7 @@ const { workoutPictures } = await import("../lib/picture-library.ts");
 const { sendMail } = await import("../lib/mail-out.ts");
 const { readPreferences, EMPTY } = await import("../lib/preferences.ts");
 const { trainingLog, sessionsSent } = await import("../lib/workouts.ts");
-const { snapshot, heardLines, lastLog } = await import("../lib/summary.ts");
+const { snapshot } = await import("../lib/summary.ts");
 const { mainExercises } = await import("../lib/plan.ts");
 const { SAMPLE } = await import("./sample.mts");
 
@@ -35,7 +35,8 @@ if (JSON.stringify(preferences) === JSON.stringify(EMPTY)) {
   preferences = SAMPLE;
 }
 
-const sessions = await trainingLog();
+const { current } = await import("../lib/coach.ts");
+const sessions = current(await trainingLog());
 const brief = buildBrief({ preferences, sessions, slot, sessionNumber: (await sessionsSent()) + 1 });
 const { plan, canned } = await generateWorkout({ preferences, sessions, brief, slot });
 
@@ -45,7 +46,6 @@ const mail = composeWorkoutMail({
   brief,
   slot,
   snapshot: snapshot(sessions, brief, slot.startsAt, plan),
-  heard: heardLines(lastLog(sessions)?.log ?? null),
   pictures,
 });
 

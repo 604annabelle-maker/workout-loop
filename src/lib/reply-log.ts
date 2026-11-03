@@ -34,6 +34,8 @@ export interface LoggedExercise {
   effort: Effort;
   skipped: boolean;
   note: string;
+  /** She did the swap instead: its name. Absent when she did not. */
+  swappedTo?: string;
 }
 
 /**
@@ -179,9 +181,10 @@ export function readReplyLog(raw: unknown): ReplyLog {
 
     // An entry with nothing in it is noise the progress maths would have to skip.
     if (!label && !name) continue;
-    if (sets.length === 0 && !skipped && !effort && !text(x.note)) continue;
+    if (sets.length === 0 && !skipped && !effort && !text(x.note) && !text(x.swappedTo)) continue;
 
-    exercises.push({ label, name, sets, effort, skipped, note: text(x.note) });
+    const swappedTo = text(x.swappedTo).toUpperCase();
+    exercises.push({ label, name, sets, effort, skipped, note: text(x.note), ...(swappedTo ? { swappedTo } : {}) });
   }
 
   return {
@@ -260,7 +263,33 @@ function repsIn(s: string): number[] {
   return (s.match(/\d+/g) ?? []).map(Number).filter((n) => n > 0 && n <= 100);
 }
 
-function checkInLine(line: string, checkIn: CheckIn): boolean {
+/**
+ * The sets in a line of her shorthand, wherever they sit among words:
+ * "72.5 x 10 10 9", "72.5kg 10,10,9", "hard 22 10 10 8", "10 10 9".
+ *
+ * A weight is a number with kg or x after it. Without either, the first of
+ * three or more numbers is a weight when it has a decimal or is well above
+ * the rest ("22 10 10 8"); otherwise they are all reps, at the load written.
+ */
+export function setsIn(rest: string, prescribedKg: number): LoggedSet[] {
+  const marked = rest.match(/(\d+(?:[.,]\d+)?)\s*(?:kgs?\b\s*[x×*]?|[x×*])\s*([\d\s,/]*)/i);
+  if (marked) {
+    const weight = Number(marked[1].replace(",", "."));
+    return repsIn(marked[2]).map((reps) => ({ weightKg: weight, reps }));
+  }
+
+  const numbers = (rest.match(/\d+(?:[.,]\d+)?/g) ?? []).map((n) => n.replace(",", "."));
+  if (numbers.length === 0) return [];
+  const values = numbers.map(Number);
+  const [first, ...others] = values;
+
+  if (others.length >= 2 && (numbers[0].includes(".") || first >= 1.5 * Math.max(...others))) {
+    return others.filter((r) => Number.isInteger(r) && r > 0 && r <= 100).map((reps) => ({ weightKg: first, reps }));
+  }
+  return values.filter((r) => Number.isInteger(r) && r > 0 && r <= 100).map((reps) => ({ weightKg: prescribedKg, reps }));
+}
+
+export function checkInLine(line: string, checkIn: CheckIn): boolean {
   const l = line.toLowerCase();
   let hit = false;
 
@@ -322,6 +351,7 @@ function checkInLine(line: string, checkIn: CheckIn): boolean {
  */
 export function parseShorthand(body: string, plan: Prescribed[]): ReplyLog {
   const byLabel = new Map(plan.map((p) => [p.label.toUpperCase(), p]));
+  const done = ALL_DONE.test(body.split(/\r?\n/).find((l) => l.trim()) ?? "");
   const log: ReplyLog = {
     exercises: [],
     checkIn: { ...EMPTY_CHECK_IN, symptoms: [], pain: [] },
@@ -348,18 +378,7 @@ export function parseShorthand(body: string, plan: Prescribed[]): ReplyLog {
         note: "",
       };
 
-      // "72.5 x 10 10 9", "72.5kg x 10,10,9", "12x12/12/11"
-      const loaded = rest.match(/^(\d+(?:[.,]\d+)?)\s*(?:kg)?\s*[x×*]\s*([\d\s,/]+)/i);
-      // "done" or "as written": every set at the prescribed load and reps
-      // is not knowable, so it is recorded as done without numbers.
-      if (loaded) {
-        const weight = Number(loaded[1].replace(",", "."));
-        entry.sets = repsIn(loaded[2]).map((reps) => ({ weightKg: weight, reps }));
-      } else if (/^[\d\s,/]+(\s|$)/.test(rest)) {
-        // Reps only, at the prescribed load: "A 10 10 9".
-        const reps = repsIn(rest.match(/^[\d\s,/]+/)?.[0] ?? "");
-        entry.sets = reps.map((r) => ({ weightKg: prescribed.loadKg, reps: r }));
-      }
+      entry.sets = setsIn(rest, prescribed.loadKg);
 
       if (/\bdone\b|as written|all sets/i.test(rest) && !entry.effort) entry.effort = "right";
 
@@ -370,5 +389,20 @@ export function parseShorthand(body: string, plan: Prescribed[]): ReplyLog {
     checkInLine(line, log.checkIn);
   }
 
+  // "Done", or a reply naming only the exceptions: everything not mentioned
+  // was done as written. A reply that is only words about the day assumes
+  // nothing.
+  if (done || log.exercises.length > 0) {
+    const mentioned = new Set(log.exercises.map((e) => e.label));
+    for (const p of plan) {
+      if (!mentioned.has(p.label)) {
+        log.exercises.push({ label: p.label, name: p.name, sets: [], effort: "right", skipped: false, note: "" });
+      }
+    }
+  }
+
   return readReplyLog(log);
 }
+
+/** A reply that opens with "done" or "all done" means everything as written. */
+export const ALL_DONE = /^\s*(all\s+)?done\b/i;

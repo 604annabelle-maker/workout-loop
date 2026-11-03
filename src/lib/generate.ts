@@ -64,49 +64,42 @@ export async function generateWorkout(input: PromptInput): Promise<Generated> {
  * A plan with the shape of a real one, for running without a key.
  *
  * Built from the brief so the stand-in still follows the rotation: a lower day
- * reads like a lower day. It is deliberately ordinary.
+ * reads like a lower day, and the glutes day has its ab finisher. It is
+ * deliberately ordinary.
  */
 export function cannedPlan(brief: Brief): Plan {
-  const lower =
-    brief.session.half === "lower" ||
-    (brief.session.half === "full" && (brief.session.primary.includes("glutes") || brief.session.primary.includes("quads")) && brief.sessionNumber % 2 === 1);
+  const lower = brief.session.half === "lower";
+  const core = brief.budget.core > 0;
 
   const warmup = {
     kind: "warmup" as const,
     title: "Warm up",
     format: "circuit" as const,
     rounds: 1,
-    minutes: 6,
-    instructions: "Easy pace. Get warm, not tired.",
+    minutes: brief.budget.warmup,
+    instructions: "",
     exercises: [
-      ex("W1", "BIKE", "cardio", 0, "3 min easy", 0, "Nose breathing pace.", [], []),
-      ex("W2", "WORLD'S GREATEST STRETCH", "mobility", 0, "3 each side", 0, "Slow and long.", [], []),
-      ex("W3", "SINGLE LEG BALANCE REACH", "mobility", 0, "5 each side", 0, "Soft knee, tall chest.", [], []),
+      ex({ label: "W1", name: "BIKE", kind: "cardio", role: "warmup", reps: "3 min easy", cue: "Easy pace." }),
+      ex({ label: "W2", name: lower ? "HIP AIRPLANE" : "BAND PULL APART", kind: "mobility", role: "warmup", reps: "8 each side", cue: "Slow and controlled." }),
     ],
-  };
-
-  const primer = {
-    kind: "primer" as const,
-    title: "Power primer",
-    format: "straight sets" as const,
-    rounds: 0,
-    minutes: 5,
-    instructions: "Fast and crisp. Full rest, these are not cardio.",
-    exercises: lower
-      ? [ex("P", "MED BALL SCOOP TOSS", "throw", 4, "5", 6, "Hips back, then throw.", ["glutes"], ["hamstrings"], 45)]
-      : [ex("P", "MED BALL SLAM", "throw", 4, "6", 6, "Reach tall, slam hard.", ["core"], ["back"], 45)],
   };
 
   const strength = {
     kind: "strength" as const,
-    title: lower ? "Glute strength" : "Back strength",
+    title: "Main lifts",
     format: "straight sets" as const,
     rounds: 0,
-    minutes: 15,
+    minutes: 24,
     instructions: "",
     exercises: lower
-      ? [ex("A", "HIP THRUST", "lift", 4, "6-10", 50, "Ribs down, squeeze at top.", ["glutes"], ["hamstrings"], 150, true, 2)]
-      : [ex("A", "LAT PULLDOWN", "lift", 4, "6-10", 35, "Elbows to back pockets.", ["back"], ["biceps"], 120, true, 2)],
+      ? [
+          ex({ label: "A", name: "BARBELL SQUAT", role: "heavy", sets: 4, reps: "3", range: "3-5", loadKg: 50, rir: 2, restSec: 180, cue: "Brace, then sit between the hips.", primary: ["quads", "glutes"], secondary: ["adductors"], swap: { name: "HACK SQUAT", reps: "5", loadKg: 60 } }),
+          ex({ label: "B", name: "ROMANIAN DEADLIFT", role: "light", sets: 3, reps: "6", range: "6-8", loadKg: 40, rir: 2, restSec: 150, cue: "Hips back, long hamstrings.", primary: ["hamstrings", "glutes"], secondary: [], swap: { name: "DUMBBELL ROMANIAN DEADLIFT", reps: "8", loadKg: 16 } }),
+        ]
+      : [
+          ex({ label: "A", name: "BENCH PRESS", role: "heavy", sets: 4, reps: "3", range: "3-5", loadKg: 35, rir: 1, restSec: 180, cue: "Shoulder blades back and down.", primary: ["chest"], secondary: ["triceps", "shoulders"], swap: { name: "DUMBBELL BENCH PRESS", reps: "5", loadKg: 14 } }),
+          ex({ label: "B", name: "LAT PULLDOWN", role: "light", sets: 3, reps: "6", range: "6-8", loadKg: 35, rir: 2, restSec: 120, cue: "Elbows to back pockets.", primary: ["back"], secondary: ["biceps"], swap: { name: "ASSISTED PULL UP", reps: "6", loadKg: 0 } }),
+        ],
   };
 
   const superset = {
@@ -114,71 +107,63 @@ export function cannedPlan(brief: Brief): Plan {
     title: "Superset",
     format: "superset" as const,
     rounds: 3,
-    minutes: 14,
-    instructions: "B1 then B2, rest 75 sec after the pair.",
+    minutes: 18,
+    instructions: "C1 then C2, rest 75 sec after the pair.",
     exercises: lower
       ? [
-          ex("B1", "DUMBBELL ROMANIAN DEADLIFT", "lift", 3, "8-12", 16, "Hips back, long hamstrings.", ["hamstrings", "glutes"], [], 0, true, 2),
-          ex("B2", "BULGARIAN SPLIT SQUAT", "lift", 3, "8-10 each", 10, "Lean in for glutes.", ["glutes", "quads"], ["adductors"], 0, false, 2),
+          ex({ label: "C1", name: "BULGARIAN SPLIT SQUAT", role: "second", sets: 3, reps: "8", range: "6-10", loadKg: 10, rir: 2, restSec: 0, cue: "Lean in for glutes.", primary: ["glutes", "quads"], secondary: ["adductors"], loadNote: "per hand", swap: { name: "WALKING LUNGE", reps: "10", loadKg: 10 } }),
+          ex({ label: "C2", name: "LEG EXTENSION", role: "accessory", sets: 3, reps: "10", range: "8-15", loadKg: 25, rir: 1, restSec: 0, cue: "Squeeze at the top.", primary: ["quads"], secondary: [], swap: { name: "SISSY SQUAT", reps: "10", loadKg: 0 } }),
         ]
       : [
-          ex("B1", "ONE ARM DUMBBELL ROW", "lift", 3, "8-12 each", 16, "Pull to the hip.", ["back"], ["biceps"], 0, true, 2),
-          ex("B2", "DUMBBELL SHOULDER PRESS", "lift", 3, "8-12", 9, "Ribs down, press up.", ["shoulders"], ["triceps"], 0, false, 2),
+          ex({ label: "C1", name: "TRICEPS PUSHDOWN", role: "accessory", sets: 3, reps: "10", range: "8-15", loadKg: 15, rir: 1, restSec: 0, cue: "Elbows pinned.", primary: ["triceps"], secondary: [], swap: { name: "BENCH DIPS", reps: "10", loadKg: 0 } }),
+          ex({ label: "C2", name: "INCLINE DUMBBELL CURL", role: "accessory", sets: 3, reps: "10", range: "8-15", loadKg: 6, rir: 1, restSec: 0, cue: "Arms hang behind you.", primary: ["biceps"], secondary: [], loadNote: "per hand", swap: { name: "CABLE CURL", reps: "10", loadKg: 15 } }),
         ],
   };
 
-  const finisher = {
-    kind: "finisher" as const,
-    title: "EMOM finisher",
-    format: "EMOM" as const,
-    rounds: 8,
-    minutes: 8,
-    instructions: "Every minute on the minute for 8 min. Odd minutes C1, even minutes C2.",
+  const abs = {
+    kind: "core" as const,
+    title: "Ab finisher",
+    format: "circuit" as const,
+    rounds: 3,
+    minutes: brief.budget.core,
+    instructions: "K1 then K2, three rounds.",
     exercises: [
-      ex("C1", "KETTLEBELL SWING", "lift", 0, "15", 16, "Snap the hips.", ["glutes", "hamstrings"], ["core"]),
-      ex("C2", "FARMER CARRY", "carry", 0, "40 m", 20, "Tall and quiet.", ["core"], ["back"]),
+      ex({ label: "K1", name: "CABLE CRUNCH", kind: "core", role: "core", sets: 3, reps: "12", range: "8-15", loadKg: 20, rir: 2, cue: "Curl the ribs down.", primary: ["core"], secondary: [], swap: { name: "CRUNCH", reps: "15", loadKg: 0 } }),
+      ex({ label: "K2", name: "DEAD BUG", kind: "core", role: "core", sets: 3, reps: "8 each side", cue: "Low back stays down.", primary: ["core"], secondary: [], swap: { name: "SIDE PLANK", reps: "30 sec", loadKg: 0 } }),
     ],
   };
 
   return {
     title: brief.session.name,
-    focus: brief.session.focus,
-    why: "A canned plan: ANTHROPIC_API_KEY is not set.",
-    blocks: [warmup, primer, strength, superset, finisher],
-    tip: "",
+    focus: brief.session.primary.join(", "),
+    blocks: core ? [warmup, strength, superset, abs] : [warmup, strength, superset],
   };
 }
 
+type Exercise = Plan["blocks"][number]["exercises"][number];
+
 function ex(
-  label: string,
-  name: string,
-  kind: Plan["blocks"][number]["exercises"][number]["kind"],
-  sets: number,
-  reps: string,
-  loadKg: number,
-  cue: string,
-  primary: Plan["blocks"][number]["exercises"][number]["primary"],
-  secondary: Plan["blocks"][number]["exercises"][number]["secondary"],
-  restSec = 0,
-  anchor = false,
-  rir = -1,
-): Plan["blocks"][number]["exercises"][number] {
+  e: Partial<Omit<Exercise, "swap">> & { label: string; name: string; swap?: { name: string; reps: string; loadKg: number } },
+): Exercise {
   return {
-    label,
-    name,
-    kind,
-    sets,
-    reps,
-    loadKg,
-    loadNote: "",
-    rir,
+    label: e.label,
+    name: e.name,
+    kind: e.kind ?? "lift",
+    role: e.role ?? "accessory",
+    sets: e.sets ?? 0,
+    reps: e.reps ?? "",
+    range: e.range ?? "",
+    loadKg: e.loadKg ?? 0,
+    loadNote: e.loadNote ?? "",
+    rir: e.rir ?? -1,
     lastSetToFailure: false,
-    restSec,
-    cue,
-    howTo: `${name.charAt(0)}${name.slice(1).toLowerCase()}, done with control. ${cue}`,
-    primary,
-    secondary,
-    anchor,
+    restSec: e.restSec ?? 0,
+    cue: e.cue ?? "",
+    howTo: `${e.name.charAt(0)}${e.name.slice(1).toLowerCase()}, done with control. ${e.cue ?? ""}`.trim(),
+    primary: e.primary ?? [],
+    secondary: e.secondary ?? [],
+    anchor: e.role === "heavy" || e.role === "light",
+    swap: e.swap ? { ...e.swap, loadNote: "", howTo: "" } : null,
   };
 }
 

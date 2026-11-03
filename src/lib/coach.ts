@@ -3,34 +3,43 @@
  *
  * Pure. Given her preferences, her training log and the slot she booked, this
  * works out what today is: which session in the rotation, which week of which
- * block, whether it is a lighter week, which muscles are behind, how many
- * hard minutes the week still wants, what every lift she has done
- * should be loaded at next, and which finisher to reach for.
+ * block, whether it is a lighter week, which muscles are behind, what every
+ * lift she has done should be next time, and which exercises she keeps
+ * skipping.
  *
- * The model is good at choosing movements, writing cues and making a session
- * feel like a session. It is not a reliable bookkeeper, and progression is
- * bookkeeping. So the numbers are decided here, where they can be tested, and
- * handed to the model as facts; `enforceTargets` puts them back if it drifts.
+ * The model is good at choosing movements and writing cues. It is not a
+ * reliable bookkeeper, and progression is bookkeeping. So the numbers are
+ * decided here, where they can be tested, and handed to the model as facts;
+ * `applyCoach` puts them back if it drifts.
  */
 
-import { exerciseKey, PlanError, type Muscle, type Plan } from "./plan";
+import {
+  exerciseKey,
+  progressionKey,
+  removeBanned,
+  PlanError,
+  type Muscle,
+  type Plan,
+  type Role,
+} from "./plan";
 import type { Preferences } from "./profile";
 import {
   BEGINNER_SCALE,
   BLOCK_WEEKS,
-  CONDITIONING,
+  BUDGET,
   DELOAD_MIN_SESSIONS,
   FAILURE_SETS_PER_MUSCLE_PER_SESSION,
-  FINISHERS,
   FULL_BODY,
   JUMPING,
   JUMPS,
   PRIORITY_BONUS,
   PRIORITY_CEILING,
   RE_ENTRY_AFTER_DAYS,
+  ROLES,
+  ROTATION,
   SESSION_TYPES,
+  SKIPS_BEFORE_SWAP,
   SPLIT,
-  SPLIT_FROM,
   WEEKLY_SETS,
   WEEKS,
   type SessionType,
@@ -39,8 +48,6 @@ import {
 import {
   DAY_MS,
   describeSets,
-  enjoymentByFinisher,
-  hardMinutesBetween,
   historyByExercise,
   isProgressed,
   jumpSessionsBetween,
@@ -57,6 +64,9 @@ import {
 } from "./progress";
 import { dateOnly, dayNumber } from "./when";
 
+/** Stamps from this method on are the ones the coach reads. Older ones are history only. */
+export const METHOD = 2;
+
 export interface Slot {
   startsAt: Date;
   minutes: number;
@@ -67,16 +77,20 @@ export type Action = "up" | "reps" | "hold" | "drop" | "reset" | "deload";
 /** What a lift should be next time, and why, in words that fit under it. */
 export interface Target {
   name: string;
+  role: Role;
   sets: number;
+  /** Today's rep target, one number: "5". */
   reps: string;
+  /** The range it moves through: "3-5". */
+  range: string;
   loadKg: number;
   action: Action;
-  /** "Up 2.5kg. You hit 10, 10, 10." */
+  /** "Up 2.5kg. You hit the top." */
   reason: string;
-  /** "70kg x 10, 10, 9". What she did, or what was asked if she did not say. */
+  /** "70kg x 5, 5, 5, 5". What she did, or what was asked if she did not say. */
   last: string;
   lastAt: Date;
-  /** True when `last` is what she reported rather than what was prescribed. */
+  /** True when `last` is what she logged rather than what was prescribed. */
   logged: boolean;
 }
 
@@ -87,10 +101,18 @@ export interface MuscleStatus {
   status: "under" | "in" | "over";
 }
 
+/** An exercise skipped too often, and what replaces it. */
+export interface SwapIn {
+  name: string;
+  swap: string;
+}
+
 export interface Brief {
   sessionNumber: number;
   session: SessionType;
-  rotation: "split" | "full body" | "asked for";
+  rotation: "rotation" | "asked for";
+  /** Where in ROTATION this session sits; an asked-for one keeps the last. */
+  rotationAt: number;
   /** What she asked for by hand, if she did. */
   request: Request;
   block: number;
@@ -102,22 +124,22 @@ export interface Brief {
   reEntry: boolean;
   daysSinceLast: number | null;
   perWeek: number;
-  budget: { warmup: number; primer: number; main: number; finisher: number };
-  /** Whether today opens with jumps, and how many. */
+  budget: { warmup: number; main: number; core: number };
+  /** Whether today's warm up has jumps, and how many. */
   jumps: JumpDay;
   /** Last 7 days, every muscle. */
   volume: MuscleStatus[];
   /** Under target, and trainable today. Most behind first. */
   behind: Muscle[];
-  conditioning: { done: number; weekly: readonly [number, number]; needed: boolean };
   /** Keep these this block, in this order. */
   anchors: string[];
-  /** Last block's anchors for this session, when this is the first of a new block. */
+  /** Last block's main lifts for this session, when this is the first of a new block. */
   previousAnchors: string[];
   targets: Target[];
   stalled: string[];
-  finisher: { format: string; idea: string };
-  /** What her most recent reply said about how she was. */
+  /** Skipped too often: use the swap instead. */
+  swapIn: SwapIn[];
+  /** What her most recent log said about how she was. */
   readiness: string[];
   pain: string[];
   likes: string[];
@@ -129,7 +151,7 @@ export interface Brief {
 
 export interface JumpDay {
   today: boolean;
-  /** Foot contacts in the jump block, when today is a jump day. */
+  /** Foot contacts, when today is a jump day. */
   contacts: [number, number];
   /** What kind of jumps, from how many jump sessions she has done. */
   stage: string;
@@ -167,6 +189,15 @@ const days = (ms: number) => ms / DAY_MS;
 
 function byTime(sessions: Session[]): Session[] {
   return [...sessions].sort((a, b) => a.at.getTime() - b.at.getTime());
+}
+
+/**
+ * The sessions planned under this method. Everything before it was planned by
+ * other rules and logged another way, so the progress she sees, and the
+ * numbers the coach works from, start fresh with the first of these.
+ */
+export function current(sessions: Session[]): Session[] {
+  return sessions.filter((s) => s.stamp?.method === METHOD);
 }
 
 /* ---------- where in the block ---------- */
@@ -238,60 +269,47 @@ export function frequency(sessions: Session[], stated: number, now: Date): numbe
   return sessionsPerWeek(sessions, now);
 }
 
-function deficit(type: SessionType, volume: MuscleStatus[]): number {
-  return type.primary.reduce((sum, m) => {
-    const v = volume.find((x) => x.muscle === m);
-    if (!v) return sum;
-    return sum + Math.max(0, v.range[0] - v.done) / v.range[0];
-  }, 0);
-}
-
-export function chooseSession(
-  sessions: Session[],
-  perWeek: number,
-  volume: MuscleStatus[],
-  focus: Focus | null = null,
-): { session: SessionType; rotation: "split" | "full body" | "asked for" } {
-  if (focus) return { session: askedFor(sessions, focus, volume), rotation: "asked for" };
-
-  const rotation = perWeek >= SPLIT_FROM ? SPLIT : FULL_BODY;
-  const name = rotation === SPLIT ? "split" : "full body";
-  const sorted = byTime(sessions);
-  const lastStamp = [...sorted].reverse().find((s) => s.stamp)?.stamp;
-  const lastType = SESSION_TYPES.find((t) => t.id === lastStamp?.typeId);
-
-  // The normal case: the next one along.
-  const at = rotation.findIndex((t) => t.id === lastType?.id);
-  if (at !== -1) return { session: rotation[(at + 1) % rotation.length], rotation: name };
-
-  /*
-   * No stamped history in this rotation: a first session, a switch between
-   * full body and split, or a workout from before the coach existed. Pick
-   * the session whose muscles are furthest behind, and on the split never the
-   * same half as the session before.
-   */
-  const candidates =
-    rotation === SPLIT && lastType && lastType.half !== "full"
-      ? rotation.filter((t) => t.half !== lastType.half)
-      : rotation;
-
-  const best = [...candidates].sort((a, b) => deficit(b, volume) - deficit(a, volume))[0];
-  return { session: best, rotation: name };
+function typeById(id: string): SessionType {
+  return SESSION_TYPES.find((t) => t.id === id) ?? SPLIT[0];
 }
 
 /**
- * The session she asked for: of the sessions in that half, the one done
- * least recently, and between two never done, the one whose muscles are
- * furthest behind. "No legs today" is an upper body session; the rotation
- * picks up again from what the next session finds.
+ * The next session in the rotation. Sessions come in order, not by weekday,
+ * so a missed day moves everything along rather than losing a session.
+ *
+ * A session she asked for by hand does not move the rotation on, so the day
+ * it stood in for still comes. If that day would be the same as the one she
+ * just asked for, it is passed over.
  */
-function askedFor(sessions: Session[], focus: Focus, volume: MuscleStatus[]): SessionType {
-  const pool = focus === "full" ? FULL_BODY : SPLIT.filter((t) => t.half === focus);
+export function chooseSession(
+  sessions: Session[],
+  focus: Focus | null = null,
+): { session: SessionType; rotation: Brief["rotation"]; rotationAt: number } {
+  const sorted = byTime(sessions);
+  const lastStamp = [...sorted].reverse().find((s) => s.stamp)?.stamp ?? null;
+  const at = lastStamp ? lastStamp.rotationAt : -1;
+
+  if (focus) {
+    return { session: askedFor(sessions, focus), rotation: "asked for", rotationAt: Math.max(at, -1) };
+  }
+
+  let next = (at + 1) % ROTATION.length;
+  if (lastStamp?.asked && ROTATION[next] === lastStamp.typeId) next = (next + 1) % ROTATION.length;
+  return { session: typeById(ROTATION[next]), rotation: "rotation", rotationAt: next };
+}
+
+/**
+ * The session she asked for: of the days in that half, the one done least
+ * recently. "No legs today" is an upper body day.
+ */
+function askedFor(sessions: Session[], focus: Focus): SessionType {
+  if (focus === "full") return FULL_BODY;
+  const pool = SPLIT.filter((t) => t.half === focus);
   const lastDone = (t: SessionType) => {
     const hit = byTime(sessions).reverse().find((s) => s.stamp?.typeId === t.id);
     return hit ? hit.at.getTime() : -Infinity;
   };
-  return [...pool].sort((a, b) => lastDone(a) - lastDone(b) || deficit(b, volume) - deficit(a, volume))[0];
+  return [...pool].sort((a, b) => lastDone(a) - lastDone(b))[0];
 }
 
 /* ---------- volume ---------- */
@@ -303,7 +321,7 @@ export function weeklyRange(muscle: Muscle, preferences: Preferences): [number, 
     hi = Math.round(hi * BEGINNER_SCALE);
   }
   if (preferences.priorities.includes(muscle)) {
-    lo = Math.max(lo, hi - PRIORITY_BONUS);
+    lo = hi;
     hi = Math.min(hi + PRIORITY_BONUS, PRIORITY_CEILING);
   }
   return [lo, hi];
@@ -350,19 +368,38 @@ const LOWER = new Set<Muscle>(["glutes", "quads", "hamstrings", "adductors"]);
 
 function workingLoad(p: Performance): number {
   if (!p.logged || p.logged.length === 0) return p.loadKg;
-  // The heaviest load she did all her sets at is the honest one; with mixed
-  // loads, the most common one.
+  // The load she did most of her sets at; between two equally common, the heavier.
   const counts = new Map<number, number>();
   for (const s of p.logged) counts.set(s.weightKg, (counts.get(s.weightKg) ?? 0) + 1);
   return [...counts].sort((a, b) => b[1] - a[1] || b[0] - a[0])[0][0];
 }
 
+/** The range a performance moves through: its own, else its role's, else its reps. */
+function rangeOf(p: Performance): [number, number] | null {
+  return repRange(p.range) ?? repRange(ROLES[p.role]?.range ?? "") ?? repRange(p.reps);
+}
+
+/** The rep target as a number: the reps if one number, else the bottom of the range. */
+function targetReps(p: Performance, range: [number, number]): number {
+  const r = repRange(p.reps);
+  if (!r) return range[0];
+  return r[0] === r[1] ? r[0] : r[0];
+}
+
 /**
- * Double progression (Plotkin 2022: adding reps and adding load build muscle
- * about equally). Work up the rep range at a load; when every set reaches the
- * top, add the smallest step and start again from the bottom. Where that step
- * is a big fraction of the load, as with light dumbbells, earn it with two
- * extra reps first.
+ * What a lift should be next time, from what she logged.
+ *
+ * Double progression with an exact target (Plotkin 2022: adding reps and
+ * adding load build muscle about equally). Each time she does the target, it
+ * goes up by a rep; at the top of the range the weight goes up a step and the
+ * reps go back to the bottom.
+ *
+ * - done: one more rep, or the weight up at the top of the range.
+ * - easy: the weight up a step now, at the same reps.
+ * - hard: the same again. Hard twice in a row, and the weight comes down a step.
+ * - skipped, or nothing logged: the same again. Nothing is assumed.
+ * - numbers she typed: read as what she did. Short of the target by more than
+ *   a rep, and the weight comes down a step.
  */
 export function nextTarget(
   history: Performance[],
@@ -372,19 +409,24 @@ export function nextTarget(
   if (!last) return null;
 
   const lower = last.primary.some((m) => LOWER.has(m));
-  const range = repRange(last.reps);
+  const range = rangeOf(last);
   const load = workingLoad(last);
   const step = increment(load, lower);
   const logged = !!last.logged && last.logged.length > 0 && !last.skipped;
+  const rangeText = range ? `${range[0]}-${range[1]}` : last.range;
 
   const lastText = logged
     ? describeSets(last.logged!)
-    : `${last.sets > 0 ? `${last.sets} x ` : ""}${last.reps}${last.loadKg > 0 ? ` at ${kg(last.loadKg)}` : ""} (as written)`;
+    : last.skipped
+      ? "skipped"
+      : `${last.sets > 0 ? `${last.sets} x ` : ""}${last.reps}${last.loadKg > 0 ? ` at ${kg(last.loadKg)}` : ""} (not logged)`;
 
-  let target: Target = {
+  const base: Target = {
     name: last.name,
+    role: last.role,
     sets: last.sets,
-    reps: last.reps,
+    reps: range ? String(targetReps(last, range)) : last.reps,
+    range: rangeText,
     loadKg: load,
     action: "hold",
     reason: "Same as last time.",
@@ -393,54 +435,49 @@ export function nextTarget(
     logged,
   };
 
+  let target = base;
+
   if (!range) {
-    // Timed or distance work: nothing to double-progress, so hold it.
-    target.reason = "Same again. Make it smoother.";
-  } else if (logged) {
+    target = { ...base, reason: "Same again. Make it smoother." };
+  } else if (last.skipped) {
+    target = { ...base, reason: "Same as last time, since you skipped it." };
+  } else if (!logged) {
+    target = { ...base, reason: "Not logged, so the same again." };
+  } else {
     const reps = last.logged!.map((s) => s.reps);
     const lowest = Math.min(...reps);
-    const bigStep = load > 0 && step / load > 0.1;
-    const topNeeded = range[1] + (bigStep ? 2 : 0);
-    const repsText = reps.join(", ");
+    const goal = targetReps(last, range);
+    const previous = [...history].slice(0, -1).reverse().find((p) => p.logged && p.logged.length > 0 && !p.skipped);
 
-    if (last.effort === "failed" || lowest < range[0] - 1) {
-      const lighter = roundLoad(load * 0.92);
+    if (last.effort === "failed" || lowest < goal - 1) {
+      const lighter = load > 0 ? roundLoad(load - step) : 0;
       target = {
-        ...target,
+        ...base,
         action: "drop",
         loadKg: lighter,
-        reason: lighter < load ? `Down to ${kg(lighter)}. Own every rep.` : "Same weight. Own every rep.",
+        reps: String(range[0]),
+        reason: lighter < load ? `Down ${kg(load - lighter)}. Own every rep.` : "Same weight. Own every rep.",
       };
+    } else if (last.effort === "hard") {
+      if (previous?.effort === "hard" && load > 0) {
+        const lighter = roundLoad(load - step);
+        target = { ...base, action: "drop", loadKg: lighter, reason: `Down ${kg(load - lighter)}. Hard twice in a row.` };
+      } else {
+        target = { ...base, reps: String(goal), reason: "Same again. You said it was hard." };
+      }
     } else if (last.effort === "easy" && load > 0) {
-      // Said in so many words. Lifting lighter than she can is the commoner
-      // mistake, so "easy" is taken at its word rather than second guessed.
-      target = { ...target, action: "up", loadKg: roundLoad(load + step), reason: `Up ${kg(step)}. You said it was easy.` };
-    } else if (reps.every((r) => r >= topNeeded) && last.effort !== "hard") {
+      target = { ...base, action: "up", loadKg: roundLoad(load + step), reps: String(goal), reason: `Up ${kg(step)}. You said it was easy.` };
+    } else if (reps.every((r) => r >= range[1])) {
       target =
         load > 0
-          ? { ...target, action: "up", loadKg: roundLoad(load + step), reason: `Up ${kg(step)}. You hit ${repsText}.` }
-          : { ...target, action: "up", reason: `Top of the range. Add 2 reps or a harder version.` };
+          ? { ...base, action: "up", loadKg: roundLoad(load + step), reps: String(range[0]), reason: `Up ${kg(step)}. You hit the top, so back to ${range[0]} reps.` }
+          : { ...base, action: "up", reps: String(range[1]), reason: "Top of the range. Try a harder version." };
+    } else if (reps.every((r) => r >= goal)) {
+      const more = Math.min(range[1], Math.min(...reps) + 1);
+      target = { ...base, action: "reps", reps: String(more), reason: `One more rep: ${more}.` };
     } else {
-      target = {
-        ...target,
-        action: "reps",
-        reason: bigStep && reps.every((r) => r >= range[1])
-          ? `Same weight. Get ${range[1] + 2} on every set, then it goes up.`
-          : `Same weight. Beat ${repsText}.`,
-      };
+      target = { ...base, reps: String(goal), reason: `Same again. Beat ${reps.join(", ")}.` };
     }
-  } else {
-    // No reply, so the prescription stands in. Two in a row at one load and
-    // she has almost certainly adapted to it.
-    const sameLoad = [...history]
-      .reverse()
-      .findIndex((p) => (p.logged && p.logged.length > 0) || p.loadKg !== last.loadKg);
-    const runs = sameLoad === -1 ? history.length : sameLoad;
-
-    target =
-      runs >= 2 && load > 0
-        ? { ...target, action: "up", loadKg: roundLoad(load + step), reason: `Up ${kg(step)}. Reply with your numbers to steer this.` }
-        : { ...target, action: "reps", reason: "Same weight. Aim for the top of the range." };
   }
 
   if (ctx.reEntry) {
@@ -473,10 +510,10 @@ function anchorsOf(sessions: Session[], typeId: string, block: number | null): s
     if (block !== null && s.stamp.block !== block) continue;
     for (const b of s.plan.blocks) {
       for (const e of b.exercises) {
-        const key = exerciseKey(e.name);
+        const key = progressionKey(e.name, e.role);
         if (e.anchor && !keys.has(key)) {
           keys.add(key);
-          names.push(e.name);
+          names.push(e.role === "light" ? `${e.name} (light)` : e.name);
         }
       }
     }
@@ -484,52 +521,20 @@ function anchorsOf(sessions: Session[], typeId: string, block: number | null): s
   return names;
 }
 
+/**
+ * The main lifts last time this session came round, in any block. Main lifts
+ * stay from block to block, so a new block starts from these.
+ */
 function previousBlockAnchors(sessions: Session[], typeId: string, block: number): string[] {
-  const earlier = byTime(sessions).filter(
-    (s) => s.stamp?.typeId === typeId && s.stamp.block < block,
-  );
+  const earlier = byTime(sessions).filter((s) => s.stamp?.typeId === typeId && s.stamp.block < block);
   const lastBlock = earlier.at(-1)?.stamp?.block;
   return lastBlock === undefined ? [] : anchorsOf(earlier, typeId, lastBlock);
 }
 
-export function budgetFor(minutes: number): Brief["budget"] {
-  const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n));
-  const finisher = minutes < 35 ? 0 : clamp(Math.round(minutes * 0.15), 5, 12);
-  const warmup = clamp(Math.round(minutes * 0.12), 5, 8);
-  const primer = minutes < 30 ? 0 : clamp(Math.round(minutes * 0.08), 3, 6);
-  return { warmup, primer, main: Math.max(10, minutes - warmup - primer - finisher), finisher };
-}
-
-export function chooseFinisher(
-  sessions: Session[],
-  needConditioning: boolean,
-  dislikes: string[],
-  sessionNumber: number,
-): { format: string; idea: string } {
-  const recent = byTime(sessions)
-    .slice(-2)
-    .map((s) => s.stamp?.finisher)
-    .filter(Boolean);
-  const disliked = (f: { format: string; idea: string }) =>
-    dislikes.some((d) => {
-      const word = d.toLowerCase();
-      return f.format.toLowerCase().includes(word) || word.includes(f.format.toLowerCase());
-    });
-
-  let pool = FINISHERS.filter((f) => (!needConditioning || f.conditioning) && !disliked(f));
-  if (pool.length === 0) pool = FINISHERS.filter((f) => !needConditioning || f.conditioning);
-
-  const fresh = pool.filter((f) => !recent.includes(f.format));
-  if (fresh.length > 0) pool = fresh;
-
-  const rated = enjoymentByFinisher(sessions);
-  const score = (f: { format: string }) => rated.get(f.format) ?? 3.5;
-  const top = Math.max(...pool.map(score));
-  const best = pool.filter((f) => score(f) === top);
-
-  // Several equally good: rotate through them, so the same rating does not
-  // mean the same finisher forever.
-  return best[sessionNumber % best.length];
+export function budgetFor(minutes: number, session: SessionType): Brief["budget"] {
+  const warmup = Math.max(BUDGET.warmup[0], Math.min(BUDGET.warmup[1], Math.round(minutes * 0.12)));
+  const core = session.id === "glutes-hams" && minutes >= 40 ? BUDGET.core : 0;
+  return { warmup, core, main: Math.max(15, minutes - warmup - core) };
 }
 
 function recentWords(sessions: Session[], pick: (s: Session) => string[], within: number, now: Date): string[] {
@@ -554,16 +559,30 @@ function readinessOf(sessions: Session[], now: Date): string[] {
 }
 
 /**
- * Whether today is one of her jump days, and what the jumps are.
+ * Exercises she skipped the last two times they came up, each with the swap
+ * that was offered. The swap takes over.
+ */
+export function swapsIn(sessions: Session[]): SwapIn[] {
+  const out: SwapIn[] = [];
+  for (const [, history] of historyByExercise(sessions)) {
+    const recent = history.slice(-SKIPS_BEFORE_SWAP);
+    if (recent.length < SKIPS_BEFORE_SWAP || !recent.every((p) => p.skipped)) continue;
+    const last = recent.at(-1)!;
+    if (last.swap) out.push({ name: last.name, swap: last.swap });
+  }
+  return out;
+}
+
+/**
+ * Whether today's warm up has jumps, and what they are.
  *
- * Only when she has jump days left this week and the session is lower or
- * full body. Never after a reply that mentioned pain in the joints that take
- * the landing, never with a red flag that needs a clinician first (pregnancy,
- * a bone stress injury), and never when cycle tracking shows no period for
- * two months, because that is under-fuelling until shown otherwise. Leaking
- * keeps the jumps, gentle and two footed, with pelvic floor training: that
- * is the advice, not stopping. A lighter week or the first session back gets
- * the smaller dose.
+ * Only when she has jump days left this week and the session is lower or full
+ * body. Never after a log that mentioned pain in the joints that take the
+ * landing, never with a red flag that needs a clinician first (pregnancy, a
+ * bone stress injury), and never when cycle tracking shows no period for two
+ * months, because that is under-fuelling until shown otherwise. Leaking keeps
+ * the jumps, gentle and two footed, with pelvic floor training: that is the
+ * advice, not stopping.
  */
 export function jumpDay(
   preferences: Preferences,
@@ -597,7 +616,7 @@ export function jumpDay(
   }
   if (session.half === "upper") return no("an upper body day");
   if (ctx.pain.some((p) => JUMPS.painStops.test(p))) return no("she mentioned pain in a joint that takes the landing");
-  if (doneThisWeek >= perWeek) return no("this week's jump days are done");
+  if (doneThisWeek >= perWeek) return no("this week's jump day is done");
 
   const dose = forBone ? JUMPS.frequent : JUMPS.weekly;
   const leaking = ctx.pain.some((p) => JUMPS.leak.test(p));
@@ -609,7 +628,7 @@ export function jumpDay(
     notes.push("Squat day, so keep the jumps short and two footed.");
   }
   if (leaking) {
-    notes.push("She mentioned leaking: gentle two foot jumps only, and make the tip about pelvic floor training.");
+    notes.push("She mentioned leaking: gentle two foot jumps only.");
   }
 
   const done = jumpSessionsBetween(sessions, new Date(0), now);
@@ -623,7 +642,7 @@ export function jumpDay(
 export function buildBrief(input: CoachInput): Brief {
   const { preferences, slot, sessionNumber } = input;
   const now = slot.startsAt;
-  const sessions = byTime(input.sessions.filter((s) => s.at < now));
+  const sessions = byTime(current(input.sessions).filter((s) => s.at < now));
 
   const pos = position(sessions, now);
   const { plan: weekPlan, deload } = weekPlanFor(pos, sessions);
@@ -633,18 +652,13 @@ export function buildBrief(input: CoachInput): Brief {
     focus: input.request?.focus ?? null,
     note: input.request?.note?.trim() || null,
   };
-  const { session, rotation } = chooseSession(sessions, perWeek, volume, request.focus ?? null);
+  const { session, rotation, rotationAt } = chooseSession(sessions, request.focus ?? null);
 
-  const weekAgo = new Date(now.getTime() - 7 * DAY_MS);
-
-  const reachable = new Set<Muscle>([...session.primary, ...session.secondary, "core"]);
+  const reachable = new Set<Muscle>([...session.primary, ...session.secondary]);
   const behind = volume
-    .filter((v) => v.status === "under" && reachable.has(v.muscle))
+    .filter((v) => v.status === "under" && v.range[0] > 0 && reachable.has(v.muscle))
     .sort((a, b) => (b.range[0] - b.done) / b.range[0] - (a.range[0] - a.done) / a.range[0])
     .map((v) => v.muscle);
-
-  const hard = hardMinutesBetween(sessions, weekAgo, now);
-  const needConditioning = hard < CONDITIONING.weeklyHardMinutes[0];
 
   const dislikes = recentWords(sessions, (s) => s.logs.flatMap((l) => l.disliked), 120, now);
   const likes = recentWords(sessions, (s) => s.logs.flatMap((l) => l.liked), 120, now);
@@ -654,18 +668,19 @@ export function buildBrief(input: CoachInput): Brief {
   const jumps = jumpDay(preferences, session, sessions, now, { deload, reEntry: pos.reEntry, pain, notes });
 
   const anchors = anchorsOf(sessions, session.id, pos.reEntry ? -1 : pos.block);
-  const previousAnchors =
-    anchors.length === 0 ? previousBlockAnchors(sessions, session.id, pos.block) : [];
+  const previousAnchors = anchors.length === 0 ? previousBlockAnchors(sessions, session.id, pos.block) : [];
 
   /*
-   * Targets for everything she has done in the last six weeks, anchors for
-   * today first. The model is told to use the number for any of these it
+   * Targets for everything she has done in the last six weeks, main lifts
+   * first. The model is told to use the number for any of these it
    * prescribes, so an accessory that comes back keeps its progression too.
    */
-  const history = historyByExercise(
-    sessions.filter((s) => days(now.getTime() - s.at.getTime()) <= 42),
+  const history = historyByExercise(sessions.filter((s) => days(now.getTime() - s.at.getTime()) <= 42));
+  const priority = new Set(
+    [...anchors, ...previousAnchors].map((a) =>
+      a.endsWith(" (light)") ? progressionKey(a.slice(0, -8), "light") : progressionKey(a),
+    ),
   );
-  const priority = new Set([...anchors, ...previousAnchors].map(exerciseKey));
   const targets = [...history.entries()]
     .map(([key, all]) => ({ key, h: all.filter(isProgressed) }))
     .filter(({ h }) => h.length > 0)
@@ -686,6 +701,7 @@ export function buildBrief(input: CoachInput): Brief {
     sessionNumber,
     session,
     rotation,
+    rotationAt,
     block: pos.block,
     week: pos.week,
     weekPlan,
@@ -694,16 +710,15 @@ export function buildBrief(input: CoachInput): Brief {
     reEntry: pos.reEntry,
     daysSinceLast: pos.daysSinceLast === null ? null : Math.round(pos.daysSinceLast * 10) / 10,
     perWeek: Math.round(perWeek * 10) / 10,
-    budget: budgetFor(slot.minutes),
+    budget: budgetFor(slot.minutes, session),
     jumps,
     volume,
     behind,
-    conditioning: { done: hard, weekly: CONDITIONING.weeklyHardMinutes, needed: needConditioning },
     anchors,
     previousAnchors,
     targets,
     stalled: stalled(sessions),
-    finisher: chooseFinisher(sessions, needConditioning, dislikes, sessionNumber),
+    swapIn: swapsIn(sessions),
     readiness: readinessOf(sessions, now),
     pain,
     likes,
@@ -715,46 +730,43 @@ export function buildBrief(input: CoachInput): Brief {
 }
 
 /** What is kept on the workout row, so the next brief knows where it was. */
-export function stampFor(brief: Brief, plan: Plan): Stamp {
-  const finisher = plan.blocks.find((b) => b.kind === "finisher");
+export function stampFor(brief: Brief): Stamp {
   return {
+    method: METHOD,
     typeId: brief.session.id,
+    rotationAt: brief.rotationAt,
+    asked: brief.rotation === "asked for",
     block: brief.block,
     week: brief.week,
     blockStartedAt: brief.blockStartedAt.toISOString(),
     deload: brief.deload,
-    finisher: finisher?.format ?? brief.finisher.format,
   };
 }
 
-/** The target for an exercise by name, across spellings. */
-export function targetFor(brief: Brief, name: string): Target | undefined {
-  const key = exerciseKey(name);
-  return brief.targets.find((t) => exerciseKey(t.name) === key);
+/** The target for an exercise in a given role, across spellings. */
+export function targetFor(brief: Brief, name: string, role: Role | "" = ""): Target | undefined {
+  const key = progressionKey(name, role);
+  return brief.targets.find((t) => progressionKey(t.name, t.role) === key);
 }
 
 /**
- * Puts the coach's loads back where the model drifted from them.
- *
- * Only where the model kept the same rep scheme: a target worked out for
- * 8 to 12 reps is wrong for a set of 5, and then the model's own number is
- * the better guess.
+ * Puts the coach's numbers back where the model drifted from them: the load
+ * and the rep target, for anything she has a target for in that role.
  */
 export function enforceTargets(plan: Plan, brief: Brief): Plan {
-  const same = (a: string, b: string) => {
-    const x = repRange(a);
-    const y = repRange(b);
-    return x !== null && y !== null && x[0] === y[0] && x[1] === y[1];
-  };
-
   return {
     ...plan,
     blocks: plan.blocks.map((block) => ({
       ...block,
       exercises: block.exercises.map((exercise) => {
-        const target = targetFor(brief, exercise.name);
-        if (!target || target.loadKg <= 0 || !same(exercise.reps, target.reps)) return exercise;
-        return { ...exercise, loadKg: target.loadKg };
+        const target = targetFor(brief, exercise.name, exercise.role);
+        if (!target || !repRange(target.reps)) return exercise;
+        return {
+          ...exercise,
+          reps: target.reps,
+          range: target.range || exercise.range,
+          loadKg: target.loadKg > 0 ? target.loadKg : exercise.loadKg,
+        };
       }),
     })),
   };
@@ -763,10 +775,9 @@ export function enforceTargets(plan: Plan, brief: Brief): Plan {
 /**
  * Rations failure, whatever the model wrote.
  *
- * Failure on the last set is allowed only where it is safe and cheap: lifts
- * outside the heavy strength block, never in a lighter week or the first
- * session back from a break, and at most a few per muscle per session.
- * Beyond that it buys fatigue, not muscle.
+ * Only small exercises take a last set to failure, never in a lighter week or
+ * the first session back from a break, and at most a few per muscle per
+ * session. Beyond that it buys fatigue, not muscle.
  */
 export function enforceEffort(plan: Plan, brief: Brief): Plan {
   const used = new Map<Muscle, number>();
@@ -782,11 +793,7 @@ export function enforceEffort(plan: Plan, brief: Brief): Plan {
         const allowed =
           !none &&
           exercise.kind === "lift" &&
-          block.kind !== "strength" &&
-          block.kind !== "warmup" &&
-          block.kind !== "primer" &&
-          block.kind !== "finisher" &&
-          block.kind !== "cooldown" &&
+          exercise.role === "accessory" &&
           exercise.primary.every((m) => (used.get(m) ?? 0) < FAILURE_SETS_PER_MUSCLE_PER_SESSION);
 
         if (!allowed) return { ...exercise, lastSetToFailure: false };
@@ -799,17 +806,17 @@ export function enforceEffort(plan: Plan, brief: Brief): Plan {
 
 /**
  * Takes out anything that leaves the ground, except, on a jump day, in the
- * primer, which is where the jumps belong. A rule that matters to her should
- * not depend on the model remembering it. A block left empty goes too. A
- * plan that was nothing but jumps is an error, so it is regenerated rather
- * than sent half empty.
+ * warm up, which is where the jumps belong. A rule that matters to her should
+ * not depend on the model remembering it. A block left empty goes too. A plan
+ * that was nothing but jumps is an error, so it is regenerated rather than
+ * sent half empty.
  */
-export function removeJumps(plan: Plan, keepInPrimer = false): Plan {
+export function removeJumps(plan: Plan, keepInWarmup = false): Plan {
   const blocks = plan.blocks
     .map((block) => ({
       ...block,
       exercises:
-        keepInPrimer && block.kind === "primer"
+        keepInWarmup && block.kind === "warmup"
           ? block.exercises
           : block.exercises.filter((e) => e.kind !== "jump" && !JUMPING.test(e.name)),
     }))
@@ -824,8 +831,8 @@ const ARM_AND_TORSO = new Set<Muscle>(["back", "chest", "shoulders", "biceps", "
 
 /**
  * When she asked for upper or lower body, the other half's work comes out:
- * "no legs today" means no squats in the finisher either. Warm up items stay,
- * since they are mobility, not training. A plan left empty is regenerated.
+ * "no legs today" means no squats anywhere. Warm up items stay, since they
+ * are mobility, not training. A plan left empty is regenerated.
  */
 export function keepToFocus(plan: Plan, focus: Focus | null | undefined): Plan {
   if (!focus || focus === "full") return plan;
@@ -849,7 +856,7 @@ export function keepToFocus(plan: Plan, focus: Focus | null | undefined): Plan {
 
 /** Everything the coach insists on, applied to a plan the model wrote. */
 export function applyCoach(plan: Plan, brief: Brief): Plan {
-  const focused = keepToFocus(plan, brief.request?.focus);
+  const focused = keepToFocus(removeBanned(plan), brief.request?.focus);
   return enforceEffort(enforceTargets(removeJumps(focused, brief.jumps?.today === true), brief), brief);
 }
 
@@ -862,23 +869,24 @@ export function lastSeen(target: Target): string {
 
 /** What goes in workouts.brief: the stamp the next brief reads, and the brief itself. */
 export interface StoredBrief {
-  version: 1;
+  version: 2;
   stamp: Stamp;
   brief: Brief;
 }
 
-export function storeBrief(brief: Brief, plan: Plan): StoredBrief {
-  return { version: 1, stamp: stampFor(brief, plan), brief };
+export function storeBrief(brief: Brief): StoredBrief {
+  return { version: 2, stamp: stampFor(brief), brief };
 }
 
 /**
  * A brief read back from JSON, with its dates turned back into dates. Null
- * when there is nothing usable, which sends the caller down the path for
- * workouts from before briefs existed.
+ * when there is nothing usable, or when it is from before this method, which
+ * sends the caller to plan afresh.
  */
 export function reviveBrief(raw: unknown): Brief | null {
   if (!raw || typeof raw !== "object") return null;
   const stored = raw as Partial<StoredBrief>;
+  if (stored.version !== 2) return null;
   const b = stored.brief as (Brief & { blockStartedAt: string | Date }) | undefined;
   if (!b || typeof b !== "object" || !b.session || !Array.isArray(b.targets)) return null;
 
@@ -888,3 +896,5 @@ export function reviveBrief(raw: unknown): Brief | null {
     targets: b.targets.map((t) => ({ ...t, lastAt: new Date(t.lastAt) })),
   };
 }
+
+export { SPLIT, ROTATION };

@@ -36,62 +36,58 @@ export interface Prompt {
   user: string;
 }
 
-export const SYSTEM = `You are the coach behind a training app built for one person: a woman in her early twenties whose main goal is building lean muscle, and who also wants to be healthy, strong and athletic for the rest of her life. You write one gym session at a time. It reaches her by email, she reads it on a phone between sets, and that phone has no web browser, so the email is the whole product.
+export const SYSTEM = `You are the coach behind a training app built for one person: a woman of 22 whose goal is lean muscle and strength, with her arms as her priority, who wants to be healthy and strong for life. You write one gym session at a time. It reaches her by email on a phone she reads between sets, so it must be short and plain: she logs each exercise by tapping under it.
 
-The code around you has already made the bookkeeping decisions: which session in the rotation today is, which week of which training block, which muscles are behind this week, how many hard conditioning minutes the week still wants, and exactly what every lift she has done before should be loaded at. Those arrive as facts in the brief. Your job is everything a good coach adds on top: choosing movements that fit, ordering them well, making the session feel athletic and fun, and explaining each movement so she can do it alone.
+The code around you has already made the bookkeeping decisions: which session today is, which week of which training block, which muscles are behind this week, and exactly what every lift she has done before should be next time. Those arrive as facts in the brief. Your job is choosing the movements, ordering them, and writing one short cue for each.
 
 HOW THIS APP THINKS TRAINING SHOULD WORK
 
-- Muscle is built by hard sets taken close to failure and progressed over weeks. Young women grow muscle by the same mechanisms and at about the same percentage rate as men, but from a smaller starting point, with proportionally less muscle in the upper body, and they hold their reps better from set to set. So: the upper body gets full volume, not token arm work; she rests by readiness toward the shorter end of each range, never under a minute; and loads are chosen to genuinely reach the target effort, because the commonest mistake women make in the gym is lifting lighter than they can. Never prescribe light weight for high reps as a substitute for effort, and never use language about burning, toning, slimming, shrinking or earning food.
-- Heavy lifting builds bone, and her twenties are the last years with bone still to build, so every session has a heavy anchor lift.
-- Jumping only on the days the brief says, as a short block in the primer. On every other day, no jumping of any kind: no box jumps, broad jumps, hops, bounds, skips, skipping rope, burpees, jumping jacks, jump squats or jumping lunges, in the warm up and finisher too. Even on a jump day, jumps stay in the primer.
-- Fitness of the heart matters as much as muscle for a long life. Short, hard finishers cover it without costing muscle. Prefer the bike, rower, ski erg, sled or kettlebell for anything hard and leggy.
-- The fun parts are real parts, and they are capped. Primer, finisher, carries and flows are what make this feel like training rather than a chore, but the muscle work gets most of the time. If time is short, the finisher shrinks first.
-- Nothing is programmed by menstrual cycle phase; the best current evidence finds no advantage to it. What adjusts a session is how she says she feels. If her last reply mentioned symptoms or low energy, keep the session as planned but say plainly in the why line which part to ease off if today is the same.
-- Pull at least as much as push, with a vertical pull at least weekly (assisted pull ups, then slow negatives, then bodyweight). Single leg work on every lower or full body day. Hamstrings trained at long length at least weekly (Romanian deadlift, seated leg curl, Nordic curl). Adductors and calves get direct work weekly. Prefer exercises that load the muscle in its stretched position: deep squats and lunges, RDLs, incline curls, overhead triceps extensions, seated leg curls. A new eccentric heavy movement (Nordic curls, slow negatives, a first RDL) starts with fewer sets and builds over two or three sessions.
+- Muscle grows from hard sets taken close to failure and progressed over weeks; young women grow it by the same mechanisms and at about the same percentage rate as men, from a smaller start, with proportionally less muscle in the upper body. Strength grows most with heavy weights, and is partly a skill practised lift by lift. So every main lift comes twice a week: once heavy, once lighter.
+- Loads are chosen to genuinely reach the target effort. The commonest mistake is lifting lighter than she can. Never light weight for high reps as a substitute for effort, and never language about burning, toning, slimming or earning food.
+- Heavy lifts stop short of failure: 2 to 3 reps short on squats and deadlifts, 1 to 2 on presses and pulls. Only small exercises take a last set to failure.
+- Two muscle groups a day, in the order the session's shape gives. Arms get real work: two biceps exercises on the back day, two triceps exercises on the chest day.
+- Pull at least as much as push. Hamstrings trained lengthened weekly. Prefer exercises that load the muscle stretched: deep squats and lunges, RDLs, incline curls, overhead triceps extensions, seated leg curls.
+- Never anything braced on a chest pad (chest supported rows, seal rows, incline bench rows, spider curls), and never a medicine ball chest pass.
+- Jumping only when the brief says, as a short block inside the warm up. Otherwise no jumping of any kind anywhere: no box jumps, hops, bounds, skipping, burpees or jump squats.
+- Nothing is programmed by menstrual cycle phase. What adjusts a session is what she says: if her notes mention low energy, pain, or a class she just did (HIIT, tabata, a strength class), keep the session but ease off where it matters, legs most of all after a leg-heavy class.
 
 THE SESSION, in this order. Use the block kinds exactly.
 
-1. warmup: 3 to 5 items. Raise temperature and open up the joints today's lifts use. One balance or single leg item every time. Kind mobility or cardio, no load.
-2. primer: power at full intent, low reps, full rest, never to fatigue. On a jump day it is the jumps in the brief: kind jump, reps are foot contacts per set, the kind of jump the brief names, soft quiet landings with knees over toes, and stepping down from boxes rather than jumping down. On other days it is throws and swings: med ball slams, rotational throws, chest passes and scoop tosses, kettlebell swings, push presses. Throws are kind throw; swings and presses are kind lift.
-3. strength: the heavy anchor or anchors, straight sets.
-4. superset: the accessories, in pairs or a tri-set that do not compete (opposing muscles, or upper with lower), so neither limits the other. One or two superset blocks.
-5. finisher: the format the brief suggests, made fun and athletic: a clear structure, a number to beat, movements that feel good to do. Hard but short. Never a punishment.
-6. core: anti-rotation, anti-extension, carries or hanging work, if time allows. May fold into the finisher.
-7. cooldown: optional, one or two items.
+1. warmup: 3 to 4 items, a few minutes: raise temperature, open the joints today's lifts use, then one or two lighter warm up sets of the first lift. On a jump day the jumps go here, as described in the brief. Kind mobility, cardio or jump.
+2. strength: the heavy main lift, then the light main lift, as straight sets.
+3. superset: the second lift and the accessories, paired where they do not compete (opposing muscles, or arms with legs), so neither limits the other. One or two superset blocks.
+4. core: only when the session's shape has an ab finisher: 2 or 3 movements, 2 to 3 rounds, about 5 minutes.
 
-Give each block's minutes from the budget in the brief. The warmup, primer and finisher must not exceed their budgets.
+Keep to the minutes in the brief. No primer, no conditioning finisher: she does her own classes for that.
 
-LABELS. Every exercise gets a short unique label she can reply with: warm up W1, W2; primer P1, P2; then the main work lettered A, B1 and B2, C1 and C2; finisher F1, F2; core K1, K2; cool down Z1.
+LABELS. Every exercise gets a short unique label she taps by: warm up W1, W2, W3; the main work lettered A, B, then C1 and C2, D1 and D2; core K1, K2.
 
-LOADING AND EFFORT, by the role an exercise plays. Close to failure is what grows muscle; going all the way adds little on average and costs recovery on heavy lifts, so failure is used where it is safe and cheap.
-${Object.values(ROLES)
-  .map((r) => `- ${r.what}: ${r.reps} reps, ${r.rir}, ${r.failure}, rest ${r.restSec} sec.`)
+ROLES. Each exercise has a role, which sets its sets, rep range, effort and rest:
+${Object.entries(ROLES)
+  .map(([role, r]) => `- ${role}: ${r.what}. ${r.sets} sets, range ${r.range || "none"}, ${r.rir}, failure ${r.failure}, rest ${r.restSec} sec.`)
   .join("\n")}
-Set lastSetToFailure true where the rule above says the last set goes to failure, and false everywhere else. At most ${FAILURE_SETS_PER_MUSCLE_PER_SESSION} failure sets per muscle in a session. Never on a heavy anchor in the strength block, and none at all in the lighter week. The week in the brief sets how close to failure this week goes and overrides the defaults above.
+Set lastSetToFailure true only where the role allows it, at most ${FAILURE_SETS_PER_MUSCLE_PER_SESSION} per muscle, never in the lighter week. The week in the brief sets how close to failure this week goes.
 
-TARGETS. The brief lists targets: exact sets, reps and load for movements she has done before. When you prescribe one of them, copy its name, sets, reps and load exactly. Keep the anchors listed for this block. For a movement with no target, choose the load you expect her to manage for the reps at the stated reps in reserve. Do not deliberately go light: the email tells her to add weight after the first set if it was too easy, and the next session is set from what she reports.
+TARGETS. reps is one number, today's target, inside range: "5", not "3-5". The brief lists targets for movements she has done: when you prescribe one of them in the same role, copy its name, sets, reps and load exactly. Keep this block's main lifts. For a movement with no target, choose the load you expect her to manage for the target reps at the stated reps in reserve, and start the reps at the bottom of the range.
+
+SWAPS. Every exercise outside the warm up has exactly one swap: a different movement for the same muscles that her equipment allows, in case the machine is taken or it does not suit today, with its own reps and load. The brief may say an exercise was skipped twice in a row: then its swap is today's exercise, with a new swap of its own.
 
 EXERCISE FIELDS.
 - name: capitals, named the way a gym names it, and spelled identically every time.
 - loadKg: a real number whenever the movement takes a load. Dumbbells and kettlebells are per hand, and loadNote says "per hand" when two are used. 0 means bodyweight.
-- sets and reps: reps may be a range ("8-12"), a count per side ("8 each side") or a time ("30 sec"). In a superset or finisher run by rounds, sets may be 0 and the block's rounds govern.
-- rir: the reps in reserve target on the working sets, or -1 where it does not apply (warm up, throws, carries, finishers).
-- lastSetToFailure: true only where the effort rules allow it.
-- restSec: rest after each set, or 0 where the block's instructions govern rest.
-- cue: the one thing to think about mid set, under 45 characters.
-- howTo: two or three plain sentences: which muscle it works, how it is done, the one mistake most worth avoiding. Written for someone doing it alone with nobody to ask.
+- sets: the number of working sets.
+- rir: reps in reserve on the working sets, or -1 where it does not apply.
+- restSec: rest after each set, or 0 in the warm up.
+- cue: the one thing to think about mid set, under 40 characters.
+- howTo: two plain sentences: what it works and how it is done. Only shown when there is no picture.
 - primary and secondary: honest. These count her weekly volume, so a hip thrust is primary glutes, secondary hamstrings, and not also quads.
-- anchor: true only for the strength anchors.
 
 THE REST.
-- title: 2 to 4 words that say what today is. Not the date.
-- focus: the muscle groups, as a short list.
-- why: one plain sentence on why today looks the way it does: what is behind, what is progressing, what changed. Specific, never generic.
-- tip: one practical line for outside the gym, or empty. Good tips are concrete: protein at around 1.6 to 2.2 g per kg a day spread over meals, eating something with carbs and protein in the hours before training, creatine monohydrate 3 to 5 g a day, sleep. Never about weight loss, restriction or appearance.
+- title: the session's name as the brief gives it, like "Back + biceps".
+- focus: the two muscle groups.
 - Respect everything she asked to avoid, without exception and without mentioning it. Prescribe only what her equipment allows.
 - If she reported pain somewhere, choose pain free variations for that area and keep it out of heavy loading. Never diagnose.
-- Plain words throughout. No emojis, no hype, no exclamation marks.`;
+- Plain words. No emojis, no hype, no exclamation marks.`;
 
 function about(p: Preferences): string {
   return [
@@ -111,52 +107,53 @@ function about(p: Preferences): string {
 function targetLine(t: Target): string {
   const load = t.loadKg > 0 ? ` at ${kg(t.loadKg)}` : "";
   const sets = t.sets > 0 ? `${t.sets} x ` : "";
-  return `${t.name}: ${sets}${t.reps}${load}. ${t.reason} Last (${dateOnly(t.lastAt)}): ${t.last}.`;
+  const range = t.range ? `, range ${t.range}` : "";
+  return `${t.name} (${t.role}): ${sets}${t.reps}${load}${range}. ${t.reason} Last (${dateOnly(t.lastAt)}): ${t.last}.`;
 }
 
 function briefText(b: Brief): string {
   const v = b.volume
+    .filter((m) => m.range[1] > 0)
     .map((m) => `${m.muscle} ${m.done} of ${m.range[0]}-${m.range[1]}${m.status === "under" ? " (behind)" : m.status === "over" ? " (over)" : ""}`)
     .join("; ");
 
   const lines = [
-    `Session ${b.sessionNumber}: ${b.session.name} (${b.rotation === "asked for" ? "she asked for this one" : `${b.rotation} rotation`}). Focus: ${b.session.focus}.`,
+    `${b.session.name} (${b.rotation === "asked for" ? "she asked for this one" : "next in the rotation"}). Primary: ${b.session.primary.join(", ")}. Secondary: ${b.session.secondary.join(", ")}.`,
+    `Shape:\n${b.session.shape.map((x) => `- ${x}`).join("\n")}`,
     b.request?.focus === "upper"
-      ? "She asked for no legs today. No leg exercise anywhere, warm up aside: no squats, lunges, deadlifts, hip thrusts, kettlebell swings, step ups, leg machines or jumps, in the finisher too."
+      ? "She asked for no legs today. No leg exercise anywhere, warm up aside: no squats, lunges, deadlifts, hip thrusts, kettlebell swings, step ups, leg machines or jumps."
       : b.request?.focus === "lower"
         ? "She asked for a lower body session today. No upper body pressing or pulling outside the warm up."
         : "",
     b.request?.note ? `She wrote, asking for this session: "${b.request.note}". Honour it.` : "",
-    `Primary today: ${b.session.primary.join(", ")}. Secondary: ${b.session.secondary.join(", ")}.`,
-    `Anchor patterns for this session: ${b.session.anchorPatterns.join("; ")}.`,
-    `Primer: ${b.session.primer}.`,
     "",
     `Block ${b.block}, ${b.weekPlan.label}. Effort this week: ${b.weekPlan.rir}. ${b.weekPlan.note}`,
     b.reEntry
       ? `She is back after ${Math.round(b.daysSinceLast ?? 0)} days off. Start a new block gently: loads about 10% down, 1 set fewer on accessories, nothing near failure.`
       : b.daysSinceLast !== null
         ? `Last session was ${b.daysSinceLast} days ago.`
-        : "This is her first session with the app. Choose a balanced, confidence building session and pick loads to calibrate from.",
+        : "This is her first session with this plan. Pick loads to calibrate from: start a little conservative on the main lifts.",
     "",
-    `Time budget in minutes: warm up ${b.budget.warmup}, primer ${b.budget.primer}, main work ${b.budget.main}, finisher ${b.budget.finisher}.`,
-    `Hard sets per muscle in the last 7 days (half sets for secondary): ${v}.`,
-    b.behind.length ? `Behind and trainable today, most behind first: ${b.behind.join(", ")}. Add a set or an accessory for these where it fits.` : "No muscle trainable today is behind.",
+    `Minutes: warm up ${b.budget.warmup}, lifting ${b.budget.main}${b.budget.core ? `, ab finisher ${b.budget.core}` : ""}.`,
+    `Hard sets per muscle in the last 7 days, as logged (half sets for secondary): ${v}.`,
+    b.behind.length
+      ? `Behind and trainable today, most behind first: ${b.behind.join(", ")}. Add a set or two for these where it fits; no more.`
+      : "No muscle trainable today is behind.",
     b.jumps?.today
-      ? `Jump day: the primer is ${b.jumps.contacts[0] === b.jumps.contacts[1] ? b.jumps.contacts[0] : b.jumps.contacts.join("-")} foot contacts, as single maximal jumps or clusters of 3 to 5, ${JUMPS.restBetweenJumps} sec between jumps and ${JUMPS.restBetweenSets} sec between sets. Kind: ${b.jumps.stage}.${b.jumps.forBone ? "" : " This is power and landing practice; quality over quantity."}${b.jumps.note ? ` ${b.jumps.note}` : ""}`
+      ? `Jump day: put ${b.jumps.contacts[0] === b.jumps.contacts[1] ? b.jumps.contacts[0] : b.jumps.contacts.join("-")} jumps in the warm up, as single jumps or clusters of 3 to 5, ${JUMPS.restBetweenJumps} sec between jumps and ${JUMPS.restBetweenSets} sec between sets. Kind: ${b.jumps.stage}. Soft quiet landings, knees over toes, step down from boxes rather than jumping down.${b.jumps.note ? ` ${b.jumps.note}` : ""}`
       : `No jumps today: ${b.jumps?.reason ?? "not a jump day"}.`,
-    `Hard conditioning: ${b.conditioning.done} min in the last 7 days, aiming for ${b.conditioning.weekly[0]}-${b.conditioning.weekly[1]}.${b.conditioning.needed ? " Today's finisher should be conditioning." : ""}`,
-    `Finisher: ${b.finisher.format}. Idea: ${b.finisher.idea}.`,
     "",
     b.anchors.length
-      ? `Anchors this block for this session, keep them: ${b.anchors.join(", ")}.`
+      ? `Main lifts this block for this session, keep them: ${b.anchors.join(", ")}.`
       : b.previousAnchors.length
-        ? `New block. Last block's anchors here were ${b.previousAnchors.join(", ")}. Keep any that are still progressing; swap any that stalled for a close variation.`
-        : "No anchors yet for this session in this block. Choose them from the anchor patterns and mark them.",
-    b.stalled.length ? `Stalled (no progress in three logged sessions): ${b.stalled.join(", ")}. If one is an anchor and this is week 1, swap it for a close variation; otherwise change its rep range.` : "",
-    b.readiness.length ? `Her last reply said: ${b.readiness.join("; ")}.` : "",
+        ? `New block. Last time this session's main lifts were ${b.previousAnchors.join(", ")}. Keep them unless one is listed as stalled; then use a close variation. Rotate everything else.`
+        : "No main lifts yet for this session. Choose them from the shape and keep them from now on.",
+    b.swapIn.length ? `Skipped twice in a row, so use the swap instead: ${b.swapIn.map((x) => `${x.name} becomes ${x.swap}`).join("; ")}.` : "",
+    b.stalled.length ? `Stalled (no progress in three logged sessions): ${b.stalled.join(", ")}. If one is a main lift and this is week 1, swap it for a close variation; otherwise keep going.` : "",
+    b.readiness.length ? `Her last log said: ${b.readiness.join("; ")}.` : "",
     b.pain.length ? `Pain she mentioned recently: ${b.pain.join("; ")}.` : "",
     b.likes.length ? `She said she liked: ${b.likes.join(", ")}.` : "",
-    b.dislikes.length ? `She said she did not like: ${b.dislikes.join(", ")}. Avoid these unless they are essential.` : "",
+    b.dislikes.length ? `She said she did not like: ${b.dislikes.join(", ")}. Avoid these.` : "",
     b.requests.length ? `She asked for: ${b.requests.join("; ")}.` : "",
   ];
 
@@ -206,7 +203,7 @@ ${targets || "None yet. Every load today is a first calibration."}
 RECENT SESSIONS, oldest first
 ${recent.length ? recent.map(sessionSummary).join("\n") : "None yet."}
 
-WHAT SHE WROTE AFTER RECENT SESSIONS, verbatim
+WHAT SHE WROTE ABOUT RECENT SESSIONS, verbatim
 ${notes.length ? notes.join("\n") : "Nothing."}`;
 
   return { system: SYSTEM, user };

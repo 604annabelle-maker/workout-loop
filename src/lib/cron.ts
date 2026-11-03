@@ -16,7 +16,6 @@ import { and, asc, inArray, lt, sql } from "drizzle-orm";
 import { db, schema } from "@/db";
 import { deliverWorkout } from "./delivery";
 import { pollReplies, type ReplyReport } from "./replies";
-import { sendWeeklyReview, type ReviewReport } from "./weekly";
 
 const { workouts } = schema;
 
@@ -34,7 +33,6 @@ export interface CronReport {
   failed: number;
   stale: number;
   replies: ReplyReport;
-  review: ReviewReport;
 }
 
 export async function runCron(now = new Date()): Promise<CronReport> {
@@ -45,7 +43,6 @@ export async function runCron(now = new Date()): Promise<CronReport> {
     failed: 0,
     stale: 0,
     replies: { polled: false, found: 0, filed: 0, ignored: 0, unmatched: 0, empty: 0, read: 0 },
-    review: { status: "not due" },
   };
 
   /*
@@ -99,17 +96,6 @@ export async function runCron(now = new Date()): Promise<CronReport> {
   } catch (err) {
     // A mailbox that is unreachable must not stop the retries that already ran.
     console.error("polling replies failed:", err);
-  }
-
-  /*
-   * Last, after the replies, so the week's final reply is in the review. Its
-   * own failure is its own: the workouts and replies above have already run.
-   */
-  try {
-    report.review = await sendWeeklyReview(now);
-  } catch (err) {
-    console.error("weekly review failed:", err);
-    report.review = { status: "failed", reason: String(err) };
   }
 
   return report;

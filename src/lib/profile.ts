@@ -31,8 +31,6 @@ export interface Preferences {
   cycleTracking: boolean;
   /** How many sessions a week open with jumps. 0 is none at all. */
   jumpDays: number;
-  /** A short progress email once a week. */
-  weeklyReview: boolean;
   /** Anything else, in her own words. */
   brief: string;
 }
@@ -49,7 +47,6 @@ export const EMPTY: Preferences = {
   enjoys: "",
   cycleTracking: false,
   jumpDays: 1,
-  weeklyReview: true,
   brief: "",
 };
 

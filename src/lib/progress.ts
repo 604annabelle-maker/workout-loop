@@ -2,19 +2,19 @@
  * Progress, measured.
  *
  * Pure. Everything here reads the training log (sessions, their plans and what
- * the replies said) and counts something: what each lift has done over time,
- * how many hard sets each muscle got this week, how many hard
- * minutes, what was a personal best.
+ * she logged) and counts something: what each lift has done over time, how
+ * many hard sets each muscle got this week, what was a personal best.
  *
- * Logged beats prescribed. When she replied with what she lifted, that is the
- * number. When she did not, the prescription stands in, marked as such,
- * because a week with no replies is still a week of training and should not
- * read as nothing.
+ * Only what she logged counts. "Done" means the sets as written, so a tap is
+ * enough; numbers she typed are what she did. An exercise she did not log
+ * counts for nothing, because nothing is assumed: the one exception is today's
+ * session in the weekly bars, counted as planned, since the bars are read in
+ * the gym about the week it completes.
  */
 
 import { matchExerciseName } from "./exercise-name";
 import {
-  exerciseKey,
+  progressionKey,
   setsDone,
   type BlockKind,
   type ExerciseKind,
@@ -22,6 +22,7 @@ import {
   type Plan,
   type PlanBlock,
   type PlanExercise,
+  type Role,
 } from "./plan";
 import { JUMPING } from "./program";
 import type { Effort, LoggedSet, ReplyLog } from "./reply-log";
@@ -31,18 +32,26 @@ const DAY = 24 * 60 * 60 * 1000;
 
 /** What the coach stamped on a session when it planned it. */
 export interface Stamp {
+  /** Which way of planning made it. Only the current one is read by the coach. */
+  method: number;
   typeId: string;
+  /** Where in the rotation it sat. */
+  rotationAt: number;
+  /** True when she asked for this session by hand. */
+  asked: boolean;
   block: number;
   week: number;
   /** ISO. When this block began. */
   blockStartedAt: string;
   deload: boolean;
-  /** The finisher format chosen, so its enjoyment can be credited. */
-  finisher: string;
 }
 
 /** One past session in the training log, oldest first wherever a list is. */
 export interface Session {
+  /** The workout row, when read from the database. */
+  id?: string;
+  /** The secret in its log buttons, so a later email can log it too. */
+  logToken?: string | null;
   at: Date;
   minutes: number;
   /** Null for a workout from before plans were structured. */
@@ -52,8 +61,10 @@ export interface Session {
   stamp: Stamp | null;
   /** What she wrote, verbatim. */
   notes: string[];
-  /** What she wrote, read. One per reply that said anything. */
+  /** What she logged or wrote, read. One per tap set or reply that said anything. */
   logs: ReplyLog[];
+  /** Counted as planned in the weekly bars: today's session, before it is done. */
+  planned?: boolean;
 }
 
 /** One time one exercise was done. */
@@ -64,11 +75,16 @@ export interface Performance {
   /** What was asked. */
   sets: number;
   reps: string;
+  /** The range the reps move through, "3-5". */
+  range: string;
+  role: Role;
   loadKg: number;
   /** What she said she did, or null when she did not say. */
   logged: LoggedSet[] | null;
   effort: Effort;
   skipped: boolean;
+  /** The swap that was offered with it, if any. */
+  swap: string;
   /** Empty for a workout from before plans were structured. */
   primary: Muscle[];
   kind: ExerciseKind;
@@ -81,10 +97,7 @@ export interface Performance {
  * for what it does, not for a number that has to go up every week.
  */
 export function isProgressed(p: Performance): boolean {
-  return (
-    p.kind === "lift" &&
-    (p.block === "strength" || p.block === "superset" || p.block === "circuit" || p.block === "core")
-  );
+  return p.kind === "lift" && p.role !== "warmup" && p.block !== "warmup" && p.block !== "cooldown";
 }
 
 /** "8-12" to [8, 12]. "6 each side" to [6, 6]. Time and distance to null. */
@@ -152,10 +165,13 @@ function legacyPerformances(session: Session): Performance[] {
         label: exercise.number,
         sets: sets ? Number(sets[1]) : 0,
         reps: sets ? sets[2].trim() : exercise.sets,
+        range: "",
+        role: "accessory",
         loadKg: load ? Number(load[1]) : 0,
         logged: null,
         effort: "",
         skipped: false,
+        swap: "",
         primary: [],
         kind: "lift",
         block: "strength",
@@ -165,19 +181,31 @@ function legacyPerformances(session: Session): Performance[] {
   return out;
 }
 
+export interface Logged {
+  /** What she did. Filled from the plan when she said "done" without numbers. */
+  sets: LoggedSet[] | null;
+  effort: Effort;
+  skipped: boolean;
+  /** She did the swap instead. */
+  swapped: boolean;
+  /** Anything was logged at all. */
+  any: boolean;
+}
+
+/** One set per set prescribed, at the target reps and load: what "done" means. */
+function asWritten(block: PlanBlock, exercise: PlanExercise, swap = false): LoggedSet[] {
+  const reps = Number((swap ? exercise.swap?.reps : exercise.reps)?.match(/\d+/)?.[0] ?? 0);
+  if (!reps) return [];
+  const weightKg = swap ? (exercise.swap?.loadKg ?? 0) : exercise.loadKg;
+  return Array.from({ length: setsDone(block, exercise) }, () => ({ weightKg, reps }));
+}
+
 /**
- * Which plan exercise a logged entry answers: by label, then by name.
- * Later replies about the same exercise win, since a correction comes second.
+ * What was logged for a plan exercise: by label, then by name. A later entry
+ * about the same exercise wins, since a correction comes second.
  */
-function loggedFor(
-  exercise: PlanExercise,
-  logs: ReplyLog[],
-): { sets: LoggedSet[] | null; effort: Effort; skipped: boolean } {
-  let found: { sets: LoggedSet[] | null; effort: Effort; skipped: boolean } = {
-    sets: null,
-    effort: "",
-    skipped: false,
-  };
+export function loggedFor(block: PlanBlock, exercise: PlanExercise, logs: ReplyLog[]): Logged {
+  let found: Logged = { sets: null, effort: "", skipped: false, swapped: false, any: false };
 
   for (const log of logs) {
     for (const entry of log.exercises) {
@@ -186,12 +214,21 @@ function loggedFor(
         !entry.label && entry.name && matchExerciseName([exercise.name], entry.name) !== null;
       if (!byLabel && !byName) continue;
 
+      const swapped = !!entry.swappedTo;
       found = {
-        sets: entry.sets.length > 0 ? entry.sets : found.sets,
-        effort: entry.effort || found.effort,
+        sets: entry.sets.length > 0 ? entry.sets : swapped === found.swapped ? found.sets : null,
+        effort: entry.effort || (swapped === found.swapped ? found.effort : ""),
         skipped: entry.skipped,
+        swapped,
+        any: true,
       };
     }
+  }
+
+  // "Done", "easy" or "hard" with no numbers: the sets as written.
+  if (found.any && !found.skipped && !found.sets && found.effort) {
+    const written = asWritten(block, exercise, found.swapped);
+    found.sets = written.length ? written : null;
   }
 
   return found;
@@ -203,18 +240,22 @@ export function performancesIn(session: Session): Performance[] {
   return session.plan.blocks
     .filter((b) => b.kind !== "warmup" && b.kind !== "cooldown")
     .flatMap((block) =>
-      block.exercises.map((exercise) => {
-        const logged = loggedFor(exercise, session.logs);
+      block.exercises.map((exercise): Performance => {
+        const logged = loggedFor(block, exercise, session.logs);
+        const swap = logged.swapped && exercise.swap ? exercise.swap : null;
         return {
           at: session.at,
-          name: exercise.name,
+          name: swap ? swap.name : exercise.name,
           label: exercise.label,
           sets: setsDone(block, exercise),
-          reps: exercise.reps,
-          loadKg: exercise.loadKg,
+          reps: swap ? swap.reps || exercise.reps : exercise.reps,
+          range: exercise.range,
+          role: swap ? "accessory" : exercise.role,
+          loadKg: swap ? swap.loadKg : exercise.loadKg,
           logged: logged.sets,
           effort: logged.effort,
           skipped: logged.skipped,
+          swap: swap ? "" : (exercise.swap?.name ?? ""),
           primary: exercise.primary,
           kind: exercise.kind,
           block: block.kind,
@@ -223,14 +264,14 @@ export function performancesIn(session: Session): Performance[] {
     );
 }
 
-/** Every exercise's history, keyed by movement, oldest first within each. */
+/** Every exercise's history, keyed by movement and role, oldest first within each. */
 export function historyByExercise(sessions: Session[]): Map<string, Performance[]> {
   const out = new Map<string, Performance[]>();
   const sorted = [...sessions].sort((a, b) => a.at.getTime() - b.at.getTime());
 
   for (const session of sorted) {
     for (const performance of performancesIn(session)) {
-      const key = exerciseKey(performance.name);
+      const key = progressionKey(performance.name, performance.role);
       if (!key) continue;
       const list = out.get(key) ?? [];
       list.push(performance);
@@ -243,7 +284,7 @@ export function historyByExercise(sessions: Session[]): Map<string, Performance[
 
 /** The plan blocks whose sets count toward muscle volume. */
 function countsForVolume(block: PlanBlock): boolean {
-  return block.kind === "strength" || block.kind === "superset" || block.kind === "circuit" || block.kind === "core";
+  return block.kind === "strength" || block.kind === "superset" || block.kind === "circuit" || block.kind === "core" || block.kind === "finisher";
 }
 
 function within(session: Session, from: Date, to: Date): boolean {
@@ -251,11 +292,22 @@ function within(session: Session, from: Date, to: Date): boolean {
 }
 
 /**
+ * How many sets of an exercise count toward the week: as many as she logged,
+ * the plan's own for a session counted as planned, and none otherwise.
+ */
+function countedSets(session: Session, block: PlanBlock, exercise: PlanExercise): number {
+  if (session.planned) return setsDone(block, exercise);
+  const logged = loggedFor(block, exercise, session.logs);
+  if (logged.skipped || !logged.any) return 0;
+  return logged.sets ? logged.sets.length : setsDone(block, exercise);
+}
+
+/**
  * Hard sets per muscle between two instants.
  *
  * A primary muscle counts a whole set, a secondary one half, which is how the
- * volume research counts them. A set she said she skipped counts nothing; a
- * set she logged counts as many as she logged.
+ * volume research counts them. A swap counts for the muscles of the exercise
+ * it stood in for.
  */
 export function setsPerMuscle(sessions: Session[], from: Date, to: Date): Record<Muscle, number> {
   const total = {} as Record<Muscle, number>;
@@ -269,9 +321,8 @@ export function setsPerMuscle(sessions: Session[], from: Date, to: Date): Record
       for (const exercise of block.exercises) {
         if (exercise.kind !== "lift" && exercise.kind !== "core" && exercise.kind !== "carry") continue;
 
-        const logged = loggedFor(exercise, session.logs);
-        if (logged.skipped) continue;
-        const sets = logged.sets ? logged.sets.length : setsDone(block, exercise);
+        const sets = countedSets(session, block, exercise);
+        if (sets === 0) continue;
 
         for (const m of exercise.primary) total[m] = (total[m] ?? 0) + sets;
         for (const m of exercise.secondary) total[m] = (total[m] ?? 0) + sets / 2;
@@ -294,9 +345,7 @@ export function hardSetsBetween(sessions: Session[], from: Date, to: Date): numb
       if (!countsForVolume(block)) continue;
       for (const exercise of block.exercises) {
         if (exercise.kind !== "lift" && exercise.kind !== "core" && exercise.kind !== "carry") continue;
-        const logged = loggedFor(exercise, session.logs);
-        if (logged.skipped) continue;
-        total += logged.sets ? logged.sets.length : setsDone(block, exercise);
+        total += countedSets(session, block, exercise);
       }
     }
   }
@@ -310,20 +359,6 @@ export function jumpSessionsBetween(sessions: Session[], from: Date, to: Date): 
       within(s, from, to) &&
       s.plan?.blocks.some((b) => b.exercises.some((e) => e.kind === "jump" || JUMPING.test(e.name))),
   ).length;
-}
-
-const HARD_FORMATS = new Set(["EMOM", "AMRAP", "intervals", "complex", "ladder", "circuit"]);
-
-/** Minutes of hard conditioning, from finishers that are hard by format. */
-export function hardMinutesBetween(sessions: Session[], from: Date, to: Date): number {
-  let total = 0;
-  for (const session of sessions) {
-    if (!within(session, from, to) || !session.plan) continue;
-    for (const block of session.plan.blocks) {
-      if (block.kind === "finisher" && HARD_FORMATS.has(block.format)) total += block.minutes;
-    }
-  }
-  return total;
 }
 
 export function sessionsBetween(sessions: Session[], from: Date, to: Date): number {
@@ -452,24 +487,6 @@ export function recentCheckIns(sessions: Session[]): { at: Date; log: ReplyLog }
     .sort((a, b) => b.at.getTime() - a.at.getTime());
 }
 
-/**
- * Average enjoyment per finisher format, from sessions where she rated it.
- * The coach leans toward what she rates highly.
- */
-export function enjoymentByFinisher(sessions: Session[]): Map<string, number> {
-  const scores = new Map<string, number[]>();
-  for (const s of sessions) {
-    const format = s.stamp?.finisher;
-    if (!format) continue;
-    for (const log of s.logs) {
-      if (log.checkIn.enjoyment > 0) {
-        scores.set(format, [...(scores.get(format) ?? []), log.checkIn.enjoyment]);
-      }
-    }
-  }
-  return new Map([...scores].map(([f, list]) => [f, list.reduce((a, b) => a + b, 0) / list.length]));
-}
-
 /** Most recent day a period start was logged, if any. */
 export function lastPeriodStart(sessions: Session[]): Date | null {
   let latest: Date | null = null;
@@ -481,6 +498,34 @@ export function lastPeriodStart(sessions: Session[]): Date | null {
     }
   }
   return latest;
+}
+
+/**
+ * How many times she has been given an exercise before `before`, by name.
+ * Pictures are shown the first few times, so she learns it, and then dropped.
+ */
+export function exposures(sessions: Session[], before: Date): Map<string, number> {
+  const out = new Map<string, number>();
+  for (const s of sessions) {
+    if (!s.plan || s.at >= before) continue;
+    for (const block of s.plan.blocks) {
+      for (const e of block.exercises) {
+        const key = progressionKey(e.name);
+        out.set(key, (out.get(key) ?? 0) + 1);
+      }
+    }
+  }
+  return out;
+}
+
+/**
+ * Sessions with nothing logged at all, newest first. The next email asks
+ * about them, since a forgotten log otherwise holds every weight where it is.
+ */
+export function unlogged(sessions: Session[]): Session[] {
+  return sessions
+    .filter((s) => s.plan && !s.planned && s.logs.every((l) => l.exercises.length === 0))
+    .sort((a, b) => b.at.getTime() - a.at.getTime());
 }
 
 export const DAY_MS = DAY;
