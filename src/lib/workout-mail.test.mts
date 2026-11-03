@@ -124,6 +124,14 @@ test("a near drawing carries its one line on what differs", () => {
   assert.match(mail({ pictures: [near] }).amp!, /<div class="howbody"><p class="cue">Brace\.<\/p><p class="shows">Shown seated; standing, it is the same press\.<\/p><table class="pics"/);
 });
 
+test("the bars fit a narrow phone: short numbers that never wrap", () => {
+  const { amp, html } = mail();
+  assert.match(amp!, /<td class="n( low)?">\d+(\.5)?\/12-16<\/td>/);
+  assert.match(amp!, /\.bars \.n\{[^}]*white-space:nowrap/);
+  assert.match(html, /white-space:nowrap">\d+(\.5)?\/12-16<\/td>/);
+  assert.ok(!amp!.includes(" of 12-16"));
+});
+
 test("photos are never shown, only drawings", () => {
   const photo: Pictured = { exercise: "DEADLIFT", shows: "", drawn: false, frames: [{ cid: "x@y", source: "p", file: "a.jpg", width: 400, height: 267 }] };
   assert.ok(!mail({ pictures: [photo] }).amp!.includes("amp-img"));
