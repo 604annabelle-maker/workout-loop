@@ -88,6 +88,23 @@ The workflow runs every fifteen minutes and can be triggered by hand from the
 Actions tab. Do that once after setting the secrets: a green tick means the
 retry sweep and the mailbox poll are both working in production.
 
+## 5b. Let Gmail show the dynamic email
+
+The workout email logs by tapping inside it, which Gmail only shows from a
+sender it has been told to allow. Once, on a computer, in the Gmail that
+receives the workouts:
+
+1. Settings, See all settings, General, **Dynamic email**: tick "Enable
+   dynamic email".
+2. Click **Developer settings** and add the workout address (the
+   `MAILBOX_ADDRESS`). Save Changes at the bottom.
+3. On the phone, Gmail, Settings, the account: check **Dynamic email** is on.
+
+The log buttons and the pictures in the dynamic email point at the app's
+production address. Vercel provides it as `VERCEL_PROJECT_PRODUCTION_URL`;
+set `APP_URL` in the Vercel environment only to use a different one. Without
+either, the email goes without its dynamic version and she logs by replying.
+
 ## 6. Connect the gym app
 
 In the **Ellé Fitness** Vercel project, add three variables:

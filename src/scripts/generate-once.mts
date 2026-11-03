@@ -15,7 +15,7 @@ const { buildBrief } = await import("../lib/coach.ts");
 const { readPreferences, EMPTY } = await import("../lib/preferences.ts");
 const { trainingLog, sessionsSent } = await import("../lib/workouts.ts");
 const { composeText } = await import("../lib/workout-mail.ts");
-const { snapshot, heardLines, lastLog } = await import("../lib/summary.ts");
+const { snapshot } = await import("../lib/summary.ts");
 const { plannedMinutes } = await import("../lib/plan.ts");
 const { SAMPLE } = await import("./sample.mts");
 
@@ -28,7 +28,8 @@ if (JSON.stringify(preferences) === JSON.stringify(EMPTY)) {
   preferences = SAMPLE;
 }
 
-const sessions = await trainingLog();
+const { current } = await import("../lib/coach.ts");
+const sessions = current(await trainingLog());
 const brief = buildBrief({ preferences, sessions, slot, sessionNumber: (await sessionsSent()) + 1 });
 
 console.log(`Slot: ${slot.startsAt.toISOString()}, ${minutes} minutes`);
@@ -45,7 +46,6 @@ const text = composeText({
   brief,
   slot,
   snapshot: snapshot(sessions, brief, slot.startsAt, plan),
-  heard: heardLines(lastLog(sessions)?.log ?? null),
 });
 
 console.log("─".repeat(70));

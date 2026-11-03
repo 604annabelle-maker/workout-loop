@@ -21,7 +21,6 @@ export async function updatePreferences(form: FormData) {
     enjoys: text("enjoys"),
     cycleTracking: form.get("cycleTracking") === "on",
     jumpDays: readJumpDays(form.get("jumpDays")),
-    weeklyReview: form.get("weeklyReview") === "on",
     brief: text("brief"),
   });
 

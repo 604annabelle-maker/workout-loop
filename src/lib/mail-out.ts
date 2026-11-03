@@ -65,12 +65,10 @@ export async function sendMail(mail: Mail): Promise<SendResult> {
        * bottom. nodemailer reads each one off disk and sends the message as
        * multipart/related.
        */
-      attachments: (mail.inline ?? []).map((picture) => ({
-        cid: picture.cid,
-        filename: picture.filename,
-        path: pictureFile(picture.file),
-        contentDisposition: "inline" as const,
-      })),
+      attachments: (mail.inline ?? []).flatMap((picture) => {
+        const path = pictureFile(picture.source, picture.file);
+        return path ? [{ cid: picture.cid, filename: picture.filename, path, contentDisposition: "inline" as const }] : [];
+      }),
     });
 
     return { sent: true, messageId: normalizeMessageId(info.messageId) };

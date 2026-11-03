@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { isEmptyLog, parseShorthand, readReplyLog, REPLY_LOG_SCHEMA, type Prescribed } from "./reply-log.ts";
+import { isEmptyLog, parseShorthand, readReplyLog, REPLY_LOG_SCHEMA, setsIn, type Prescribed } from "./reply-log.ts";
 
 const PLAN: Prescribed[] = [
   { label: "A", name: "HIP THRUST", sets: 4, loadKg: 60 },
@@ -11,7 +11,7 @@ const PLAN: Prescribed[] = [
 
 test("weight times reps, spaced, comma'd or slashed", () => {
   const log = parseShorthand("A 62.5 x 10 10 9\nB1 40x12,12,11\nC 30 kg x 12/12/12", PLAN);
-  assert.deepEqual(log.exercises.map((e) => [e.label, e.sets.map((s) => `${s.weightKg}x${s.reps}`).join(" ")]), [
+  assert.deepEqual(log.exercises.filter((e) => e.sets.length).map((e) => [e.label, e.sets.map((s) => `${s.weightKg}x${s.reps}`).join(" ")]), [
     ["A", "62.5x10 62.5x10 62.5x9"],
     ["B1", "40x12 40x12 40x11"],
     ["C", "30x12 30x12 30x12"],
@@ -42,7 +42,8 @@ test("effort words and skips are read", () => {
 
 test("labels are case insensitive, and a label not in the plan is left alone", () => {
   const log = parseShorthand("a 60 x 10\nZ 50 x 10", PLAN);
-  assert.deepEqual(log.exercises.map((e) => e.label), ["A"]);
+  assert.deepEqual(log.exercises.filter((e) => e.sets.length).map((e) => e.label), ["A"]);
+  assert.ok(!log.exercises.some((e) => e.label === "Z"));
 });
 
 test("check in ratings, symptoms and a period start", () => {
@@ -109,4 +110,52 @@ test("the schema closes every object, which structured output requires", () => {
     Object.values(n).forEach(walk);
   };
   walk(REPLY_LOG_SCHEMA);
+});
+
+test("done on its own means everything as written", () => {
+  const log = parseShorthand("Done", PLAN);
+  assert.deepEqual(log.exercises.map((e) => [e.label, e.effort, e.skipped]), [
+    ["A", "right", false],
+    ["B1", "right", false],
+    ["B2", "right", false],
+    ["C", "right", false],
+  ]);
+});
+
+test("naming only the exceptions means the rest were done", () => {
+  const log = parseShorthand("B1 hard 22 10 10 8\nC skip", PLAN);
+  const by = Object.fromEntries(log.exercises.map((e) => [e.label, e]));
+  assert.deepEqual(by.B1.sets, [
+    { weightKg: 22, reps: 10 },
+    { weightKg: 22, reps: 10 },
+    { weightKg: 22, reps: 8 },
+  ]);
+  assert.equal(by.B1.effort, "hard");
+  assert.equal(by.C.skipped, true);
+  assert.equal(by.A.effort, "right");
+  assert.equal(by.B2.effort, "right");
+});
+
+test("words about the day alone assume nothing", () => {
+  assert.equal(parseShorthand("Gym was packed today.", PLAN).exercises.length, 0);
+});
+
+test("sets are read wherever they sit among words", () => {
+  assert.deepEqual(setsIn("20kg 10 10 8", 15), [
+    { weightKg: 20, reps: 10 },
+    { weightKg: 20, reps: 10 },
+    { weightKg: 20, reps: 8 },
+  ]);
+  assert.deepEqual(setsIn("felt hard, 22 10 10 8", 15).map((s) => s.weightKg), [22, 22, 22]);
+  // Close numbers with no kg or x are reps at the load written.
+  assert.deepEqual(setsIn("12 12 10", 15), [
+    { weightKg: 15, reps: 12 },
+    { weightKg: 15, reps: 12 },
+    { weightKg: 15, reps: 10 },
+  ]);
+  assert.deepEqual(setsIn("17.5 8 8", 15).map((s) => [s.weightKg, s.reps]), [
+    [17.5, 8],
+    [17.5, 8],
+  ]);
+  assert.deepEqual(setsIn("did the swap", 15), []);
 });

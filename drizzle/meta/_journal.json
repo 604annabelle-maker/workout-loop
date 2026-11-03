@@ -29,6 +29,13 @@
       "when": 1793603858583,
       "tag": "0003_workout_focus",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1793688667387,
+      "tag": "0004_taps",
+      "breakpoints": true
     }
   ]
 }

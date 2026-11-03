@@ -25,32 +25,48 @@ test("the canned plan is a real plan that survives its own validation", () => {
   assert.deepEqual(readPlan(JSON.parse(JSON.stringify(plan))), plan);
   assert.deepEqual(
     plan.blocks.map((b) => b.kind),
-    ["warmup", "primer", "strength", "superset", "finisher"],
+    ["warmup", "strength", "superset"],
   );
 });
 
-test("the canned plan follows the rotation's half", () => {
-  // Four sessions a week stated, so the upper and lower split.
-  const four = { ...PREFS, trainingDaysPerWeek: 4 };
-  const after = (typeId: string) =>
-    buildBrief({ preferences: four, sessions: [session("2026-10-17T15:00:00Z", { stamp: stamp({ typeId }) })], slot: SLOT, sessionNumber: 2 });
-  assert.equal(cannedPlan(after("lower-glutes")).title, "Back and shoulders");
-  assert.equal(cannedPlan(after("upper-push")).title, "Glutes and hamstrings");
+test("the canned glutes day has its ab finisher", () => {
+  const after = buildBrief({ preferences: PREFS, sessions: [session("2026-10-17T15:00:00Z", { stamp: stamp({ typeId: "back-biceps", rotationAt: 0 }) })], slot: SLOT, sessionNumber: 2 });
+  assert.equal(after.session.id, "glutes-hams");
+  assert.deepEqual(cannedPlan(after).blocks.map((b) => b.kind), ["warmup", "strength", "superset", "core"]);
+});
+
+test("the canned plan follows the rotation", () => {
+  const after = (rotationAt: number) =>
+    buildBrief({ preferences: PREFS, sessions: [session("2026-10-17T15:00:00Z", { stamp: stamp({ rotationAt }) })], slot: SLOT, sessionNumber: 2 });
+  assert.equal(cannedPlan(after(0)).title, "Glutes + hamstrings");
+  assert.equal(cannedPlan(after(1)).title, "Chest + triceps");
+  assert.equal(cannedPlan(after(2)).title, "Quads + glutes");
 });
 
 test("the canned plan still gets the coach's loads", async () => {
   delete process.env.ANTHROPIC_API_KEY;
-  const four = { ...PREFS, trainingDaysPerWeek: 4 };
-  const sessions = [
-    session("2026-10-14T15:00:00Z", {
-      stamp: stamp({ typeId: "upper-push" }),
-      logs: [log({ exercises: [lifted("A", "HIP THRUST", 60, [10, 10, 10, 10])] })],
-    }),
-  ];
-  const b = buildBrief({ preferences: four, sessions, slot: SLOT, sessionNumber: 2 });
-  const { plan } = await generateWorkout({ preferences: four, sessions, brief: b, slot: SLOT });
-  const thrust = exercisesOf(plan).find((e) => e.name === "HIP THRUST")!;
-  assert.equal(thrust.loadKg, 65);
+  // Last quads day, the squat went 5, 5, 5, 5 at 50kg: the top of 3-5.
+  const squatDay = {
+    ...session("2026-10-14T15:00:00Z", { stamp: stamp({ typeId: "quads-glutes", rotationAt: 3 }) }),
+  };
+  squatDay.plan = {
+    ...squatDay.plan!,
+    blocks: squatDay.plan!.blocks.map((b) =>
+      b.kind === "strength"
+        ? { ...b, exercises: [{ ...b.exercises[1], label: "A", role: "heavy" as const, sets: 4, reps: "5", range: "3-5", loadKg: 50 }] }
+        : b,
+    ),
+  };
+  squatDay.logs = [log({ exercises: [lifted("A", "BARBELL SQUAT", 50, [5, 5, 5, 5])] })];
+  const sessions = [squatDay, session("2026-10-17T15:00:00Z", { stamp: stamp({ typeId: "chest-triceps", rotationAt: 6 }) })];
+  const b = buildBrief({ preferences: PREFS, sessions, slot: SLOT, sessionNumber: 3 });
+  assert.equal(b.session.id, "full-body");
+  const quads = buildBrief({ preferences: PREFS, sessions: [squatDay, session("2026-10-17T15:00:00Z", { stamp: stamp({ typeId: "chest-triceps", rotationAt: 2 }) })], slot: SLOT, sessionNumber: 3 });
+  assert.equal(quads.session.id, "quads-glutes");
+  const { plan } = await generateWorkout({ preferences: PREFS, sessions, brief: quads, slot: SLOT });
+  const squat = exercisesOf(plan).find((e) => e.name === "BARBELL SQUAT" && e.role === "heavy")!;
+  assert.equal(squat.loadKg, 52.5);
+  assert.equal(squat.reps, "3");
 });
 
 test("after a refusal fallback, only the answer after the marker counts", () => {

@@ -3,60 +3,72 @@
  *
  * The only place that knows where they live. Everything else works in file
  * names, so the choosing is pure (./exercise-pictures.ts) and the reading is
- * here.
+ * here. Two sets: line drawings, and photos for what the drawings miss.
  *
- * Never throws. A missing or unreadable set means a workout with no pictures,
- * which is the email this project sent for its first month and is still a
- * perfectly good workout. It must never mean no email.
+ * Never throws. A missing or unreadable set means a workout with fewer
+ * pictures, which is still a perfectly good workout. It must never mean no
+ * email.
  */
 
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import { picturesFor, type PictureIndex, type Pictured } from "./exercise-pictures";
+import { picturesFor, type PictureIndex, type Pictured, type Source } from "./exercise-pictures";
 
 /**
  * Relative to the process root, which is the project root both locally and in
- * a Vercel function. next.config.ts has to name this directory so the
- * deployment carries it; a function only ships the files it is traced to use,
- * and these are read by name rather than imported.
+ * a Vercel function. next.config.ts has to name these directories so the
+ * deployment carries them; a function only ships the files it is traced to
+ * use, and these are read by name rather than imported.
  */
-const DIRECTORY = path.join("assets", "exercise-pictures");
+const DRAWINGS = path.join("assets", "exercise-drawings");
+const PHOTOS = path.join("assets", "exercise-pictures");
+
+/*
+ * Each directory spelled out where it is joined, rather than looked up, so
+ * the build's file tracing sees exactly these two directories and not every
+ * file the project has.
+ */
+function directory(source: Source): string {
+  return source === "d" ? path.join(process.cwd(), DRAWINGS) : path.join(process.cwd(), PHOTOS);
+}
 
 const EMPTY: PictureIndex = { exercises: [] };
 
-let loaded: PictureIndex | null = null;
+const loaded: Partial<Record<Source, PictureIndex>> = {};
 
-/** Read once per process. 873 exercises of names, and it never changes. */
-function index(): PictureIndex {
-  if (loaded) return loaded;
+/** Read once per process. They never change. */
+function index(source: Source): PictureIndex {
+  const cached = loaded[source];
+  if (cached) return cached;
 
+  let result = EMPTY;
   try {
-    const file = path.join(process.cwd(), DIRECTORY, "index.json");
+    const file = path.join(directory(source), "index.json");
     const parsed = JSON.parse(readFileSync(file, "utf8")) as PictureIndex;
-    loaded = Array.isArray(parsed.exercises) ? parsed : EMPTY;
+    result = Array.isArray(parsed.exercises) ? parsed : EMPTY;
   } catch (err) {
-    console.error(`exercise pictures unavailable, sending without them: ${err}`);
-    loaded = EMPTY;
+    console.error(`exercise pictures (${source}) unavailable, sending without them: ${err}`);
   }
 
-  return loaded;
+  loaded[source] = result;
+  return result;
 }
 
-/** Where a vendored picture actually is, for the mailer to attach. */
-export function pictureFile(file: string): string {
-  return path.join(process.cwd(), DIRECTORY, path.basename(file));
+/**
+ * Where a vendored picture actually is, for the mailer to attach or the
+ * picture route to serve. Null for anything that is not a plain file name in
+ * one of the two sets, so a request cannot walk out of the directory.
+ */
+export function pictureFile(source: Source, file: string): string | null {
+  if (source !== "d" && source !== "p") return null;
+  const name = path.basename(file);
+  if (name !== file || !/^[\w.-]+\.(png|jpg)$/i.test(name)) return null;
+  return path.join(directory(source), name);
 }
 
 export function workoutPictures(exercises: string[]): Pictured[] {
-  const set = index();
-
-  /*
-   * No set at all is a different thing from no picture for an exercise. The
-   * mailer says so when a movement is missing from a set it searched, which is
-   * right; saying it under every exercise because the directory did not load
-   * would be noise about something she cannot do anything about.
-   */
-  if (set.exercises.length === 0) return [];
-
-  return picturesFor(set, exercises);
+  const photos = index("p");
+  const drawings = index("d");
+  if (photos.exercises.length === 0 && drawings.exercises.length === 0) return [];
+  return picturesFor(photos, exercises, drawings);
 }

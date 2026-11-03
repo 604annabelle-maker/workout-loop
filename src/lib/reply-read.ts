@@ -1,18 +1,16 @@
 /**
  * Reading a reply into a log.
  *
- * With an API key the model reads it, because she writes however she writes:
- * "hip thrusts were 70 all the way, last set only 7, felt amazing, period
- * started yesterday" is a perfectly good reply and no pattern reads it. The
- * plan goes in alongside, so "the second one" and "the RDLs" can be tied to
- * the right label.
- *
- * Without a key, the shorthand reader in ./reply-log.ts does what it can, so
- * the loop still runs offline.
+ * Replies are the backup now: she logs by tapping in the email. A reply in
+ * the short form ("done", "B1 hard 22 10 10 8, C1 skip") is read by the
+ * shorthand reader in ./reply-log.ts, for free. Only a reply that reader can
+ * make nothing of goes to the model, because she writes however she writes:
+ * "hip thrusts were 70 all the way, last set only 7, felt amazing" is a good
+ * reply and no pattern reads it.
  */
 
 import { askForJson } from "./claude";
-import { exercisesOf, type Plan } from "./plan";
+import { mainExercises, type Plan } from "./plan";
 import {
   REPLY_LOG_SCHEMA,
   parseShorthand,
@@ -39,6 +37,8 @@ Exercises:
 - effort: easy, right, hard or failed, only if she says so or it is plain
   ("couldn't finish the last set" is failed). Otherwise empty.
 - skipped is true only if she says she did not do it.
+- If she says "done", or names only some exercises, every other exercise in
+  the plan is done as written: an entry with effort right and no sets.
 
 Check in, each 1 to 5, 0 when not mentioned:
 - energy, sleep, soreness (5 is very sore), enjoyment (5 is loved it).
@@ -53,7 +53,7 @@ liked and disliked: movements or formats she said she enjoyed or did not.
 requests: anything she asks for next time, in her words, or empty.`;
 
 function describe(plan: Plan): string {
-  return exercisesOf(plan)
+  return mainExercises(plan)
     .map((e) => {
       const load = e.loadKg > 0 ? ` at ${e.loadKg}kg` : "";
       const sets = e.sets > 0 ? `${e.sets} x ${e.reps}` : e.reps;
@@ -63,7 +63,7 @@ function describe(plan: Plan): string {
 }
 
 export function prescribedOf(plan: Plan): Prescribed[] {
-  return exercisesOf(plan).map((e) => ({
+  return mainExercises(plan).map((e) => ({
     label: e.label,
     name: e.name,
     sets: e.sets,
@@ -76,9 +76,8 @@ export function prescribedOf(plan: Plan): Prescribed[] {
  * were structured; the reply is still read, just without labels to tie to.
  */
 export async function readReply(body: string, plan: Plan | null): Promise<ReplyLog> {
-  if (!process.env.ANTHROPIC_API_KEY) {
-    return parseShorthand(body, plan ? prescribedOf(plan) : []);
-  }
+  const short = parseShorthand(body, plan ? prescribedOf(plan) : []);
+  if (!process.env.ANTHROPIC_API_KEY || short.exercises.length > 0) return short;
 
   const user = `THE PLAN
 ${plan ? describe(plan) : "Not available. Tie nothing to labels."}

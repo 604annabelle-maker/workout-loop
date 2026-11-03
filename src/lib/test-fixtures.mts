@@ -21,7 +21,6 @@ export const PREFS: Preferences = {
   enjoys: "",
   cycleTracking: false,
   jumpDays: 0,
-  weeklyReview: true,
   brief: "",
 };
 
@@ -29,8 +28,10 @@ export function exercise(overrides: Partial<PlanExercise> & { name: string }): P
   return {
     label: "A",
     kind: "lift",
+    role: "accessory",
     sets: 3,
-    reps: "8-12",
+    reps: "10",
+    range: "8-12",
     loadKg: 40,
     loadNote: "",
     rir: 2,
@@ -40,7 +41,8 @@ export function exercise(overrides: Partial<PlanExercise> & { name: string }): P
     howTo: "Do it well.",
     primary: ["glutes"],
     secondary: [],
-    anchor: false,
+    anchor: overrides.role === "heavy" || overrides.role === "light",
+    swap: null,
     ...overrides,
   };
 }
@@ -57,32 +59,29 @@ export function block(overrides: Partial<PlanBlock> & { exercises: PlanExercise[
   };
 }
 
-/** A lower body plan: warm up, throws, a hip thrust anchor, an RDL and row superset, an EMOM. */
-export function lowerPlan(over: { thrustKg?: number; rdlKg?: number } = {}): Plan {
+/**
+ * The glutes day: a warm up, a heavy deadlift and a light squat, a hip thrust
+ * and leg curl superset, and an ab finisher.
+ */
+export function lowerPlan(over: { deadliftKg?: number; thrustKg?: number; deadliftReps?: string } = {}): Plan {
   return {
-    title: "Glutes and power",
-    focus: "Glutes, hamstrings",
-    why: "Glutes lead today.",
-    tip: "",
+    title: "Glutes + hamstrings",
+    focus: "glutes, hamstrings",
     blocks: [
       block({
         kind: "warmup",
         title: "Warm up",
         format: "circuit",
-        minutes: 6,
-        exercises: [exercise({ label: "W1", name: "BIKE", kind: "cardio", sets: 0, reps: "3 min", loadKg: 0, rir: -1, primary: [] })],
-      }),
-      block({
-        kind: "primer",
-        title: "Power primer",
-        minutes: 5,
-        exercises: [exercise({ label: "P1", name: "MED BALL SLAM", kind: "throw", sets: 4, reps: "6", loadKg: 6, rir: -1, primary: ["core"], secondary: ["back"] })],
+        minutes: 7,
+        exercises: [exercise({ label: "W1", name: "BIKE", kind: "cardio", role: "warmup", sets: 0, reps: "3 min", range: "", loadKg: 0, rir: -1, primary: [] })],
       }),
       block({
         kind: "strength",
-        title: "Glute strength",
+        title: "Main lifts",
+        minutes: 24,
         exercises: [
-          exercise({ label: "A", name: "HIP THRUST", sets: 4, reps: "6-10", loadKg: over.thrustKg ?? 60, primary: ["glutes"], secondary: ["hamstrings"], anchor: true }),
+          exercise({ label: "A", name: "DEADLIFT", role: "heavy", sets: 4, reps: over.deadliftReps ?? "3", range: "3-5", loadKg: over.deadliftKg ?? 60, rir: 2, primary: ["glutes", "hamstrings"], secondary: ["back"], swap: { name: "TRAP BAR DEADLIFT", reps: "3", loadKg: 60, loadNote: "", howTo: "" } }),
+          exercise({ label: "B", name: "BARBELL SQUAT", role: "light", sets: 3, reps: "6", range: "6-8", loadKg: 40, rir: 2, primary: ["quads"], secondary: ["glutes"], swap: { name: "GOBLET SQUAT", reps: "8", loadKg: 16, loadNote: "", howTo: "" } }),
         ],
       }),
       block({
@@ -92,17 +91,17 @@ export function lowerPlan(over: { thrustKg?: number; rdlKg?: number } = {}): Pla
         rounds: 3,
         minutes: 14,
         exercises: [
-          exercise({ label: "B1", name: "ROMANIAN DEADLIFT", sets: 3, reps: "8-12", loadKg: over.rdlKg ?? 40, primary: ["hamstrings", "glutes"] }),
-          exercise({ label: "B2", name: "CHEST SUPPORTED ROW", sets: 3, reps: "10-12", loadKg: 14, primary: ["back"], secondary: ["biceps"] }),
+          exercise({ label: "C1", name: "HIP THRUST", role: "second", sets: 3, reps: "8", range: "6-10", loadKg: over.thrustKg ?? 60, primary: ["glutes"], secondary: ["hamstrings"], swap: { name: "GLUTE BRIDGE", reps: "12", loadKg: 40, loadNote: "", howTo: "" } }),
+          exercise({ label: "C2", name: "SEATED LEG CURL", role: "accessory", sets: 3, reps: "10", range: "8-15", loadKg: 30, rir: 1, primary: ["hamstrings"], swap: { name: "LYING LEG CURL", reps: "10", loadKg: 25, loadNote: "", howTo: "" } }),
         ],
       }),
       block({
-        kind: "finisher",
-        title: "EMOM",
-        format: "EMOM",
-        rounds: 8,
-        minutes: 8,
-        exercises: [exercise({ label: "F1", name: "KETTLEBELL SWING", sets: 0, reps: "15", loadKg: 16, rir: -1, primary: ["glutes"] })],
+        kind: "core",
+        title: "Ab finisher",
+        format: "circuit",
+        rounds: 3,
+        minutes: 6,
+        exercises: [exercise({ label: "K1", name: "CABLE CRUNCH", kind: "core", role: "core", sets: 3, reps: "12", range: "8-15", loadKg: 20, primary: ["core"], swap: { name: "CRUNCH", reps: "15", loadKg: 0, loadNote: "", howTo: "" } })],
       }),
     ],
   };
@@ -118,12 +117,14 @@ export function log(over: Partial<ReplyLog> = {}): ReplyLog {
 
 export function stamp(over: Partial<Stamp> = {}): Stamp {
   return {
-    typeId: "full-glutes",
+    method: 2,
+    typeId: "glutes-hams",
+    rotationAt: 1,
+    asked: false,
     block: 1,
     week: 1,
     blockStartedAt: "2026-10-04T00:00:00.000Z",
     deload: false,
-    finisher: "EMOM",
     ...over,
   };
 }

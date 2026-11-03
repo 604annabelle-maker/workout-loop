@@ -32,12 +32,14 @@ const createdAt = () =>
  * `generated` — a plan exists but has not gone out.
  * `sent` — the email is away.
  * `failed` — gave up after three attempts, and said so.
+ * `preview` — a sample sent to look at, which never counts as training.
  */
 export const workoutStatus = pgEnum("workout_status", [
   "pending",
   "generated",
   "sent",
   "failed",
+  "preview",
 ]);
 
 /**
@@ -111,6 +113,16 @@ export const workouts = pgTable("workouts", {
   messageId: text("message_id"),
   /** Stored so the subject-line fallback has something to compare against. */
   subject: text("subject"),
+  /**
+   * What she logged by tapping in the email (lib/taps.ts): done, easy, hard,
+   * skipped or swapped per exercise, what she typed, and her comment.
+   */
+  taps: jsonb("taps"),
+  /**
+   * A random secret in the email's log buttons, so a tap can only ever be
+   * filed against the workout it came from. Unique, since it is the lookup.
+   */
+  logToken: text("log_token").unique(),
   attempts: integer("attempts").notNull().default(0),
   lastError: text("last_error"),
   createdAt: createdAt(),

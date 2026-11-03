@@ -181,10 +181,6 @@ export default async function PreferencesPage() {
 
         <fieldset style={{ ...group, border: 0, padding: 0, margin: "0 0 1.75rem" }}>
           <legend style={label}>Tracking</legend>
-          <label style={{ ...choice, display: "flex" }}>
-            <input type="checkbox" name="weeklyReview" defaultChecked={prefs.weeklyReview} />
-            Weekly review email on Sunday morning
-          </label>
           <label style={{ ...choice, display: "flex", alignItems: "flex-start" }}>
             <input type="checkbox" name="cycleTracking" defaultChecked={prefs.cycleTracking} />
             <span>

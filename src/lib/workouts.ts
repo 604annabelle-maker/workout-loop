@@ -10,7 +10,8 @@ import { and, count, desc, eq, gte, inArray } from "drizzle-orm";
 import { db, schema } from "@/db";
 import { readPlan, type Plan } from "./plan";
 import type { Session, Stamp } from "./progress";
-import { readReplyLog, type ReplyLog } from "./reply-log";
+import { readReplyLog, isEmptyLog, type ReplyLog } from "./reply-log";
+import { readTaps, tapsToLog } from "./taps";
 
 const { feedback, workouts } = schema;
 
@@ -26,25 +27,29 @@ function planOf(raw: unknown): Plan | null {
   }
 }
 
-function stampOf(raw: unknown): Stamp | null {
+export function stampOf(raw: unknown): Stamp | null {
   if (!raw || typeof raw !== "object") return null;
   const stamp = (raw as { stamp?: unknown }).stamp;
   if (!stamp || typeof stamp !== "object") return null;
   const s = stamp as Partial<Stamp>;
   if (typeof s.typeId !== "string" || typeof s.block !== "number") return null;
   return {
+    // Stamps from before methods were numbered are the first method.
+    method: typeof s.method === "number" ? s.method : 1,
     typeId: s.typeId,
+    rotationAt: typeof s.rotationAt === "number" ? s.rotationAt : -1,
+    asked: s.asked === true,
     block: s.block,
     week: typeof s.week === "number" ? s.week : 1,
     blockStartedAt: typeof s.blockStartedAt === "string" ? s.blockStartedAt : new Date(0).toISOString(),
     deload: s.deload === true,
-    finisher: typeof s.finisher === "string" ? s.finisher : "",
   };
 }
 
 /**
  * Sent sessions from the last `days`, oldest first, each with what was said
- * about it, verbatim and read.
+ * about it, verbatim and read: replies first, then what she tapped, so a tap
+ * made after a reply has the last word.
  *
  * Only workouts that were actually sent count. A failed one was never seen,
  * and a generated-but-unsent one is a delivery still in flight; neither says
@@ -61,6 +66,8 @@ export async function trainingLog(days = LOG_DAYS, now = new Date()): Promise<Se
       planText: workouts.planText,
       plan: workouts.plan,
       brief: workouts.brief,
+      taps: workouts.taps,
+      logToken: workouts.logToken,
     })
     .from(workouts)
     .where(and(eq(workouts.status, "sent"), gte(workouts.slotStartsAt, since)))
@@ -86,14 +93,17 @@ export async function trainingLog(days = LOG_DAYS, now = new Date()): Promise<Se
   return rows.reverse().map((row) => {
     const plan = planOf(row.plan);
     const said = byWorkout.get(row.id);
+    const tapped = plan ? tapsToLog(plan, readTaps(row.taps)) : null;
     return {
+      id: row.id,
+      logToken: row.logToken,
       at: row.slotStartsAt,
       minutes: row.slotMinutes,
       plan,
       legacyText: plan ? "" : (row.planText ?? ""),
       stamp: stampOf(row.brief),
-      notes: said?.bodies ?? [],
-      logs: said?.logs ?? [],
+      notes: [...(said?.bodies ?? []), ...(tapped?.notes ?? [])],
+      logs: [...(said?.logs ?? []), ...(tapped && !isEmptyLog(tapped.log) ? [tapped.log] : [])],
     };
   });
 }

@@ -31,9 +31,10 @@ test("the frames carry a content id per file, in order", () => {
   const [squat] = picturesFor(INDEX, PLAN);
 
   assert.deepEqual(squat.frames, [
-    { cid: "exercise-barbell-squat-0@workout-loop", file: "Barbell_Squat-0.jpg" },
-    { cid: "exercise-barbell-squat-1@workout-loop", file: "Barbell_Squat-1.jpg" },
+    { cid: "exercise-barbell-squat-0@workout-loop", source: "p", file: "Barbell_Squat-0.jpg", width: 400, height: 300 },
+    { cid: "exercise-barbell-squat-1@workout-loop", source: "p", file: "Barbell_Squat-1.jpg", width: 400, height: 300 },
   ]);
+  assert.equal(squat.drawn, false);
 });
 
 test("a picture of the movement as asked for needs no caption", () => {
@@ -73,4 +74,34 @@ test("gym names the set spells differently go to the right picture", () => {
   assert.equal(plank.frames[0].file, "b.jpg");
   assert.equal(plank.shows, "Side Bridge");
   assert.equal(carry.frames[0].file, "c.jpg");
+});
+
+const DRAWINGS: PictureIndex = {
+  exercises: [
+    { id: "0122", name: "Barbell Squat", files: ["0122-0.png", "0122-1.png"], sizes: [[400, 315], [400, 320]] },
+    { id: "0081", name: "Bench Press: Barbell", files: ["0081-0.png", "0081-1.png"] },
+    { id: "0090", name: "Rear Deltoid Row Dumbbell", files: ["0090-0.png", "0090-1.png"] },
+  ],
+};
+
+test("a drawing wins over a photo, and carries its size", () => {
+  const [squat] = picturesFor(INDEX, ["BARBELL SQUAT"], DRAWINGS);
+  assert.equal(squat.drawn, true);
+  assert.equal(squat.shows, "");
+  assert.deepEqual(squat.frames[0], { cid: "drawing-0122-0@workout-loop", source: "d", file: "0122-0.png", width: 400, height: 315 });
+});
+
+test("gym names reach the drawing checked for them, with no caption", () => {
+  const [bench, row, rdl] = picturesFor(INDEX, ["BENCH PRESS", "ONE-ARM DUMBBELL ROW", "ROMANIAN DEADLIFT"], DRAWINGS);
+  assert.equal(bench.frames[0].file, "0081-0.png");
+  assert.equal(row.frames[0].file, "0090-0.png");
+  assert.equal(row.shows, "");
+  // No drawing for it: the photo, as before.
+  assert.equal(rdl.drawn, false);
+  assert.equal(rdl.frames[0].file, "Romanian_Deadlift-0.jpg");
+});
+
+test("a drawing is never matched by a few shared words", () => {
+  const [curl] = picturesFor({ exercises: [] }, ["SQUAT CURL"], DRAWINGS);
+  assert.equal(curl.frames.length, 0);
 });

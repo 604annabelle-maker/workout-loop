@@ -1,27 +1,123 @@
 /**
- * Choosing which pictures go with a workout (design §Image attachments).
+ * Choosing which pictures go with a workout.
  *
- * Pure. The pictures themselves are vendored into assets/exercise-pictures by
- * `npm run vendor:pictures`; reading them off disk is ./picture-library.ts.
+ * Pure. Two vendored sets: line drawings (Everkinetic, assets/exercise-drawings,
+ * `npm run vendor:drawings`), which she chose, and photos (free-exercise-db,
+ * assets/exercise-pictures, `npm run vendor:pictures`), kept for the lifts the
+ * drawings do not cover. Reading them off disk is ./picture-library.ts.
  *
- * Only the main exercises get pictures. Warm ups and stretches are short
- * items rather than movements to learn, and a picture beside every one of
- * them would bury the session itself.
- *
- * An exercise with no picture says so. Silently dropping one is worse than
- * admitting it, because on a phone with no browser there is no way to go and
- * look it up, and a gap with no explanation reads as a broken email.
+ * Drawings are matched only by an exact name or a name checked by hand
+ * below, because a near match in a set of 268 is as likely to be a different
+ * movement as the right one. Photos, a set of 873, are matched by words, and
+ * a photo of something other than what was asked says what it shows.
  */
 
 import { matchExerciseName, normalizeExerciseName } from "./exercise-name";
 
 /**
- * Gym names the picture set spells differently, where word matching would
- * otherwise pick the wrong movement. "SIDE PLANK" shares every word with
- * "Push Up to Side Plank", which is a different exercise; the set's side
- * plank is called a side bridge.
+ * Gym names, and the drawing of exactly that movement. Each was checked
+ * against the drawing itself, so a hit here is shown without a caption.
  */
-const ALIASES: Record<string, string> = {
+export const DRAWING_ALIASES: Record<string, string> = {
+  squat: "Barbell Squat",
+  "back squat": "Barbell Squat",
+  "barbell back squat": "Barbell Squat",
+  "barbell squat": "Barbell Squat",
+  "high bar squat": "Barbell Squat",
+  "front squat": "Front Squat with Barbell",
+  "barbell front squat": "Front Squat with Barbell",
+  "hack squat": "Hack Squat: Machine",
+  "machine hack squat": "Hack Squat: Machine",
+  deadlift: "Dead Lifts: Barbell",
+  "barbell deadlift": "Dead Lifts: Barbell",
+  "conventional deadlift": "Dead Lifts: Barbell",
+  "romanian deadlift": "Romanian Dead Lift",
+  "barbell romanian deadlift": "Romanian Dead Lift",
+  rdl: "Romanian Dead Lift",
+  "glute bridge": "Bridging",
+  "bench press": "Bench Press: Barbell",
+  "barbell bench press": "Bench Press: Barbell",
+  "dumbbell bench press": "Bench Press: Dumbbell",
+  "close grip bench press": "Bench Press: Barbell (Close Grip)",
+  "incline bench press": "Bench Press: Barbell (Incline)",
+  "incline barbell bench press": "Bench Press: Barbell (Incline)",
+  "incline dumbbell press": "Incline Dumbbell Press",
+  "incline dumbbell bench press": "Incline Dumbbell Press",
+  "seated overhead press": "Seated Military Press",
+  "seated barbell overhead press": "Seated Military Press",
+  "seated military press": "Seated Military Press",
+  "pull up": "Pull Ups",
+  "assisted pull up": "Pull Ups",
+  "weighted pull up": "Pull Ups",
+  "underhand lat pulldown": "Pull Down: Underhand",
+  "close grip lat pulldown": "Pull Down: V Bar",
+  "v bar lat pulldown": "Pull Down: V Bar",
+  "seated cable row": "Seated Cable Rows",
+  "cable row": "Seated Cable Rows",
+  "one arm dumbbell row": "Rear Deltoid Row Dumbbell",
+  "single arm dumbbell row": "Rear Deltoid Row Dumbbell",
+  "dumbbell row": "Rear Deltoid Row Dumbbell",
+  "t bar row": "T-Bar Rows",
+  "barbell curl": "Biceps Curl: Barbell",
+  "barbell biceps curl": "Biceps Curl: Barbell",
+  "ez bar curl": "EZ Bar Curl with Barbell",
+  "dumbbell curl": "Biceps Curl: Dumbbell",
+  "dumbbell biceps curl": "Biceps Curl: Dumbbell",
+  "incline curl": "Alternating Incline Curl with Dumbbell",
+  "incline dumbbell curl": "Alternating Incline Curl with Dumbbell",
+  "hammer curl": "Biceps Curl: Dumbbell (Hammer)",
+  "dumbbell hammer curl": "Biceps Curl: Dumbbell (Hammer)",
+  "rope hammer curl": "Hammer Curls with Rope and Cable",
+  "cable curl": "Standing Biceps Curl with Cable",
+  "cable biceps curl": "Standing Biceps Curl with Cable",
+  "preacher curl": "Preacher Curl: Barbell",
+  "concentration curl": "Concentration Curls with Dumbbell",
+  "zottman curl": "Zottman Curl with Dumbbells",
+  "triceps pushdown": "Triceps Pushdown: Cable",
+  "cable triceps pushdown": "Triceps Pushdown: Cable",
+  "rope pushdown": "Triceps Pushdown: Cable (Rope)",
+  "rope triceps pushdown": "Triceps Pushdown: Cable (Rope)",
+  "overhead triceps extension": "Triceps Extension: Dumbbell (Standing)",
+  "dumbbell overhead triceps extension": "Triceps Extension: Dumbbell (Standing)",
+  "overhead dumbbell triceps extension": "Triceps Extension: Dumbbell (Standing)",
+  "skull crusher": "Lying Triceps Press with Barbell",
+  "ez bar skull crusher": "Lying Triceps Press with Barbell",
+  "lying triceps extension": "Lying Triceps Press with Barbell",
+  "triceps kickback": "Triceps Kickback with Dumbbell",
+  "lateral raise": "Lateral Dumbbell Raises",
+  "dumbbell lateral raise": "Lateral Dumbbell Raises",
+  "rear delt fly": "Bent Over Rear Deltoid Raise With Head On Bench",
+  "leg press": "Leg Press",
+  "leg extension": "Leg Extensions",
+  "lying leg curl": "Lying Leg Curl Machine",
+  "seated leg curl": "Seated Leg Curl",
+  "bulgarian split squat": "One Leg Squat with Barbell",
+  "walking lunge": "Lunges: Dumbbell (Walking)",
+  "dumbbell walking lunge": "Lunges: Dumbbell (Walking)",
+  "reverse lunge": "Lunges: Dumbbell (Rear)",
+  "dumbbell reverse lunge": "Lunges: Dumbbell (Rear)",
+  "step up": "Step Ups: Dumbbell",
+  "dumbbell step up": "Step Ups: Dumbbell",
+  "hip abduction": "Thigh Abductor",
+  "seated hip abduction": "Thigh Abductor",
+  "hip abduction machine": "Thigh Abductor",
+  "standing calf raise": "Standing Calf Raises using Machine",
+  "seated calf raise": "Seated Calf Raise using Machine",
+  crunch: "Crunches",
+  "cable crunch": "Seated Ab Crunch with Cable",
+  "side plank": "Side Plank",
+  "back extension": "Hyperextensions",
+  "triceps dips": "Triceps Dips: Body Weight",
+  "bench dips": "Bench Dips",
+  "push up": "Push Up: Body Weight",
+};
+
+/**
+ * Gym names the photo set spells differently, where word matching would
+ * otherwise pick the wrong movement. "SIDE PLANK" shares every word with
+ * "Push Up to Side Plank", which is a different exercise.
+ */
+const PHOTO_ALIASES: Record<string, string> = {
   "side plank": "Side Bridge",
   "farmer carry": "Farmer's Walk",
   "farmers carry": "Farmer's Walk",
@@ -30,67 +126,99 @@ const ALIASES: Record<string, string> = {
   "medicine ball slam": "Overhead Slam",
 };
 
-/** One exercise in the vendored set, as index.json records it. */
+/** One exercise in a vendored set, as index.json records it. */
 export interface PictureSet {
   id: string;
   name: string;
-  /** File names, in order: the start of the movement, then the end. */
+  /** File names, in order. */
   files: string[];
+  /** [width, height] of each file, in pixels. */
+  sizes?: [number, number][];
 }
 
 export interface PictureIndex {
   exercises: PictureSet[];
 }
 
+/** Which set a picture is from: d for drawings, p for photos. */
+export type Source = "d" | "p";
+
 export interface Frame {
-  /** The Content-ID the HTML refers to, without angle brackets. */
+  /** The Content-ID the plain HTML refers to, without angle brackets. */
   cid: string;
+  source: Source;
   file: string;
+  width: number;
+  height: number;
 }
 
 export interface Pictured {
   /** The exercise as prescribed, which is how the renderer finds its place. */
   exercise: string;
   /**
-   * What the pictures are actually of. Empty when it is the same movement
-   * under the same name, which is the usual case and needs no caption.
+   * What the pictures are actually of. Empty when it is the same movement,
+   * which is the usual case and needs no caption.
    */
   shows: string;
-  /** Empty when nothing in the set matched. */
+  /** Empty when nothing in either set matched. */
   frames: Frame[];
+  /** True when they are the line drawings, which need a credit. */
+  drawn: boolean;
 }
 
 /** Stable, so the same plan always produces the same message. */
-function cidFor(id: string, frame: number): string {
-  return `exercise-${id.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${frame}@workout-loop`;
+function cidFor(source: Source, id: string, frame: number): string {
+  return `${source === "d" ? "drawing" : "exercise"}-${id.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${frame}@workout-loop`;
+}
+
+function framesOf(set: PictureSet, source: Source): Frame[] {
+  return set.files.map((file, frame) => {
+    const [width, height] = set.sizes?.[frame] ?? [400, 300];
+    return { cid: cidFor(source, set.id, frame), source, file, width, height };
+  });
+}
+
+/** Keyed the way names are compared, so "RDL" and "BICEPS CURL" find theirs. */
+const byKey = (aliases: Record<string, string>) =>
+  new Map(Object.entries(aliases).map(([k, v]) => [normalizeExerciseName(k), v]));
+const DRAWN = byKey(DRAWING_ALIASES);
+const PHOTOGRAPHED = byKey(PHOTO_ALIASES);
+
+/** The drawing for an exercise, by a checked alias or an exact name, or null. */
+function drawingFor(drawings: PictureIndex, exercise: string): PictureSet | null {
+  const key = normalizeExerciseName(exercise);
+  const alias = DRAWN.get(key);
+  const wanted = alias ? normalizeExerciseName(alias) : key;
+  return drawings.exercises.find((d) => normalizeExerciseName(d.name) === wanted) ?? null;
 }
 
 /**
- * Pictures for the exercises named, in the order named. The caller decides
- * which exercises deserve one; warm up items do not.
+ * Pictures for the exercises named, in the order named: the drawing when
+ * there is one, otherwise the closest photo. The caller decides which
+ * exercises deserve one.
  */
-export function picturesFor(index: PictureIndex, exercises: string[]): Pictured[] {
-  const names = index.exercises.map((e) => e.name);
+export function picturesFor(photos: PictureIndex, exercises: string[], drawings: PictureIndex = { exercises: [] }): Pictured[] {
+  const names = photos.exercises.map((e) => e.name);
 
   return [...new Set(exercises)].map((exercise) => {
-    const alias = ALIASES[normalizeExerciseName(exercise)];
+    const drawing = drawingFor(drawings, exercise);
+    if (drawing) return { exercise, shows: "", frames: framesOf(drawing, "d"), drawn: true };
+
+    const alias = PHOTOGRAPHED.get(normalizeExerciseName(exercise));
     const aliased = alias ? names.indexOf(alias) : -1;
     const match = aliased !== -1 ? { at: aliased } : matchExerciseName(names, exercise);
 
-    if (!match) return { exercise, shows: "", frames: [] };
+    if (!match) return { exercise, shows: "", frames: [], drawn: false };
 
-    const found = index.exercises[match.at];
+    const found = photos.exercises[match.at];
 
     return {
       exercise,
       // Named whenever the picture is not of exactly the movement asked for,
-      // so a near-enough movement never passes as the one prescribed. A match
-      // that covers every word asked for can still be a different exercise.
+      // so a near-enough movement never passes as the one prescribed.
       shows: normalizeExerciseName(found.name) === normalizeExerciseName(exercise) ? "" : found.name,
-      frames: found.files.map((file, frame) => ({
-        cid: cidFor(found.id, frame),
-        file,
-      })),
+      frames: framesOf(found, "p"),
+      drawn: false,
     };
   });
 }

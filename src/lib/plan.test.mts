@@ -6,7 +6,9 @@ import {
   PLAN_SCHEMA,
   plannedMinutes,
   PlanError,
+  progressionKey,
   readPlan,
+  removeBanned,
   setsDone,
 } from "./plan.ts";
 import { lowerPlan } from "./test-fixtures.mts";
@@ -66,19 +68,19 @@ test("the main exercises leave out the warm up and cool down", () => {
   const names = mainExercises(lowerPlan()).map((e) => e.name);
   assert.ok(!names.includes("BIKE"));
   assert.ok(names.includes("HIP THRUST"));
-  assert.ok(names.includes("MED BALL SLAM"));
+  assert.ok(names.includes("CABLE CRUNCH"));
 });
 
 test("sets come from the exercise, or the block's rounds when it has none", () => {
   const plan = lowerPlan();
-  const finisher = plan.blocks.find((b) => b.kind === "finisher")!;
   const strength = plan.blocks.find((b) => b.kind === "strength")!;
-  assert.equal(setsDone(finisher, finisher.exercises[0]), 8);
+  const rounds = { ...strength, rounds: 8, exercises: [{ ...strength.exercises[0], sets: 0 }] };
+  assert.equal(setsDone(rounds, rounds.exercises[0]), 8);
   assert.equal(setsDone(strength, strength.exercises[0]), 4);
 });
 
 test("planned minutes add up the blocks", () => {
-  assert.equal(plannedMinutes(lowerPlan()), 6 + 5 + 15 + 14 + 8);
+  assert.equal(plannedMinutes(lowerPlan()), 7 + 24 + 14 + 6);
 });
 
 test("the schema closes every object, which structured output requires", () => {
@@ -98,4 +100,71 @@ test("the schema offers jump, and the coach decides where it may stay", () => {
   const kinds = PLAN_SCHEMA.properties.blocks.items.properties.exercises.items.properties.kind.enum as readonly string[];
   assert.ok(kinds.includes("jump"));
   assert.ok(kinds.includes("throw"));
+});
+
+test("roles come from the field, or from anchor and block kind in older plans", () => {
+  const plan = readPlan({
+    blocks: [
+      { kind: "warmup", exercises: [{ name: "BIKE" }] },
+      { kind: "strength", exercises: [{ name: "SQUAT", role: "heavy", reps: "5", range: "3-5" }, { name: "HIP THRUST", anchor: true, reps: "6-10" }] },
+      { kind: "core", exercises: [{ name: "DEAD BUG" }] },
+      { kind: "superset", exercises: [{ name: "CURL" }] },
+    ],
+  });
+  const [bike, squat, thrust, bug, curl] = exercisesOf(plan);
+  assert.deepEqual([bike.role, squat.role, thrust.role, bug.role, curl.role], ["warmup", "heavy", "heavy", "core", "accessory"]);
+  assert.equal(squat.anchor, true);
+  // An older plan's range was its reps.
+  assert.equal(thrust.range, "6-10");
+});
+
+test("a swap is kept, unless it is empty, the same movement, or on a warm up item", () => {
+  const plan = readPlan({
+    blocks: [
+      { kind: "warmup", exercises: [{ name: "BIKE", swap: { name: "ROWER" } }] },
+      {
+        kind: "strength",
+        exercises: [
+          { name: "bench press", swap: { name: "dumbbell bench press", reps: "8", loadKg: 14 } },
+          { name: "SQUAT", swap: { name: "" } },
+          { name: "CURL", swap: { name: "curl" } },
+        ],
+      },
+    ],
+  });
+  const [bike, bench, squat, curl] = exercisesOf(plan);
+  assert.equal(bike.swap, null);
+  assert.deepEqual(bench.swap, { name: "DUMBBELL BENCH PRESS", reps: "8", loadKg: 14, loadNote: "", howTo: "" });
+  assert.equal(squat.swap, null);
+  assert.equal(curl.swap, null);
+});
+
+test("what she banned comes out: a chest pad exercise becomes its swap, a banned swap goes", () => {
+  const plan = readPlan({
+    blocks: [
+      {
+        kind: "superset",
+        exercises: [
+          { name: "CHEST SUPPORTED DUMBBELL ROW", swap: { name: "ONE ARM DUMBBELL ROW", reps: "10", loadKg: 16 } },
+          { name: "INCLINE CURL", swap: { name: "SPIDER CURL", reps: "10", loadKg: 6 } },
+          { name: "MEDICINE BALL CHEST PASS" },
+        ],
+      },
+    ],
+  });
+  const names = exercisesOf(removeBanned(plan)).map((e) => [e.name, e.swap?.name ?? null]);
+  assert.deepEqual(names, [
+    ["ONE ARM DUMBBELL ROW", null],
+    ["INCLINE CURL", null],
+  ]);
+});
+
+test("a session that was nothing but banned exercises is written again", () => {
+  const plan = readPlan({ blocks: [{ kind: "superset", exercises: [{ name: "SEAL ROW" }] }] });
+  assert.throws(() => removeBanned(plan), PlanError);
+});
+
+test("the light day of a lift keeps its own progression", () => {
+  assert.notEqual(progressionKey("BENCH PRESS", "light"), progressionKey("BENCH PRESS", "heavy"));
+  assert.equal(progressionKey("BENCH PRESS", "heavy"), progressionKey("Bench Press"));
 });
