@@ -94,11 +94,13 @@ test("no frame around the email: it uses the whole of a small screen", () => {
   assert.match(amp!, /body\{[^}]*margin:0;padding:0 2px\}/);
 });
 
-test("the drawings are behind How to, full width, one frame under the other, with the credit", () => {
+test("the drawings are behind How to, small and side by side, with the credit", () => {
   const amp = mail().amp!;
   const how = amp.slice(amp.indexOf('<amp-accordion class="how"'), amp.indexOf("</amp-accordion>", amp.indexOf('<amp-accordion class="how"')));
   assert.match(how, /<h4>How to &#9662;<\/h4>/);
-  assert.equal(how.match(/<div class="frame"><amp-img /g)?.length, 2);
+  assert.equal(how.match(/<td><div class="frame"><amp-img /g)?.length, 2);
+  assert.match(how, /<table class="pics" role="presentation"><tr><td>/);
+  assert.match(amp, /\.pics\{width:100%;max-width:320px/);
   assert.match(how, /<amp-img src="https:\/\/workout\.example\.app\/pictures\/d\/0001-0\.png" alt="DEADLIFT" width="400" height="315" layout="responsive">/);
   assert.match(amp, /Everkinetic/);
 });
@@ -111,7 +113,7 @@ test("without a drawing, How to opens on two plain sentences; with no words eith
 
 test("a near drawing carries its one line on what differs", () => {
   const near: Pictured = { ...DRAWN, shows: "Shown seated; standing, it is the same press." };
-  assert.match(mail({ pictures: [near] }).amp!, /<div class="howbody"><p class="shows">Shown seated; standing, it is the same press\.<\/p><div class="frame">/);
+  assert.match(mail({ pictures: [near] }).amp!, /<div class="howbody"><p class="shows">Shown seated; standing, it is the same press\.<\/p><table class="pics"/);
 });
 
 test("photos are never shown, only drawings", () => {

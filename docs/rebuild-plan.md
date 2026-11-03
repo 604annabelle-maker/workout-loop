@@ -48,8 +48,8 @@ this is what the app does.
   the medicine ball chest pass.
 - Her saved equipment list stays.
 - Jumps once a week, in the warm up.
-- Line drawings behind a tap ("How to"), full width, one frame under the
-  other; two plain sentences where there is no drawing. (Changed after the
+- Line drawings behind a tap ("How to"), two frames small and side by side;
+  two plain sentences where there is no drawing. (Changed after the
   first preview: the photos, and two frames side by side, were too small and
   cluttered on her phone, so photos are gone and the drawings open on a tap.)
 - All drawings come from the one set she liked (Everkinetic). Where it draws

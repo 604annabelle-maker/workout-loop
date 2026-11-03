@@ -73,7 +73,9 @@ body{font-family:Arial,Helvetica,sans-serif;color:${C.ink};background-color:${C.
 .up{color:${C.up}}
 .down{color:${C.warn}}
 .howbody{margin:4px 0 0}
-.frame{margin:0 0 6px;border:1px solid ${C.rule};border-radius:6px}
+.pics{width:100%;max-width:320px;border-collapse:collapse}
+.pics td{width:50%;padding:0 4px 0 0;vertical-align:top}
+.frame{border:1px solid ${C.rule};border-radius:6px}
 .howto{margin:0 0 4px;font-size:14px;color:${C.muted}}
 .shows{margin:0 0 6px;font-size:13px;color:${C.muted};font-style:italic}
 .pills{margin:10px 0 0}
@@ -123,21 +125,21 @@ function drawingOf(input: MailInput, e: PlanExercise): Pictured | undefined {
 
 /**
  * "How to", closed until she taps it, so the pictures take no room until she
- * wants one. Open, the drawing fills the width, one frame under the other,
- * because two side by side were too small to see on her phone. Without a
- * drawing, two plain sentences instead.
+ * wants one. Open, the two frames sit small, side by side, as she asked once
+ * she had seen them full width. Without a drawing, two plain sentences.
  */
 function howTo(input: MailInput, e: PlanExercise): string {
   const drawing = drawingOf(input, e);
   if (!drawing && !e.howTo) return "";
   const note = drawing?.shows ? `<p class="shows">${esc(drawing.shows)}</p>` : "";
+  const cells = drawing?.frames
+    .map(
+      (f) =>
+        `<td><div class="frame"><amp-img src="${input.log!.base}/pictures/${f.source}/${encodeURIComponent(f.file)}" alt="${esc(e.name)}" width="${f.width}" height="${f.height}" layout="responsive"></amp-img></div></td>`,
+    )
+    .join("");
   const body = drawing
-    ? note + drawing.frames
-        .map(
-          (f) =>
-            `<div class="frame"><amp-img src="${input.log!.base}/pictures/${f.source}/${encodeURIComponent(f.file)}" alt="${esc(e.name)}" width="${f.width}" height="${f.height}" layout="responsive"></amp-img></div>`,
-        )
-        .join("")
+    ? `${note}<table class="pics" role="presentation"><tr>${cells}</tr></table>`
     : `<p class="howto">${esc(e.howTo)}</p>`;
   return `<amp-accordion class="how" animate>
 <section>
