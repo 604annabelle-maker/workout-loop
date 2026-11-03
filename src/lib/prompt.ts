@@ -29,6 +29,8 @@ export interface PromptInput {
   sessions: Session[];
   brief: Brief;
   slot: { startsAt: Date; minutes: number };
+  /** Gym names that come with a drawing she can open. */
+  drawn?: string[];
 }
 
 export interface Prompt {
@@ -205,7 +207,15 @@ RECENT SESSIONS, oldest first
 ${recent.length ? recent.map(sessionSummary).join("\n") : "None yet."}
 
 WHAT SHE WROTE ABOUT RECENT SESSIONS, verbatim
-${notes.length ? notes.join("\n") : "Nothing."}`;
+${notes.length ? notes.join("\n") : "Nothing."}${
+    input.drawn?.length
+      ? `
+
+EXERCISES THAT COME WITH A DRAWING
+She can open a drawing of these in the email. When two choices are otherwise equal, choose one of these, and name it exactly as written here. The main lifts already chosen this block stay as they are.
+${input.drawn.join(", ")}`
+      : ""
+  }`;
 
   return { system: SYSTEM, user };
 }

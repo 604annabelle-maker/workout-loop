@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { picturesFor, type PictureIndex } from "./exercise-pictures.ts";
+import { drawnNames, picturesFor, type PictureIndex } from "./exercise-pictures.ts";
 
 const INDEX: PictureIndex = {
   exercises: [
@@ -104,4 +104,31 @@ test("gym names reach the drawing checked for them, with no caption", () => {
 test("a drawing is never matched by a few shared words", () => {
   const [curl] = picturesFor({ exercises: [] }, ["SQUAT CURL"], DRAWINGS);
   assert.equal(curl.frames.length, 0);
+});
+
+test("a near drawing is used with one line on what differs", () => {
+  const set: PictureIndex = {
+    exercises: [
+      { id: "0026", name: "Reverse Grips Bent Over Barbell Rows", files: ["0026-0.png", "0026-1.png"] },
+      { id: "0109", name: "Bridging", files: ["0109-0.png", "0109-1.png"] },
+    ],
+  };
+  const [row, thrust] = picturesFor({ exercises: [] }, ["BARBELL ROW", "HIP THRUST"], set);
+  assert.equal(row.frames[0].file, "0026-0.png");
+  assert.match(row.shows, /palms up/);
+  assert.equal(thrust.frames[0].file, "0109-0.png");
+  assert.match(thrust.shows, /upper back rests on a bench/);
+});
+
+test("the coach is offered the gym names that come with a drawing", () => {
+  const set: PictureIndex = {
+    exercises: [
+      { id: "0122", name: "Barbell Squat", files: ["a.png"] },
+      { id: "0026", name: "Reverse Grips Bent Over Barbell Rows", files: ["b.png"] },
+    ],
+  };
+  const names = drawnNames(set);
+  assert.ok(names.includes("BACK SQUAT"));
+  assert.ok(names.includes("BARBELL ROW"));
+  assert.ok(!names.includes("BENCH PRESS"));
 });
