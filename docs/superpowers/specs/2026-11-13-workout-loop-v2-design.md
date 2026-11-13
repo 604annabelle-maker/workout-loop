@@ -243,6 +243,9 @@ the model into structured notes. Each note says which exercise it is about
 - When the app acts on a note, the next email shows one line saying so, for
   example "Swapped hip thrust for glute bridge, since you said you didn't feel
   it".
+- **Each of those lines has an undo tap.** Undo deletes the note from memory,
+  so it never steers a session again. If it caused a swap, the original
+  exercise comes back in the next session.
 
 ## Weights that exist
 
@@ -262,7 +265,7 @@ buttons move between those steps.
 
 1. **One header line:** "Upper · 55 min · 6 exercises".
 2. **One line per change the AI made because of her comments**, when there is
-   one.
+   one, each with an undo tap.
 3. **The warm-up card:** the warm-up exercises, then the one light practice
    set.
 4. **One compact card per exercise:**
@@ -272,8 +275,13 @@ buttons move between those steps.
    stop with 2 left · rest 2½ min
    [ easy ] [ done ] [ hard ]      swap ▾   how to ▾
    ```
-   - The weight and reps are filled in. The − / + buttons move them, and
-     nothing is ever typed.
+   - The weight and reps are filled in. The − / + buttons move them one step,
+     and nothing is ever typed.
+   - Tapping the weight itself opens a row of the nearby weights that exist
+     (about three below and three above), so a big change is one tap.
+   - Every weight says what it means: "each hand" for dumbbells, "total with
+     bar" for barbells, "on the stack" for machines and cables, or
+     "bodyweight".
    - Tapping easy, done or hard saves the exercise with the numbers shown.
    - **Swap** opens in place with the swap exercise and its own numbers.
    - **How to** opens a picture and one line on form.
