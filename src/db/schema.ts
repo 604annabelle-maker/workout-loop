@@ -15,6 +15,8 @@ import {
   boolean,
   check,
   integer,
+  real,
+  unique,
   jsonb,
   pgEnum,
   pgTable,
@@ -127,6 +129,10 @@ export const workouts = pgTable("workouts", {
   lastError: text("last_error"),
   createdAt: createdAt(),
   sentAt: timestamp("sent_at", { withTimezone: true }),
+  /** 1 for the old app's workouts, 2 for the rebuild's. v1 rows are never read by v2. */
+  version: integer("version").notNull().default(1),
+  /** The checked v2 plan (src/training/types.ts PlanV2), exactly as sent. */
+  planV2: jsonb("plan_v2"),
 });
 
 /**
@@ -167,4 +173,72 @@ export const reviews = pgTable("reviews", {
   weekOf: text("week_of").notNull().unique(),
   messageId: text("message_id"),
   sentAt: timestamp("sent_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/**
+ * What she did, one row per exercise slot of a v2 workout (spec §Data).
+ *
+ * Unique on workout and slot, so a second tap on the same card overwrites the
+ * first: the last tap counts. Weight and reps are the numbers on the card
+ * when she tapped.
+ */
+export const exerciseLog = pgTable(
+  "exercise_log",
+  {
+    id: id(),
+    workoutId: uuid("workout_id")
+      .notNull()
+      .references(() => workouts.id, { onDelete: "cascade" }),
+    slot: text("slot").notNull(),
+    exerciseId: text("exercise_id").notNull(),
+    usedSwap: boolean("used_swap").notNull().default(false),
+    /** Null for bodyweight and bands. */
+    weight: real("weight"),
+    /** Reps on each set. */
+    reps: jsonb("reps").notNull(),
+    /** easy, done or hard. */
+    tap: text("tap").notNull(),
+    loggedAt: timestamp("logged_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [unique("exercise_log_workout_slot").on(t.workoutId, t.slot)],
+);
+
+/** Notes read from her comments (src/memory). Undo stamps undone_at rather than deleting, so it is visible what happened. */
+export const memory = pgTable("memory", {
+  id: id(),
+  reason: text("reason").notNull(),
+  /** Null when the note is about the whole session. */
+  exerciseId: text("exercise_id"),
+  /** Her words. */
+  text: text("text").notNull(),
+  /** The workout the comment was about, when there was one. */
+  workoutId: uuid("workout_id").references(() => workouts.id, { onDelete: "set null" }),
+  createdAt: createdAt(),
+  undoneAt: timestamp("undone_at", { withTimezone: true }),
+});
+
+/** Her gym's equipment, one row (src/training/equipment.ts). */
+export const equipment = pgTable(
+  "equipment",
+  {
+    id: integer("id").primaryKey().default(1),
+    data: jsonb("data").notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [check("equipment_is_a_singleton", sql`${t.id} = 1`)],
+);
+
+/** The monthly check-in: unique month, so the cron sends each one once. */
+export const checkins = pgTable("checkins", {
+  id: id(),
+  /** YYYY-MM. */
+  month: text("month").notNull().unique(),
+  /** Random, in the email's forms, like a workout's log token. */
+  token: text("token").notNull().unique(),
+  messageId: text("message_id"),
+  sentAt: timestamp("sent_at", { withTimezone: true }).notNull().defaultNow(),
+  enjoying: text("enjoying"),
+  length: text("length"),
+  comment: text("comment"),
+  answeredAt: timestamp("answered_at", { withTimezone: true }),
 });
