@@ -75,7 +75,7 @@ export function readByKeywords(comment: string, exerciseIds: string[]): ReadNote
   const out: ReadNote[] = [];
   let lastExercise: string | null = null;
   for (const { clause, sentence } of clauses) {
-    const id = whichExercise(clause, exerciseIds) ?? lastExercise;
+    const id: string | null = whichExercise(clause, exerciseIds) ?? lastExercise;
     const reason = reasonOf(clause, sentence);
     if (whichExercise(clause, exerciseIds)) lastExercise = id;
     if (!reason) continue;
