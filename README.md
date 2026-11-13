@@ -1,5 +1,14 @@
 # Workout Loop
 
+> **v2, the rebuild, is in this branch behind `PLAN_VERSION=2`.** Design:
+> [`docs/superpowers/specs/2026-11-13-workout-loop-v2-design.md`](docs/superpowers/specs/2026-11-13-workout-loop-v2-design.md);
+> evidence: [`docs/research/2026-11-progressive-overload.md`](docs/research/2026-11-progressive-overload.md);
+> switching over: [`docs/v2-switch-over.md`](docs/v2-switch-over.md). The engine is
+> `src/training` (code decides the session, the model only picks among checked
+> candidates, and a plan checker refuses any wrong-muscle exercise or off-target
+> warm-up), `src/memory` (her comments) and `src/email` (the new email). The rest of
+> this README describes the old app, which still runs until the switch.
+
 Booking a gym slot produces a workout by email. Tapping done, easy, hard or
 skip under each exercise, inside the email, sets the weights for the next one.
 

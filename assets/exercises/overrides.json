@@ -1,0 +1,2183 @@
+{
+ "reviewedAt": "2026-11-13",
+ "note": "Reviewed by hand from anatomy and docs/research/2026-11-progressive-overload.md. Only these exercises can be chosen.",
+ "exercises": [
+  {
+   "id": "Barbell_Squat",
+   "name": "Back squat",
+   "primary": [
+    "quads"
+   ],
+   "secondary": [
+    "glutes",
+    "adductors"
+   ],
+   "class": "heavy",
+   "pattern": "squat",
+   "stretched": false,
+   "load": "barbell",
+   "warmup": false,
+   "form": "Brace, sit down between your hips, knees follow your toes.",
+   "reviewed": true
+  },
+  {
+   "id": "Front_Barbell_Squat",
+   "name": "Front squat",
+   "primary": [
+    "quads"
+   ],
+   "secondary": [
+    "glutes"
+   ],
+   "class": "heavy",
+   "pattern": "squat",
+   "stretched": false,
+   "load": "barbell",
+   "warmup": false,
+   "form": "Elbows high, stay upright, sit straight down.",
+   "reviewed": true
+  },
+  {
+   "id": "Goblet_Squat",
+   "name": "Goblet squat",
+   "primary": [
+    "quads"
+   ],
+   "secondary": [
+    "glutes"
+   ],
+   "class": "compound",
+   "pattern": "squat",
+   "stretched": false,
+   "load": "dumbbell",
+   "warmup": false,
+   "form": "Hold the dumbbell at your chest and sit deep between your knees.",
+   "reviewed": true
+  },
+  {
+   "id": "Leg_Press",
+   "name": "Leg press",
+   "primary": [
+    "quads"
+   ],
+   "secondary": [
+    "glutes",
+    "adductors"
+   ],
+   "class": "compound",
+   "pattern": "squat",
+   "stretched": false,
+   "load": "machine:leg_press",
+   "warmup": false,
+   "form": "Lower until your knees are well bent, keep your lower back on the pad.",
+   "reviewed": true
+  },
+  {
+   "id": "Hack_Squat",
+   "name": "Hack squat",
+   "primary": [
+    "quads"
+   ],
+   "secondary": [
+    "glutes"
+   ],
+   "class": "compound",
+   "pattern": "squat",
+   "stretched": false,
+   "load": "machine:hack_squat",
+   "warmup": false,
+   "form": "Feet mid-platform, lower deep under control, drive up through the whole foot.",
+   "reviewed": true,
+   "why": "Raw tags call it calves-led; it is a knee-dominant squat."
+  },
+  {
+   "id": "Split_Squat_with_Dumbbells",
+   "name": "Dumbbell split squat",
+   "primary": [
+    "quads",
+    "glutes"
+   ],
+   "secondary": [
+    "adductors"
+   ],
+   "class": "compound",
+   "pattern": "lunge",
+   "stretched": true,
+   "load": "dumbbell",
+   "warmup": false,
+   "form": "Long stance, drop the back knee straight down, front heel stays down.",
+   "reviewed": true
+  },
+  {
+   "id": "Bulgarian_Split_Squat",
+   "name": "Bulgarian split squat",
+   "primary": [
+    "quads",
+    "glutes"
+   ],
+   "secondary": [
+    "adductors"
+   ],
+   "class": "compound",
+   "pattern": "lunge",
+   "stretched": true,
+   "load": "dumbbell",
+   "warmup": false,
+   "form": "Back foot on a bench, lower until the front thigh is level, lean slightly forward.",
+   "reviewed": true,
+   "custom": true,
+   "why": "Not in free-exercise-db; added because it is a well supported quad and glute builder."
+  },
+  {
+   "id": "Dumbbell_Lunges",
+   "name": "Dumbbell lunge",
+   "primary": [
+    "quads",
+    "glutes"
+   ],
+   "secondary": [],
+   "class": "compound",
+   "pattern": "lunge",
+   "stretched": false,
+   "load": "dumbbell",
+   "warmup": false,
+   "form": "Step forward, both knees to about 90 degrees, push back up.",
+   "reviewed": true
+  },
+  {
+   "id": "Dumbbell_Rear_Lunge",
+   "name": "Reverse lunge",
+   "primary": [
+    "quads",
+    "glutes"
+   ],
+   "secondary": [],
+   "class": "compound",
+   "pattern": "lunge",
+   "stretched": false,
+   "load": "dumbbell",
+   "warmup": false,
+   "form": "Step back, drop the back knee, drive up through the front heel.",
+   "reviewed": true
+  },
+  {
+   "id": "Dumbbell_Step_Ups",
+   "name": "Step-up",
+   "primary": [
+    "quads",
+    "glutes"
+   ],
+   "secondary": [],
+   "class": "compound",
+   "pattern": "lunge",
+   "stretched": false,
+   "load": "dumbbell",
+   "warmup": false,
+   "form": "Whole foot on the box, stand up through that leg without pushing off the back one.",
+   "reviewed": true
+  },
+  {
+   "id": "Leg_Extensions",
+   "name": "Leg extension",
+   "primary": [
+    "quads"
+   ],
+   "secondary": [],
+   "class": "isolation",
+   "pattern": "knee_ext",
+   "stretched": false,
+   "load": "machine:leg_extension",
+   "warmup": false,
+   "form": "Knees in line with the pivot, straighten fully, lower slowly.",
+   "reviewed": true
+  },
+  {
+   "id": "Single-Leg_Leg_Extension",
+   "name": "Single-leg extension",
+   "primary": [
+    "quads"
+   ],
+   "secondary": [],
+   "class": "isolation",
+   "pattern": "knee_ext",
+   "stretched": false,
+   "load": "machine:leg_extension",
+   "warmup": false,
+   "form": "One leg at a time, squeeze at the top, lower slowly.",
+   "reviewed": true
+  },
+  {
+   "id": "Weighted_Sissy_Squat",
+   "name": "Sissy squat",
+   "primary": [
+    "quads"
+   ],
+   "secondary": [],
+   "class": "isolation",
+   "pattern": "knee_ext",
+   "stretched": true,
+   "load": "bodyweight",
+   "warmup": false,
+   "form": "Hold something steady, rise onto your toes and lean back as your knees travel forward.",
+   "reviewed": true,
+   "why": "Raw class compound; it isolates the quads through knee bending, loaded stretched."
+  },
+  {
+   "id": "Reverse_Nordic",
+   "name": "Reverse Nordic",
+   "primary": [
+    "quads"
+   ],
+   "secondary": [],
+   "class": "isolation",
+   "pattern": "knee_ext",
+   "stretched": true,
+   "load": "bodyweight",
+   "warmup": false,
+   "form": "Kneel tall, lean back in one straight line from your knees, come back up.",
+   "reviewed": true,
+   "custom": true,
+   "why": "Not in free-exercise-db; a bodyweight quad exercise loaded stretched."
+  },
+  {
+   "id": "Bodyweight_Squat",
+   "name": "Bodyweight squat",
+   "primary": [
+    "quads"
+   ],
+   "secondary": [
+    "glutes"
+   ],
+   "class": "drill",
+   "pattern": "squat",
+   "stretched": false,
+   "load": "bodyweight",
+   "warmup": true,
+   "form": "Sit down as deep as is comfortable, stand tall.",
+   "reviewed": true
+  },
+  {
+   "id": "Bodyweight_Walking_Lunge",
+   "name": "Walking lunge",
+   "primary": [
+    "quads",
+    "glutes"
+   ],
+   "secondary": [],
+   "class": "drill",
+   "pattern": "lunge",
+   "stretched": false,
+   "load": "bodyweight",
+   "warmup": true,
+   "form": "Long steps, back knee close to the floor.",
+   "reviewed": true
+  },
+  {
+   "id": "Romanian_Deadlift",
+   "name": "Romanian deadlift",
+   "primary": [
+    "hamstrings"
+   ],
+   "secondary": [
+    "glutes"
+   ],
+   "class": "heavy",
+   "pattern": "hinge",
+   "stretched": true,
+   "load": "barbell",
+   "warmup": false,
+   "form": "Soft knees, push your hips back, bar close to your legs, stop when your hamstrings are stretched.",
+   "reviewed": true,
+   "why": "Counted as hamstrings first and half for glutes, as the research mapping does."
+  },
+  {
+   "id": "Stiff-Legged_Dumbbell_Deadlift",
+   "name": "Dumbbell Romanian deadlift",
+   "primary": [
+    "hamstrings"
+   ],
+   "secondary": [
+    "glutes"
+   ],
+   "class": "compound",
+   "pattern": "hinge",
+   "stretched": true,
+   "load": "dumbbell",
+   "warmup": false,
+   "form": "Hips back, dumbbells close to your legs, feel the stretch, stand up tall.",
+   "reviewed": true
+  },
+  {
+   "id": "Single_Leg_Romanian_Deadlift",
+   "name": "Single-leg Romanian deadlift",
+   "primary": [
+    "hamstrings"
+   ],
+   "secondary": [
+    "glutes"
+   ],
+   "class": "compound",
+   "pattern": "hinge",
+   "stretched": true,
+   "load": "dumbbell",
+   "warmup": false,
+   "form": "Weight in the opposite hand, hinge on one leg until your hamstring stretches, stand tall.",
+   "reviewed": true,
+   "custom": true,
+   "why": "Not in free-exercise-db with a dumbbell; a stretched hamstring hinge."
+  },
+  {
+   "id": "Barbell_Deadlift",
+   "name": "Deadlift",
+   "primary": [
+    "glutes",
+    "hamstrings"
+   ],
+   "secondary": [
+    "quads"
+   ],
+   "class": "heavy",
+   "pattern": "hinge",
+   "stretched": false,
+   "load": "barbell",
+   "warmup": false,
+   "form": "Bar over mid-foot, flat back, push the floor away and stand tall.",
+   "reviewed": true,
+   "why": "Raw tags say lower back first; the hips do most of the work."
+  },
+  {
+   "id": "Good_Morning",
+   "name": "Good morning",
+   "primary": [
+    "hamstrings"
+   ],
+   "secondary": [
+    "glutes"
+   ],
+   "class": "compound",
+   "pattern": "hinge",
+   "stretched": true,
+   "load": "barbell",
+   "warmup": false,
+   "form": "Bar on your upper back, soft knees, hinge until your back is near level.",
+   "reviewed": true
+  },
+  {
+   "id": "Seated_Leg_Curl",
+   "name": "Seated leg curl",
+   "primary": [
+    "hamstrings"
+   ],
+   "secondary": [],
+   "class": "isolation",
+   "pattern": "knee_flex",
+   "stretched": true,
+   "load": "machine:leg_curl_seated",
+   "warmup": false,
+   "form": "Lean slightly forward, curl all the way, return slowly to a full stretch.",
+   "reviewed": true
+  },
+  {
+   "id": "Lying_Leg_Curls",
+   "name": "Lying leg curl",
+   "primary": [
+    "hamstrings"
+   ],
+   "secondary": [],
+   "class": "isolation",
+   "pattern": "knee_flex",
+   "stretched": false,
+   "load": "machine:leg_curl_lying",
+   "warmup": false,
+   "form": "Hips pressed down, curl to your glutes, lower slowly.",
+   "reviewed": true
+  },
+  {
+   "id": "Standing_Leg_Curl",
+   "name": "Standing leg curl",
+   "primary": [
+    "hamstrings"
+   ],
+   "secondary": [],
+   "class": "isolation",
+   "pattern": "knee_flex",
+   "stretched": false,
+   "load": "machine:leg_curl_standing",
+   "warmup": false,
+   "form": "Stay upright, curl the heel up, lower slowly.",
+   "reviewed": true
+  },
+  {
+   "id": "Natural_Glute_Ham_Raise",
+   "name": "Nordic curl",
+   "primary": [
+    "hamstrings"
+   ],
+   "secondary": [],
+   "class": "isolation",
+   "pattern": "knee_flex",
+   "stretched": true,
+   "load": "bodyweight",
+   "warmup": false,
+   "form": "Feet anchored, lower yourself as slowly as you can, catch yourself with your hands.",
+   "reviewed": true,
+   "why": "Knee flexion against bodyweight: hamstrings."
+  },
+  {
+   "id": "Band_Good_Morning",
+   "name": "Band good morning",
+   "primary": [
+    "hamstrings"
+   ],
+   "secondary": [
+    "glutes"
+   ],
+   "class": "drill",
+   "pattern": "hinge",
+   "stretched": true,
+   "load": "band",
+   "warmup": true,
+   "form": "Band under your feet and over your neck, hinge back slowly.",
+   "reviewed": true
+  },
+  {
+   "id": "Leg_Swings",
+   "name": "Leg swings",
+   "primary": [
+    "hamstrings"
+   ],
+   "secondary": [
+    "glutes"
+   ],
+   "class": "drill",
+   "pattern": "hinge",
+   "stretched": false,
+   "load": "bodyweight",
+   "warmup": true,
+   "form": "Hold something steady, swing one leg forward and back, a little higher each time.",
+   "reviewed": true,
+   "custom": true,
+   "why": "Not in free-exercise-db; a dynamic warm-up for the hips."
+  },
+  {
+   "id": "Bodyweight_Hip_Hinge",
+   "name": "Bodyweight hip hinge",
+   "primary": [
+    "hamstrings"
+   ],
+   "secondary": [
+    "glutes"
+   ],
+   "class": "drill",
+   "pattern": "hinge",
+   "stretched": true,
+   "load": "bodyweight",
+   "warmup": true,
+   "form": "Hands on hips, push them back until you feel your hamstrings, stand up.",
+   "reviewed": true,
+   "custom": true,
+   "why": "Not in free-exercise-db; the movement of a Romanian deadlift without load."
+  },
+  {
+   "id": "Barbell_Hip_Thrust",
+   "name": "Hip thrust",
+   "primary": [
+    "glutes"
+   ],
+   "secondary": [
+    "hamstrings"
+   ],
+   "class": "heavy",
+   "pattern": "hip_ext",
+   "stretched": false,
+   "load": "barbell",
+   "warmup": false,
+   "form": "Upper back on the bench, chin tucked, drive your hips up and squeeze at the top.",
+   "reviewed": true
+  },
+  {
+   "id": "Barbell_Glute_Bridge",
+   "name": "Barbell glute bridge",
+   "primary": [
+    "glutes"
+   ],
+   "secondary": [
+    "hamstrings"
+   ],
+   "class": "compound",
+   "pattern": "hip_ext",
+   "stretched": false,
+   "load": "barbell",
+   "warmup": false,
+   "form": "Back on the floor, drive your hips up, pause at the top.",
+   "reviewed": true
+  },
+  {
+   "id": "Single_Leg_Glute_Bridge",
+   "name": "Single-leg glute bridge",
+   "primary": [
+    "glutes"
+   ],
+   "secondary": [
+    "hamstrings"
+   ],
+   "class": "compound",
+   "pattern": "hip_ext",
+   "stretched": false,
+   "load": "bodyweight",
+   "warmup": true,
+   "form": "One foot down, drive that heel and lift your hips level.",
+   "reviewed": true
+  },
+  {
+   "id": "Butt_Lift_Bridge",
+   "name": "Glute bridge",
+   "primary": [
+    "glutes"
+   ],
+   "secondary": [
+    "hamstrings"
+   ],
+   "class": "drill",
+   "pattern": "hip_ext",
+   "stretched": false,
+   "load": "bodyweight",
+   "warmup": true,
+   "form": "Feet flat, push through your heels, squeeze at the top.",
+   "reviewed": true
+  },
+  {
+   "id": "Thigh_Abductor",
+   "name": "Hip abduction machine",
+   "primary": [
+    "glutes"
+   ],
+   "secondary": [],
+   "class": "isolation",
+   "pattern": "abduction",
+   "stretched": false,
+   "load": "machine:abductor",
+   "warmup": false,
+   "form": "Lean slightly forward, push your knees out, return slowly.",
+   "reviewed": true,
+   "why": "Raw tags say abductors; it trains the upper glutes (glute medius), counted as glutes."
+  },
+  {
+   "id": "Cable_Hip_Abduction",
+   "name": "Cable hip abduction",
+   "primary": [
+    "glutes"
+   ],
+   "secondary": [],
+   "class": "isolation",
+   "pattern": "abduction",
+   "stretched": false,
+   "load": "cable",
+   "warmup": false,
+   "form": "Ankle strap on the far leg, sweep it out to the side without leaning.",
+   "reviewed": true,
+   "custom": true,
+   "why": "Not in free-exercise-db; works the upper glutes (glute medius)."
+  },
+  {
+   "id": "Machine_Glute_Kickback",
+   "name": "Glute kickback machine",
+   "primary": [
+    "glutes"
+   ],
+   "secondary": [
+    "hamstrings"
+   ],
+   "class": "isolation",
+   "pattern": "hip_ext",
+   "stretched": false,
+   "load": "machine:glute_kickback",
+   "warmup": false,
+   "form": "Push the pad back with your heel until your hip is straight, squeeze, return slowly.",
+   "reviewed": true,
+   "custom": true,
+   "why": "Not in free-exercise-db; a glute isolation machine common in gyms."
+  },
+  {
+   "id": "One-Legged_Cable_Kickback",
+   "name": "Cable kickback",
+   "primary": [
+    "glutes"
+   ],
+   "secondary": [
+    "hamstrings"
+   ],
+   "class": "isolation",
+   "pattern": "hip_ext",
+   "stretched": false,
+   "load": "cable",
+   "warmup": false,
+   "form": "Ankle strap on, kick back and up without arching your lower back.",
+   "reviewed": true
+  },
+  {
+   "id": "Pull_Through",
+   "name": "Cable pull-through",
+   "primary": [
+    "glutes"
+   ],
+   "secondary": [
+    "hamstrings"
+   ],
+   "class": "compound",
+   "pattern": "hinge",
+   "stretched": true,
+   "load": "cable",
+   "warmup": false,
+   "form": "Face away from the cable, hips back, then snap them forward and squeeze.",
+   "reviewed": true,
+   "why": "Raw tags say hamstrings; set up as a hinge it is glute-led."
+  },
+  {
+   "id": "Hyperextensions_Back_Extensions",
+   "name": "45\u00b0 back extension",
+   "primary": [
+    "glutes"
+   ],
+   "secondary": [
+    "hamstrings"
+   ],
+   "class": "compound",
+   "pattern": "hinge",
+   "stretched": true,
+   "load": "bodyweight",
+   "warmup": false,
+   "form": "Round slightly and squeeze your glutes to come up; stop at a straight line.",
+   "reviewed": true,
+   "why": "Raw tags say lower back; done glute-biased."
+  },
+  {
+   "id": "Monster_Walk",
+   "name": "Banded side walk",
+   "primary": [
+    "glutes"
+   ],
+   "secondary": [],
+   "class": "drill",
+   "pattern": "abduction",
+   "stretched": false,
+   "load": "band",
+   "warmup": true,
+   "form": "Band around your knees, stay low, small steps sideways.",
+   "reviewed": true,
+   "why": "Raw tags say abductors; that is the glute medius."
+  },
+  {
+   "id": "Glute_Kickback",
+   "name": "Kneeling kickback",
+   "primary": [
+    "glutes"
+   ],
+   "secondary": [
+    "hamstrings"
+   ],
+   "class": "drill",
+   "pattern": "hip_ext",
+   "stretched": false,
+   "load": "bodyweight",
+   "warmup": true,
+   "form": "On hands and knees, push one heel up to the ceiling.",
+   "reviewed": true
+  },
+  {
+   "id": "Barbell_Bench_Press_-_Medium_Grip",
+   "name": "Bench press",
+   "primary": [
+    "chest"
+   ],
+   "secondary": [
+    "triceps",
+    "front_delts"
+   ],
+   "class": "heavy",
+   "pattern": "h_push",
+   "stretched": false,
+   "load": "barbell",
+   "warmup": false,
+   "form": "Shoulder blades back, bar to mid-chest, press up and slightly back.",
+   "reviewed": true
+  },
+  {
+   "id": "Barbell_Incline_Bench_Press_-_Medium_Grip",
+   "name": "Incline bench press",
+   "primary": [
+    "chest"
+   ],
+   "secondary": [
+    "front_delts",
+    "triceps"
+   ],
+   "class": "heavy",
+   "pattern": "h_push",
+   "stretched": false,
+   "load": "barbell",
+   "warmup": false,
+   "form": "Bench at a low incline, bar to upper chest, press straight up.",
+   "reviewed": true
+  },
+  {
+   "id": "Dumbbell_Bench_Press",
+   "name": "Dumbbell bench press",
+   "primary": [
+    "chest"
+   ],
+   "secondary": [
+    "triceps",
+    "front_delts"
+   ],
+   "class": "compound",
+   "pattern": "h_push",
+   "stretched": true,
+   "load": "dumbbell",
+   "warmup": false,
+   "form": "Lower until you feel your chest stretch, press up together.",
+   "reviewed": true
+  },
+  {
+   "id": "Incline_Dumbbell_Press",
+   "name": "Incline dumbbell press",
+   "primary": [
+    "chest"
+   ],
+   "secondary": [
+    "front_delts",
+    "triceps"
+   ],
+   "class": "compound",
+   "pattern": "h_push",
+   "stretched": true,
+   "load": "dumbbell",
+   "warmup": false,
+   "form": "Low incline, deep stretch at the bottom, press up.",
+   "reviewed": true
+  },
+  {
+   "id": "Machine_Bench_Press",
+   "name": "Machine chest press",
+   "primary": [
+    "chest"
+   ],
+   "secondary": [
+    "triceps",
+    "front_delts"
+   ],
+   "class": "compound",
+   "pattern": "h_push",
+   "stretched": false,
+   "load": "machine:chest_press",
+   "warmup": false,
+   "form": "Handles at mid-chest, press out, come back until your chest stretches.",
+   "reviewed": true
+  },
+  {
+   "id": "Leverage_Incline_Chest_Press",
+   "name": "Incline machine press",
+   "primary": [
+    "chest"
+   ],
+   "secondary": [
+    "front_delts",
+    "triceps"
+   ],
+   "class": "compound",
+   "pattern": "h_push",
+   "stretched": false,
+   "load": "machine:incline_chest_press",
+   "warmup": false,
+   "form": "Handles at upper chest, press up and out, return slowly.",
+   "reviewed": true
+  },
+  {
+   "id": "Dumbbell_Flyes",
+   "name": "Dumbbell fly",
+   "primary": [
+    "chest"
+   ],
+   "secondary": [
+    "front_delts"
+   ],
+   "class": "isolation",
+   "pattern": "fly",
+   "stretched": true,
+   "load": "dumbbell",
+   "warmup": false,
+   "form": "Slight bend in the elbows, open wide until your chest stretches, hug back up.",
+   "reviewed": true
+  },
+  {
+   "id": "Incline_Dumbbell_Flyes",
+   "name": "Incline dumbbell fly",
+   "primary": [
+    "chest"
+   ],
+   "secondary": [
+    "front_delts"
+   ],
+   "class": "isolation",
+   "pattern": "fly",
+   "stretched": true,
+   "load": "dumbbell",
+   "warmup": false,
+   "form": "Low incline, open wide with soft elbows, bring the dumbbells together.",
+   "reviewed": true
+  },
+  {
+   "id": "Butterfly",
+   "name": "Pec deck",
+   "primary": [
+    "chest"
+   ],
+   "secondary": [
+    "front_delts"
+   ],
+   "class": "isolation",
+   "pattern": "fly",
+   "stretched": true,
+   "load": "machine:pec_deck",
+   "warmup": false,
+   "form": "Back on the pad, bring the handles together in front, open slowly.",
+   "reviewed": true
+  },
+  {
+   "id": "Cable_Crossover",
+   "name": "Cable fly",
+   "primary": [
+    "chest"
+   ],
+   "secondary": [
+    "front_delts"
+   ],
+   "class": "isolation",
+   "pattern": "fly",
+   "stretched": true,
+   "load": "cable",
+   "warmup": false,
+   "form": "Step forward, arms wide, bring your hands together in front of your chest.",
+   "reviewed": true
+  },
+  {
+   "id": "Low_Cable_Crossover",
+   "name": "Low-to-high cable fly",
+   "primary": [
+    "chest"
+   ],
+   "secondary": [
+    "front_delts"
+   ],
+   "class": "isolation",
+   "pattern": "fly",
+   "stretched": false,
+   "load": "cable",
+   "warmup": false,
+   "form": "Cables low, sweep your hands up and together to chin height.",
+   "reviewed": true
+  },
+  {
+   "id": "Pushups",
+   "name": "Push-up",
+   "primary": [
+    "chest"
+   ],
+   "secondary": [
+    "triceps",
+    "front_delts"
+   ],
+   "class": "compound",
+   "pattern": "h_push",
+   "stretched": false,
+   "load": "bodyweight",
+   "warmup": true,
+   "form": "Body in a straight line, chest to the floor, push up.",
+   "reviewed": true,
+   "easier": "Incline_Push-Up",
+   "harder": "Push-Ups_With_Feet_Elevated"
+  },
+  {
+   "id": "Incline_Push-Up",
+   "name": "Incline push-up",
+   "primary": [
+    "chest"
+   ],
+   "secondary": [
+    "triceps",
+    "front_delts"
+   ],
+   "class": "compound",
+   "pattern": "h_push",
+   "stretched": false,
+   "load": "bodyweight",
+   "warmup": true,
+   "form": "Hands on a bench, body straight, chest to the edge.",
+   "reviewed": true,
+   "harder": "Pushups"
+  },
+  {
+   "id": "Push-Ups_With_Feet_Elevated",
+   "name": "Feet-elevated push-up",
+   "primary": [
+    "chest"
+   ],
+   "secondary": [
+    "front_delts",
+    "triceps"
+   ],
+   "class": "compound",
+   "pattern": "h_push",
+   "stretched": false,
+   "load": "bodyweight",
+   "warmup": false,
+   "form": "Feet on a bench, body straight, chest to the floor.",
+   "reviewed": true,
+   "easier": "Pushups"
+  },
+  {
+   "id": "Dips_-_Chest_Version",
+   "name": "Chest dip",
+   "primary": [
+    "chest"
+   ],
+   "secondary": [
+    "triceps",
+    "front_delts"
+   ],
+   "class": "compound",
+   "pattern": "h_push",
+   "stretched": true,
+   "load": "bodyweight",
+   "warmup": false,
+   "form": "Lean forward, lower until your shoulders are just below your elbows, press up.",
+   "reviewed": true
+  },
+  {
+   "id": "Bent_Over_Barbell_Row",
+   "name": "Barbell row",
+   "primary": [
+    "back"
+   ],
+   "secondary": [
+    "biceps",
+    "rear_delts"
+   ],
+   "class": "heavy",
+   "pattern": "h_pull",
+   "stretched": false,
+   "load": "barbell",
+   "warmup": false,
+   "form": "Hinge to about 45 degrees, pull the bar to your lower ribs, lower under control.",
+   "reviewed": true,
+   "why": "Raw tags say middle back; counted as back."
+  },
+  {
+   "id": "One-Arm_Dumbbell_Row",
+   "name": "One-arm dumbbell row",
+   "primary": [
+    "back"
+   ],
+   "secondary": [
+    "biceps",
+    "rear_delts"
+   ],
+   "class": "compound",
+   "pattern": "h_pull",
+   "stretched": true,
+   "load": "dumbbell",
+   "warmup": false,
+   "form": "Hand and knee on the bench, let the weight hang, pull your elbow to your hip.",
+   "reviewed": true
+  },
+  {
+   "id": "Bent_Over_Two-Dumbbell_Row",
+   "name": "Bent-over dumbbell row",
+   "primary": [
+    "back"
+   ],
+   "secondary": [
+    "biceps",
+    "rear_delts"
+   ],
+   "class": "compound",
+   "pattern": "h_pull",
+   "stretched": false,
+   "load": "dumbbell",
+   "warmup": false,
+   "form": "Hinge forward, pull both dumbbells to your ribs, squeeze your shoulder blades.",
+   "reviewed": true
+  },
+  {
+   "id": "Seated_Cable_Rows",
+   "name": "Seated cable row",
+   "primary": [
+    "back"
+   ],
+   "secondary": [
+    "biceps",
+    "rear_delts"
+   ],
+   "class": "compound",
+   "pattern": "h_pull",
+   "stretched": true,
+   "load": "cable",
+   "warmup": false,
+   "form": "Sit tall, let your shoulders reach forward, pull to your stomach.",
+   "reviewed": true
+  },
+  {
+   "id": "Seated_One-arm_Cable_Pulley_Rows",
+   "name": "One-arm cable row",
+   "primary": [
+    "back"
+   ],
+   "secondary": [
+    "biceps",
+    "rear_delts"
+   ],
+   "class": "compound",
+   "pattern": "h_pull",
+   "stretched": true,
+   "load": "cable",
+   "warmup": false,
+   "form": "One arm at a time, reach forward, pull your elbow back past your side.",
+   "reviewed": true
+  },
+  {
+   "id": "Inverted_Row",
+   "name": "Inverted row",
+   "primary": [
+    "back"
+   ],
+   "secondary": [
+    "biceps",
+    "rear_delts"
+   ],
+   "class": "compound",
+   "pattern": "h_pull",
+   "stretched": false,
+   "load": "bodyweight",
+   "warmup": true,
+   "form": "Under a bar, body straight, pull your chest to the bar.",
+   "reviewed": true
+  },
+  {
+   "id": "Wide-Grip_Lat_Pulldown",
+   "name": "Lat pulldown",
+   "primary": [
+    "back"
+   ],
+   "secondary": [
+    "biceps"
+   ],
+   "class": "compound",
+   "pattern": "v_pull",
+   "stretched": true,
+   "load": "machine:lat_pulldown",
+   "warmup": false,
+   "form": "Lean back slightly, pull the bar to your upper chest, let it rise to a full stretch.",
+   "reviewed": true,
+   "why": "Raw tags say lats; counted as back."
+  },
+  {
+   "id": "Close-Grip_Front_Lat_Pulldown",
+   "name": "Close-grip pulldown",
+   "primary": [
+    "back"
+   ],
+   "secondary": [
+    "biceps"
+   ],
+   "class": "compound",
+   "pattern": "v_pull",
+   "stretched": true,
+   "load": "machine:lat_pulldown",
+   "warmup": false,
+   "form": "Hands shoulder-width, pull to your chest, full stretch at the top.",
+   "reviewed": true
+  },
+  {
+   "id": "Underhand_Cable_Pulldowns",
+   "name": "Underhand pulldown",
+   "primary": [
+    "back"
+   ],
+   "secondary": [
+    "biceps"
+   ],
+   "class": "compound",
+   "pattern": "v_pull",
+   "stretched": true,
+   "load": "machine:lat_pulldown",
+   "warmup": false,
+   "form": "Palms facing you, pull to your chest, elbows down to your sides.",
+   "reviewed": true
+  },
+  {
+   "id": "V-Bar_Pulldown",
+   "name": "V-bar pulldown",
+   "primary": [
+    "back"
+   ],
+   "secondary": [
+    "biceps"
+   ],
+   "class": "compound",
+   "pattern": "v_pull",
+   "stretched": true,
+   "load": "machine:lat_pulldown",
+   "warmup": false,
+   "form": "Neutral grip, pull to your chest, let your shoulders rise at the top.",
+   "reviewed": true
+  },
+  {
+   "id": "One_Arm_Lat_Pulldown",
+   "name": "One-arm pulldown",
+   "primary": [
+    "back"
+   ],
+   "secondary": [
+    "biceps"
+   ],
+   "class": "compound",
+   "pattern": "v_pull",
+   "stretched": true,
+   "load": "cable",
+   "warmup": false,
+   "form": "One handle overhead, pull your elbow down to your side.",
+   "reviewed": true
+  },
+  {
+   "id": "Pullups",
+   "name": "Pull-up",
+   "primary": [
+    "back"
+   ],
+   "secondary": [
+    "biceps"
+   ],
+   "class": "compound",
+   "pattern": "v_pull",
+   "stretched": true,
+   "load": "bodyweight",
+   "warmup": false,
+   "form": "Hang fully, pull your chest toward the bar, lower all the way.",
+   "reviewed": true,
+   "easier": "Band_Assisted_Pull-Up"
+  },
+  {
+   "id": "Chin-Up",
+   "name": "Chin-up",
+   "primary": [
+    "back"
+   ],
+   "secondary": [
+    "biceps"
+   ],
+   "class": "compound",
+   "pattern": "v_pull",
+   "stretched": true,
+   "load": "bodyweight",
+   "warmup": false,
+   "form": "Palms facing you, pull your chin over the bar, lower all the way.",
+   "reviewed": true,
+   "easier": "Band_Assisted_Pull-Up"
+  },
+  {
+   "id": "Band_Assisted_Pull-Up",
+   "name": "Band-assisted pull-up",
+   "primary": [
+    "back"
+   ],
+   "secondary": [
+    "biceps"
+   ],
+   "class": "compound",
+   "pattern": "v_pull",
+   "stretched": true,
+   "load": "bodyweight",
+   "warmup": false,
+   "form": "Knee or foot in the band, pull your chest toward the bar.",
+   "reviewed": true,
+   "harder": "Pullups"
+  },
+  {
+   "id": "Straight-Arm_Pulldown",
+   "name": "Straight-arm pulldown",
+   "primary": [
+    "back"
+   ],
+   "secondary": [],
+   "class": "isolation",
+   "pattern": "pullover",
+   "stretched": true,
+   "load": "cable",
+   "warmup": false,
+   "form": "Arms long, sweep the bar down to your thighs, let it rise to a stretch.",
+   "reviewed": true
+  },
+  {
+   "id": "Scapular_Pull-Up",
+   "name": "Scapular pull-up",
+   "primary": [
+    "back"
+   ],
+   "secondary": [],
+   "class": "drill",
+   "pattern": "v_pull",
+   "stretched": false,
+   "load": "bodyweight",
+   "warmup": true,
+   "form": "Hang from the bar, pull your shoulders down without bending your arms.",
+   "reviewed": true,
+   "why": "Raw tags say traps; it warms the lats and lower traps."
+  },
+  {
+   "id": "Side_Lateral_Raise",
+   "name": "Dumbbell lateral raise",
+   "primary": [
+    "side_delts"
+   ],
+   "secondary": [],
+   "class": "isolation",
+   "pattern": "lateral_raise",
+   "stretched": false,
+   "load": "dumbbell",
+   "warmup": false,
+   "form": "Slight lean forward, raise out to the sides to shoulder height, lower slowly.",
+   "reviewed": true,
+   "why": "Raw tags say shoulders; this is the side delts."
+  },
+  {
+   "id": "Seated_Side_Lateral_Raise",
+   "name": "Seated lateral raise",
+   "primary": [
+    "side_delts"
+   ],
+   "secondary": [],
+   "class": "isolation",
+   "pattern": "lateral_raise",
+   "stretched": false,
+   "load": "dumbbell",
+   "warmup": false,
+   "form": "Seated tall, raise out to the sides, lead with your elbows.",
+   "reviewed": true
+  },
+  {
+   "id": "Cable_Seated_Lateral_Raise",
+   "name": "Cable lateral raise",
+   "primary": [
+    "side_delts"
+   ],
+   "secondary": [],
+   "class": "isolation",
+   "pattern": "lateral_raise",
+   "stretched": true,
+   "load": "cable",
+   "warmup": false,
+   "form": "Cable low and across your body, raise out to the side.",
+   "reviewed": true
+  },
+  {
+   "id": "Standing_Low-Pulley_Deltoid_Raise",
+   "name": "One-arm cable lateral raise",
+   "primary": [
+    "side_delts"
+   ],
+   "secondary": [],
+   "class": "isolation",
+   "pattern": "lateral_raise",
+   "stretched": true,
+   "load": "cable",
+   "warmup": false,
+   "form": "Stand side-on to a low cable, raise your arm out to shoulder height.",
+   "reviewed": true
+  },
+  {
+   "id": "Lateral_Raise_-_With_Bands",
+   "name": "Band lateral raise",
+   "primary": [
+    "side_delts"
+   ],
+   "secondary": [],
+   "class": "drill",
+   "pattern": "lateral_raise",
+   "stretched": false,
+   "load": "band",
+   "warmup": true,
+   "form": "Stand on the band, raise your arms out to the sides.",
+   "reviewed": true
+  },
+  {
+   "id": "Arm_Circles",
+   "name": "Arm circles",
+   "primary": [
+    "side_delts"
+   ],
+   "secondary": [
+    "front_delts"
+   ],
+   "class": "drill",
+   "pattern": "lateral_raise",
+   "stretched": false,
+   "load": "bodyweight",
+   "warmup": true,
+   "form": "Arms out to the sides, small circles growing bigger, both directions.",
+   "reviewed": true
+  },
+  {
+   "id": "Standing_Military_Press",
+   "name": "Overhead press",
+   "primary": [
+    "front_delts"
+   ],
+   "secondary": [
+    "side_delts",
+    "triceps"
+   ],
+   "class": "heavy",
+   "pattern": "v_push",
+   "stretched": false,
+   "load": "barbell",
+   "warmup": false,
+   "form": "Squeeze your glutes, press the bar straight up, head through at the top.",
+   "reviewed": true
+  },
+  {
+   "id": "Dumbbell_Shoulder_Press",
+   "name": "Dumbbell shoulder press",
+   "primary": [
+    "front_delts"
+   ],
+   "secondary": [
+    "side_delts",
+    "triceps"
+   ],
+   "class": "compound",
+   "pattern": "v_push",
+   "stretched": false,
+   "load": "dumbbell",
+   "warmup": false,
+   "form": "Seated tall, press up until your arms are straight, lower to your ears.",
+   "reviewed": true
+  },
+  {
+   "id": "Machine_Shoulder_Military_Press",
+   "name": "Machine shoulder press",
+   "primary": [
+    "front_delts"
+   ],
+   "secondary": [
+    "side_delts",
+    "triceps"
+   ],
+   "class": "compound",
+   "pattern": "v_push",
+   "stretched": false,
+   "load": "machine:shoulder_press",
+   "warmup": false,
+   "form": "Handles at shoulder height, press up, lower slowly.",
+   "reviewed": true
+  },
+  {
+   "id": "Face_Pull",
+   "name": "Face pull",
+   "primary": [
+    "rear_delts"
+   ],
+   "secondary": [
+    "back"
+   ],
+   "class": "isolation",
+   "pattern": "rear_delt",
+   "stretched": false,
+   "load": "cable",
+   "warmup": false,
+   "form": "Rope at face height, pull to your eyes with elbows high, squeeze.",
+   "reviewed": true
+  },
+  {
+   "id": "Cable_Rear_Delt_Fly",
+   "name": "Cable rear-delt fly",
+   "primary": [
+    "rear_delts"
+   ],
+   "secondary": [
+    "back"
+   ],
+   "class": "isolation",
+   "pattern": "rear_delt",
+   "stretched": false,
+   "load": "cable",
+   "warmup": false,
+   "form": "Cables crossed in front, sweep your arms out and back.",
+   "reviewed": true
+  },
+  {
+   "id": "Seated_Bent-Over_Rear_Delt_Raise",
+   "name": "Seated rear-delt raise",
+   "primary": [
+    "rear_delts"
+   ],
+   "secondary": [
+    "back"
+   ],
+   "class": "isolation",
+   "pattern": "rear_delt",
+   "stretched": false,
+   "load": "dumbbell",
+   "warmup": false,
+   "form": "Sit at the end of a bench and lean over your thighs, raise the dumbbells out to the sides.",
+   "reviewed": true
+  },
+  {
+   "id": "Band_Pull_Apart",
+   "name": "Band pull-apart",
+   "primary": [
+    "rear_delts"
+   ],
+   "secondary": [
+    "back"
+   ],
+   "class": "drill",
+   "pattern": "rear_delt",
+   "stretched": false,
+   "load": "band",
+   "warmup": true,
+   "form": "Arms straight in front, pull the band apart to your chest.",
+   "reviewed": true
+  },
+  {
+   "id": "Barbell_Curl",
+   "name": "Barbell curl",
+   "primary": [
+    "biceps"
+   ],
+   "secondary": [],
+   "class": "isolation",
+   "pattern": "elbow_flex",
+   "stretched": false,
+   "load": "barbell",
+   "warmup": false,
+   "form": "Elbows at your sides, curl up, lower all the way.",
+   "reviewed": true
+  },
+  {
+   "id": "EZ-Bar_Curl",
+   "name": "EZ-bar curl",
+   "primary": [
+    "biceps"
+   ],
+   "secondary": [],
+   "class": "isolation",
+   "pattern": "elbow_flex",
+   "stretched": false,
+   "load": "ezbar",
+   "warmup": false,
+   "form": "Elbows still, curl up, lower to straight arms.",
+   "reviewed": true
+  },
+  {
+   "id": "Dumbbell_Bicep_Curl",
+   "name": "Dumbbell curl",
+   "primary": [
+    "biceps"
+   ],
+   "secondary": [],
+   "class": "isolation",
+   "pattern": "elbow_flex",
+   "stretched": false,
+   "load": "dumbbell",
+   "warmup": false,
+   "form": "Palms forward, curl both up, lower slowly to straight arms.",
+   "reviewed": true
+  },
+  {
+   "id": "Dumbbell_Alternate_Bicep_Curl",
+   "name": "Alternating dumbbell curl",
+   "primary": [
+    "biceps"
+   ],
+   "secondary": [],
+   "class": "isolation",
+   "pattern": "elbow_flex",
+   "stretched": false,
+   "load": "dumbbell",
+   "warmup": false,
+   "form": "One arm at a time, turn the palm up as you curl.",
+   "reviewed": true
+  },
+  {
+   "id": "Incline_Dumbbell_Curl",
+   "name": "Incline dumbbell curl",
+   "primary": [
+    "biceps"
+   ],
+   "secondary": [],
+   "class": "isolation",
+   "pattern": "elbow_flex",
+   "stretched": true,
+   "load": "dumbbell",
+   "warmup": false,
+   "form": "Back on an incline bench, arms hanging behind you, curl without moving your elbows.",
+   "reviewed": true
+  },
+  {
+   "id": "Hammer_Curls",
+   "name": "Hammer curl",
+   "primary": [
+    "biceps"
+   ],
+   "secondary": [],
+   "class": "isolation",
+   "pattern": "elbow_flex",
+   "stretched": false,
+   "load": "dumbbell",
+   "warmup": false,
+   "form": "Palms facing each other, curl up, lower slowly.",
+   "reviewed": true
+  },
+  {
+   "id": "Cable_Hammer_Curls_-_Rope_Attachment",
+   "name": "Rope hammer curl",
+   "primary": [
+    "biceps"
+   ],
+   "secondary": [],
+   "class": "isolation",
+   "pattern": "elbow_flex",
+   "stretched": false,
+   "load": "cable",
+   "warmup": false,
+   "form": "Rope on a low cable, palms facing in, curl up.",
+   "reviewed": true
+  },
+  {
+   "id": "Preacher_Curl",
+   "name": "EZ-bar preacher curl",
+   "primary": [
+    "biceps"
+   ],
+   "secondary": [],
+   "class": "isolation",
+   "pattern": "elbow_flex",
+   "stretched": true,
+   "load": "ezbar",
+   "warmup": false,
+   "form": "Arms on the pad, lower until nearly straight, curl up.",
+   "reviewed": true
+  },
+  {
+   "id": "One_Arm_Dumbbell_Preacher_Curl",
+   "name": "One-arm preacher curl",
+   "primary": [
+    "biceps"
+   ],
+   "secondary": [],
+   "class": "isolation",
+   "pattern": "elbow_flex",
+   "stretched": true,
+   "load": "dumbbell",
+   "warmup": false,
+   "form": "Arm on the pad, lower to nearly straight, curl up.",
+   "reviewed": true
+  },
+  {
+   "id": "Machine_Preacher_Curls",
+   "name": "Machine preacher curl",
+   "primary": [
+    "biceps"
+   ],
+   "secondary": [],
+   "class": "isolation",
+   "pattern": "elbow_flex",
+   "stretched": true,
+   "load": "machine:preacher_curl",
+   "warmup": false,
+   "form": "Arms on the pad, curl up, return to a full stretch.",
+   "reviewed": true
+  },
+  {
+   "id": "Cable_Preacher_Curl",
+   "name": "Cable preacher curl",
+   "primary": [
+    "biceps"
+   ],
+   "secondary": [],
+   "class": "isolation",
+   "pattern": "elbow_flex",
+   "stretched": true,
+   "load": "cable",
+   "warmup": false,
+   "form": "Preacher bench in front of a low cable, lower to nearly straight, curl up.",
+   "reviewed": true
+  },
+  {
+   "id": "Standing_Biceps_Cable_Curl",
+   "name": "Cable curl",
+   "primary": [
+    "biceps"
+   ],
+   "secondary": [],
+   "class": "isolation",
+   "pattern": "elbow_flex",
+   "stretched": false,
+   "load": "cable",
+   "warmup": false,
+   "form": "Low cable, elbows at your sides, curl up.",
+   "reviewed": true
+  },
+  {
+   "id": "Bayesian_Cable_Curl",
+   "name": "Bayesian cable curl",
+   "primary": [
+    "biceps"
+   ],
+   "secondary": [],
+   "class": "isolation",
+   "pattern": "elbow_flex",
+   "stretched": true,
+   "load": "cable",
+   "warmup": false,
+   "form": "Face away from a low cable, arm behind you, curl forward without moving your elbow.",
+   "reviewed": true,
+   "custom": true,
+   "why": "Not in free-exercise-db; added for its stretched-position loading."
+  },
+  {
+   "id": "Concentration_Curls",
+   "name": "Concentration curl",
+   "primary": [
+    "biceps"
+   ],
+   "secondary": [],
+   "class": "isolation",
+   "pattern": "elbow_flex",
+   "stretched": false,
+   "load": "dumbbell",
+   "warmup": false,
+   "form": "Seated, elbow against your inner thigh, curl up slowly.",
+   "reviewed": true
+  },
+  {
+   "id": "Band_Curl",
+   "name": "Band curl",
+   "primary": [
+    "biceps"
+   ],
+   "secondary": [],
+   "class": "drill",
+   "pattern": "elbow_flex",
+   "stretched": false,
+   "load": "band",
+   "warmup": true,
+   "form": "Stand on the band, curl up, lower slowly.",
+   "reviewed": true,
+   "custom": true,
+   "why": "Not in free-exercise-db; a light biceps warm-up."
+  },
+  {
+   "id": "Triceps_Pushdown",
+   "name": "Cable pushdown",
+   "primary": [
+    "triceps"
+   ],
+   "secondary": [],
+   "class": "isolation",
+   "pattern": "elbow_ext",
+   "stretched": false,
+   "load": "cable",
+   "warmup": false,
+   "form": "Elbows pinned to your sides, push the bar down until your arms are straight.",
+   "reviewed": true
+  },
+  {
+   "id": "Triceps_Pushdown_-_Rope_Attachment",
+   "name": "Rope pushdown",
+   "primary": [
+    "triceps"
+   ],
+   "secondary": [],
+   "class": "isolation",
+   "pattern": "elbow_ext",
+   "stretched": false,
+   "load": "cable",
+   "warmup": false,
+   "form": "Elbows still, push down and spread the rope at the bottom.",
+   "reviewed": true
+  },
+  {
+   "id": "Triceps_Pushdown_-_V-Bar_Attachment",
+   "name": "V-bar pushdown",
+   "primary": [
+    "triceps"
+   ],
+   "secondary": [],
+   "class": "isolation",
+   "pattern": "elbow_ext",
+   "stretched": false,
+   "load": "cable",
+   "warmup": false,
+   "form": "Elbows still, push down to straight arms.",
+   "reviewed": true
+  },
+  {
+   "id": "Cable_Rope_Overhead_Triceps_Extension",
+   "name": "Overhead cable extension",
+   "primary": [
+    "triceps"
+   ],
+   "secondary": [],
+   "class": "isolation",
+   "pattern": "elbow_ext",
+   "stretched": true,
+   "load": "cable",
+   "warmup": false,
+   "form": "Face away from the cable, rope behind your head, straighten your arms forward and up.",
+   "reviewed": true
+  },
+  {
+   "id": "Standing_Dumbbell_Triceps_Extension",
+   "name": "Overhead dumbbell extension",
+   "primary": [
+    "triceps"
+   ],
+   "secondary": [],
+   "class": "isolation",
+   "pattern": "elbow_ext",
+   "stretched": true,
+   "load": "dumbbell",
+   "warmup": false,
+   "form": "One dumbbell in both hands overhead, lower behind your head, press back up.",
+   "reviewed": true
+  },
+  {
+   "id": "EZ-Bar_Skullcrusher",
+   "name": "EZ-bar skull crusher",
+   "primary": [
+    "triceps"
+   ],
+   "secondary": [],
+   "class": "isolation",
+   "pattern": "elbow_ext",
+   "stretched": true,
+   "load": "ezbar",
+   "warmup": false,
+   "form": "Lying down, lower the bar behind your head, straighten your arms.",
+   "reviewed": true
+  },
+  {
+   "id": "Lying_Dumbbell_Tricep_Extension",
+   "name": "Dumbbell skull crusher",
+   "primary": [
+    "triceps"
+   ],
+   "secondary": [],
+   "class": "isolation",
+   "pattern": "elbow_ext",
+   "stretched": true,
+   "load": "dumbbell",
+   "warmup": false,
+   "form": "Lying down, palms facing in, lower beside your head, straighten up.",
+   "reviewed": true
+  },
+  {
+   "id": "Machine_Triceps_Extension",
+   "name": "Machine triceps extension",
+   "primary": [
+    "triceps"
+   ],
+   "secondary": [],
+   "class": "isolation",
+   "pattern": "elbow_ext",
+   "stretched": false,
+   "load": "machine:triceps_extension",
+   "warmup": false,
+   "form": "Elbows on the pad, push the handles down to straight arms.",
+   "reviewed": true
+  },
+  {
+   "id": "Tricep_Dumbbell_Kickback",
+   "name": "Dumbbell kickback",
+   "primary": [
+    "triceps"
+   ],
+   "secondary": [],
+   "class": "isolation",
+   "pattern": "elbow_ext",
+   "stretched": false,
+   "load": "dumbbell",
+   "warmup": false,
+   "form": "Hinge forward, upper arm still, straighten your arm back.",
+   "reviewed": true
+  },
+  {
+   "id": "Close-Grip_Barbell_Bench_Press",
+   "name": "Close-grip bench press",
+   "primary": [
+    "triceps"
+   ],
+   "secondary": [
+    "chest",
+    "front_delts"
+   ],
+   "class": "compound",
+   "pattern": "h_push",
+   "stretched": false,
+   "load": "barbell",
+   "warmup": false,
+   "form": "Hands shoulder-width, elbows close, bar to lower chest.",
+   "reviewed": true
+  },
+  {
+   "id": "Dips_-_Triceps_Version",
+   "name": "Triceps dip",
+   "primary": [
+    "triceps"
+   ],
+   "secondary": [
+    "chest",
+    "front_delts"
+   ],
+   "class": "compound",
+   "pattern": "dip",
+   "stretched": true,
+   "load": "bodyweight",
+   "warmup": false,
+   "form": "Stay upright, lower until your elbows are at 90 degrees, press up.",
+   "reviewed": true,
+   "easier": "Bench_Dips"
+  },
+  {
+   "id": "Bench_Dips",
+   "name": "Bench dip",
+   "primary": [
+    "triceps"
+   ],
+   "secondary": [
+    "chest",
+    "front_delts"
+   ],
+   "class": "compound",
+   "pattern": "dip",
+   "stretched": false,
+   "load": "bodyweight",
+   "warmup": true,
+   "form": "Hands on a bench behind you, lower until your elbows are at 90 degrees.",
+   "reviewed": true,
+   "harder": "Dips_-_Triceps_Version"
+  },
+  {
+   "id": "Dip_Machine",
+   "name": "Dip machine",
+   "primary": [
+    "triceps"
+   ],
+   "secondary": [
+    "chest",
+    "front_delts"
+   ],
+   "class": "compound",
+   "pattern": "dip",
+   "stretched": false,
+   "load": "machine:dip",
+   "warmup": false,
+   "form": "Sit tall, push the handles down to straight arms.",
+   "reviewed": true
+  },
+  {
+   "id": "Band_Pushdown",
+   "name": "Band pushdown",
+   "primary": [
+    "triceps"
+   ],
+   "secondary": [],
+   "class": "drill",
+   "pattern": "elbow_ext",
+   "stretched": false,
+   "load": "band",
+   "warmup": true,
+   "form": "Band over a high bar, elbows at your sides, push down.",
+   "reviewed": true,
+   "custom": true,
+   "why": "Not in free-exercise-db; a light triceps warm-up."
+  },
+  {
+   "id": "Incline_Push-Up_Close-Grip",
+   "name": "Close-grip incline push-up",
+   "primary": [
+    "triceps"
+   ],
+   "secondary": [
+    "chest"
+   ],
+   "class": "drill",
+   "pattern": "h_push",
+   "stretched": false,
+   "load": "bodyweight",
+   "warmup": true,
+   "form": "Hands close on a bench, elbows near your sides, chest to the bench.",
+   "reviewed": true
+  },
+  {
+   "id": "Standing_Calf_Raises",
+   "name": "Standing calf raise",
+   "primary": [
+    "calves"
+   ],
+   "secondary": [],
+   "class": "isolation",
+   "pattern": "calf",
+   "stretched": true,
+   "load": "machine:calf_raise",
+   "warmup": false,
+   "form": "Heels down to a full stretch, pause, rise all the way up.",
+   "reviewed": true
+  },
+  {
+   "id": "Seated_Calf_Raise",
+   "name": "Seated calf raise",
+   "primary": [
+    "calves"
+   ],
+   "secondary": [],
+   "class": "isolation",
+   "pattern": "calf",
+   "stretched": true,
+   "load": "machine:seated_calf",
+   "warmup": false,
+   "form": "Pad on your knees, heels down to a stretch, rise up.",
+   "reviewed": true
+  },
+  {
+   "id": "Standing_Dumbbell_Calf_Raise",
+   "name": "Dumbbell calf raise",
+   "primary": [
+    "calves"
+   ],
+   "secondary": [],
+   "class": "isolation",
+   "pattern": "calf",
+   "stretched": true,
+   "load": "dumbbell",
+   "warmup": false,
+   "form": "On a step, heels down to a stretch, pause, rise up.",
+   "reviewed": true
+  },
+  {
+   "id": "Bodyweight_Calf_Raise",
+   "name": "Calf raise",
+   "primary": [
+    "calves"
+   ],
+   "secondary": [],
+   "class": "drill",
+   "pattern": "calf",
+   "stretched": true,
+   "load": "bodyweight",
+   "warmup": true,
+   "form": "On a step, slow down and up.",
+   "reviewed": true,
+   "custom": true,
+   "why": "Not in free-exercise-db; a calf warm-up."
+  },
+  {
+   "id": "Cable_Crunch",
+   "name": "Cable crunch",
+   "primary": [
+    "abs"
+   ],
+   "secondary": [],
+   "class": "isolation",
+   "pattern": "core",
+   "stretched": false,
+   "load": "cable",
+   "warmup": false,
+   "form": "Kneel facing the cable, curl your ribs to your hips.",
+   "reviewed": true
+  },
+  {
+   "id": "Hanging_Leg_Raise",
+   "name": "Hanging leg raise",
+   "primary": [
+    "abs"
+   ],
+   "secondary": [],
+   "class": "isolation",
+   "pattern": "core",
+   "stretched": false,
+   "load": "bodyweight",
+   "warmup": false,
+   "form": "Hang still, curl your knees or legs up toward your chest.",
+   "reviewed": true
+  },
+  {
+   "id": "Ab_Crunch_Machine",
+   "name": "Ab crunch machine",
+   "primary": [
+    "abs"
+   ],
+   "secondary": [],
+   "class": "isolation",
+   "pattern": "core",
+   "stretched": false,
+   "load": "machine:ab_crunch",
+   "warmup": false,
+   "form": "Curl forward from your ribs, return slowly.",
+   "reviewed": true
+  },
+  {
+   "id": "Reverse_Crunch",
+   "name": "Reverse crunch",
+   "primary": [
+    "abs"
+   ],
+   "secondary": [],
+   "class": "isolation",
+   "pattern": "core",
+   "stretched": false,
+   "load": "bodyweight",
+   "warmup": false,
+   "form": "On your back, roll your hips off the floor toward your chest.",
+   "reviewed": true
+  },
+  {
+   "id": "Dead_Bug",
+   "name": "Dead bug",
+   "primary": [
+    "abs"
+   ],
+   "secondary": [],
+   "class": "isolation",
+   "pattern": "core",
+   "stretched": false,
+   "load": "bodyweight",
+   "warmup": true,
+   "form": "Lower back pressed down, reach the opposite arm and leg away slowly.",
+   "reviewed": true
+  },
+  {
+   "id": "Barbell_Ab_Rollout_-_On_Knees",
+   "name": "Ab rollout",
+   "primary": [
+    "abs"
+   ],
+   "secondary": [],
+   "class": "isolation",
+   "pattern": "core",
+   "stretched": true,
+   "load": "bodyweight",
+   "warmup": false,
+   "form": "On your knees, roll out as far as you can with a flat back, pull back in.",
+   "reviewed": true
+  },
+  {
+   "id": "Pallof_Press",
+   "name": "Pallof press",
+   "primary": [
+    "abs"
+   ],
+   "secondary": [],
+   "class": "isolation",
+   "pattern": "core",
+   "stretched": false,
+   "load": "cable",
+   "warmup": false,
+   "form": "Side-on to the cable, press the handle straight out and resist the turn.",
+   "reviewed": true
+  },
+  {
+   "id": "Decline_Crunch",
+   "name": "Decline crunch",
+   "primary": [
+    "abs"
+   ],
+   "secondary": [],
+   "class": "isolation",
+   "pattern": "core",
+   "stretched": false,
+   "load": "bodyweight",
+   "warmup": false,
+   "form": "On a decline bench, curl up halfway, lower slowly.",
+   "reviewed": true
+  },
+  {
+   "id": "Thigh_Adductor",
+   "name": "Hip adduction machine",
+   "primary": [
+    "adductors"
+   ],
+   "secondary": [],
+   "class": "isolation",
+   "pattern": "adduction",
+   "stretched": false,
+   "load": "machine:adductor",
+   "warmup": false,
+   "form": "Squeeze your knees together, return slowly.",
+   "reviewed": true
+  }
+ ],
+ "banned": [
+  {
+   "id": "Dumbbell_Incline_Row",
+   "why": "Chest-supported row: braced on a chest pad."
+  },
+  {
+   "id": "Lying_T-Bar_Row",
+   "why": "Chest-supported row: braced on a chest pad."
+  },
+  {
+   "id": "Lying_Cambered_Barbell_Row",
+   "why": "Chest-supported row: braced on a bench."
+  },
+  {
+   "id": "Incline_Bench_Pull",
+   "why": "Chest-supported row: braced on a bench."
+  },
+  {
+   "id": "Straight_Bar_Bench_Mid_Rows",
+   "why": "Chest-supported row: braced on a bench."
+  },
+  {
+   "id": "Leverage_Iso_Row",
+   "why": "Machine row braced on a chest pad."
+  },
+  {
+   "id": "Leverage_High_Row",
+   "why": "Machine row braced on a chest pad."
+  },
+  {
+   "id": "Reverse_Machine_Flyes",
+   "why": "Reverse pec deck: braced on a chest pad."
+  },
+  {
+   "id": "Dumbbell_Prone_Incline_Curl",
+   "why": "Chest-supported curl: braced on a bench."
+  },
+  {
+   "id": "Spider_Curl",
+   "why": "Chest-supported curl: braced on a bench."
+  },
+  {
+   "id": "Standing_One-Arm_Dumbbell_Curl_Over_Incline_Bench",
+   "why": "Curl braced over a bench pad."
+  },
+  {
+   "id": "Bent_Over_Dumbbell_Rear_Delt_Raise_With_Head_On_Bench",
+   "why": "Braced on a bench."
+  },
+  {
+   "id": "Dumbbell_Lying_Rear_Lateral_Raise",
+   "why": "Lying face down on a bench."
+  },
+  {
+   "id": "Lying_Rear_Delt_Raise",
+   "why": "Lying face down on a bench."
+  },
+  {
+   "id": "Medicine_Ball_Chest_Pass",
+   "why": "The medicine ball chest pass: never."
+  }
+ ]
+}

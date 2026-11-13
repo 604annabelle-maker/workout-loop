@@ -2,6 +2,7 @@ import { MUSCLES } from "@/lib/plan";
 import { readPreferences } from "@/lib/preferences";
 import { LEVELS, MAX_PRIORITIES } from "@/lib/profile";
 import { updatePreferences } from "./actions";
+import EquipmentForm from "./equipment-form";
 
 // Reads the database on every request. There is one user and no cache to win.
 export const dynamic = "force-dynamic";
@@ -220,6 +221,7 @@ export default async function PreferencesPage() {
           Save
         </button>
       </form>
+      <EquipmentForm />
     </main>
   );
 }

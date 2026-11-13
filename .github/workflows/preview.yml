@@ -5,6 +5,12 @@ name: Preview the workout email
 
 on:
   workflow_dispatch:
+    inputs:
+      version:
+        description: "Which app: 2 is the rebuild, 1 the old one"
+        default: "2"
+        type: choice
+        options: ["2", "1"]
 
 jobs:
   send:
@@ -23,7 +29,7 @@ jobs:
             --output /tmp/preview.json --write-out '%{http_code}' \
             --request POST \
             --header "authorization: Bearer $CRON_SECRET" \
-            "$url/api/preview") || true
+            "$url/api/preview?version=${VERSION}") || true
 
           echo "HTTP $code"
           cat /tmp/preview.json || true
@@ -32,3 +38,4 @@ jobs:
         env:
           APP_URL: ${{ vars.APP_URL || secrets.APP_URL }}
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          VERSION: ${{ inputs.version || '2' }}

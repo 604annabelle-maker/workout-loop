@@ -36,6 +36,13 @@
       "when": 1793688667387,
       "tag": "0004_taps",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1794564110682,
+      "tag": "0005_v2_training",
+      "breakpoints": true
     }
   ]
 }
