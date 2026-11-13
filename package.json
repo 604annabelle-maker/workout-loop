@@ -10,7 +10,7 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "test": "tsx --test src/**/*.test.mts",
+    "test": "tsx --test 'src/**/*.test.mts'",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx src/db/migrate.ts",
     "vendor:pictures": "tsx src/scripts/vendor-pictures.mts",
@@ -18,7 +18,8 @@
     "send:once": "tsx src/scripts/send-once.mts",
     "workout": "tsx src/scripts/workout.mts",
     "tick": "tsx src/scripts/tick.mts",
-    "vendor:drawings": "tsx src/scripts/vendor-drawings.mts"
+    "vendor:drawings": "tsx src/scripts/vendor-drawings.mts",
+    "vendor:catalogue": "tsx src/scripts/vendor-catalogue.mts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.121.0",
