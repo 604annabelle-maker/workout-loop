@@ -28,6 +28,8 @@ import { dateOnly } from "./when";
 import { composeAmp } from "./workout-amp";
 import { composeLegacyMail, composeText, composeWorkoutMail, type Composed } from "./workout-mail";
 import { sessionsSent, trainingLog } from "./workouts";
+import { readPlanV2 } from "../training/history";
+import { mailFor, planNext, v2On } from "./v2";
 
 const { workouts } = schema;
 
@@ -83,6 +85,9 @@ export async function deliverWorkout(workoutId: string): Promise<Delivery> {
 
   const to = process.env.OWNER_EMAIL;
   if (!to) return recordFailure(workout, "OWNER_EMAIL is not set");
+
+  // The rebuild: a workout already planned as v2 finishes as v2, and a new one goes v2 once it is switched on.
+  if (workout.version === 2 || (v2On() && !workout.plan && !workout.planText)) return deliverV2(workout, to);
 
   const slot = { startsAt: workout.slotStartsAt, minutes: workout.slotMinutes };
 
@@ -188,6 +193,25 @@ export function workoutMail(input: {
   );
 }
 
+/**
+ * A v2 workout: planned from the training log, checked, written down before
+ * sending so a retry sends the same plan, then the new email.
+ */
+async function deliverV2(workout: WorkoutRow, to: string): Promise<Delivery> {
+  let plan = readPlanV2(workout.planV2);
+  if (!plan) {
+    try {
+      plan = (await planNext({ now: workout.slotStartsAt, focus: workout.focus })).plan;
+      await db.update(workouts).set({ version: 2, planV2: plan, status: "generated" }).where(eq(workouts.id, workout.id));
+    } catch (err) {
+      return recordFailure(workout, `planning failed: ${err}`);
+    }
+  }
+  const token = workout.logToken ?? newLogToken();
+  if (!workout.logToken) await db.update(workouts).set({ logToken: token }).where(eq(workouts.id, workout.id));
+  return send(workout, to, await mailFor(plan, { date: workout.slotStartsAt, token }));
+}
+
 /** A new secret for a workout's log buttons. */
 export function newLogToken(): string {
   return randomBytes(18).toString("base64url");
@@ -195,11 +219,7 @@ export function newLogToken(): string {
 
 type WorkoutRow = typeof workouts.$inferSelect;
 
-async function send(
-  workout: WorkoutRow,
-  to: string,
-  mail: ReturnType<typeof composeWorkoutMail>,
-): Promise<Delivery> {
+async function send(workout: WorkoutRow, to: string, mail: Composed): Promise<Delivery> {
   const result = await sendMail({ to, ...mail });
 
   if (!result.sent) {

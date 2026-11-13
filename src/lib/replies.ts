@@ -27,6 +27,7 @@ import { isEmptyLog } from "./reply-log";
 import { readReply } from "./reply-read";
 import { matchWorkout, type Candidate } from "./reply-match";
 import { normalizeMessageId, parseReply } from "./reply-parse";
+import { readFeedbackV2 } from "./v2";
 
 const { feedback, workouts } = schema;
 
@@ -98,6 +99,7 @@ export async function readPendingLogs(now = new Date()): Promise<number> {
       body: feedback.body,
       attempts: feedback.logAttempts,
       plan: workouts.plan,
+      version: workouts.version,
     })
     .from(feedback)
     .innerJoin(workouts, eq(feedback.workoutId, workouts.id))
@@ -113,6 +115,15 @@ export async function readPendingLogs(now = new Date()): Promise<number> {
   let read = 0;
 
   for (const row of pending) {
+    // A reply to a v2 workout: shorthand into its exercise log, the rest into memory.
+    if (row.version === 2) {
+      try {
+        if (await readFeedbackV2(row.id)) read += 1;
+      } catch (err) {
+        console.error(`reading v2 reply ${row.id} failed:`, err);
+      }
+      continue;
+    }
     let plan: Plan | null = null;
     try {
       plan = row.plan ? readPlan(row.plan) : null;

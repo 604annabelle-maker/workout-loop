@@ -16,6 +16,7 @@ import { and, asc, inArray, lt, sql } from "drizzle-orm";
 import { db, schema } from "@/db";
 import { deliverWorkout } from "./delivery";
 import { pollReplies, type ReplyReport } from "./replies";
+import { sendCheckinIfDue } from "./checkin";
 
 const { workouts } = schema;
 
@@ -33,6 +34,7 @@ export interface CronReport {
   failed: number;
   stale: number;
   replies: ReplyReport;
+  checkin: boolean;
 }
 
 export async function runCron(now = new Date()): Promise<CronReport> {
@@ -43,6 +45,7 @@ export async function runCron(now = new Date()): Promise<CronReport> {
     failed: 0,
     stale: 0,
     replies: { polled: false, found: 0, filed: 0, ignored: 0, unmatched: 0, empty: 0, read: 0 },
+    checkin: false,
   };
 
   /*
@@ -96,6 +99,13 @@ export async function runCron(now = new Date()): Promise<CronReport> {
   } catch (err) {
     // A mailbox that is unreachable must not stop the retries that already ran.
     console.error("polling replies failed:", err);
+  }
+
+  // The monthly check-in, once, on the first Sunday of the month.
+  try {
+    report.checkin = await sendCheckinIfDue(now);
+  } catch (err) {
+    console.error("monthly check-in failed:", err);
   }
 
   return report;

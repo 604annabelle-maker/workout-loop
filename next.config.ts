@@ -9,7 +9,9 @@ import type { NextConfig } from "next";
  * email: the webhook, the cron's retries, "send a workout now" and the
  * preview. The picture route serves the drawings themselves.
  */
-const PICTURES = ["./assets/exercise-drawings/**"];
+const PICTURES = ["./assets/exercise-drawings/**", "./assets/exercise-pictures/index.json"];
+/** v2 serves the photos for How to. */
+const PHOTOS = ["./assets/exercise-pictures/**"];
 
 const nextConfig: NextConfig = {
   outputFileTracingIncludes: {
@@ -17,7 +19,7 @@ const nextConfig: NextConfig = {
     "/api/cron": PICTURES,
     "/api/workout": PICTURES,
     "/api/preview": PICTURES,
-    "/pictures/[source]/[file]": PICTURES,
+    "/pictures/[source]/[file]": [...PICTURES, ...PHOTOS],
   },
 };
 

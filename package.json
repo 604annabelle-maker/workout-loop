@@ -19,7 +19,9 @@
     "workout": "tsx src/scripts/workout.mts",
     "tick": "tsx src/scripts/tick.mts",
     "vendor:drawings": "tsx src/scripts/vendor-drawings.mts",
-    "vendor:catalogue": "tsx src/scripts/vendor-catalogue.mts"
+    "vendor:catalogue": "tsx src/scripts/vendor-catalogue.mts",
+    "preview:email": "tsx src/scripts/preview-email.mts",
+    "e2e:v2": "tsx src/scripts/e2e-v2.mts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.121.0",
