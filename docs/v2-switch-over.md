@@ -11,6 +11,8 @@ which only adds tables and two columns; the old app does not notice it.
 
 ## 2. Send her a sample
 
+What it looks like: [`v2-email-preview.png`](v2-email-preview.png) (rendered in a browser, sections open).
+
 Actions tab, **Preview the workout email**, version `2`. She gets a v2
 email marked "Preview". Its buttons work, but a preview is never read as
 training. On her phone she checks:
