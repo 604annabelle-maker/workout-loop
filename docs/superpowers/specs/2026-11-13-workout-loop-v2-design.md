@@ -76,6 +76,11 @@ carries its reason and its confidence rating from the research report.
   for 4 days a week: every muscle is trained twice a week, and it fits 60
   minutes. Each upper day carries direct biceps and triceps work. The two
   lower days each end with the abs finisher.
+- **Full body every other week:** on alternate weeks, the second lower day is
+  a full body day instead. Legs are still trained twice that week, and the
+  full body day carries that week's second abs finisher. Weekly volume is
+  counted the same way, so the skeleton rebalances the other days to keep
+  every muscle in range.
 - **Volume:** counted per muscle per week in fractional sets. A set counts 1
   for each primary muscle of its exercise and 0.5 for each secondary muscle.
   Warm-up sets count 0.
@@ -136,7 +141,7 @@ Reactive, not on a calendar, because the evidence for fixed deloads is thin.
   - two or more exercises regress in the same week, or
   - 60% or more of the taps across two sessions in a row are `hard`, or
   - she says she is worn out.
-- **If none of that happens:** one deload every 7 weeks.
+- **If none of that happens:** no deload. There is no deload on a schedule.
 - **A deload week:** the same exercises and weights, half the sets, and stop
   3 to 4 reps short. Nothing progresses that week.
 
@@ -162,14 +167,21 @@ free-exercise-db's metadata (about 870 exercises). Each exercise has:
 - its pictures
 
 **The tags are not trusted blindly.** free-exercise-db's muscle tags are
-coarse and sometimes wrong, and wrong tags would bring the old bug back.
+coarse and sometimes wrong, and wrong tags would bring the old bug back. They
+are corrected once, at build time, from anatomy and the research, and never
+by her: she does none of this.
 
-- `assets/exercises/overrides.json` corrects them by hand: muscles, class,
-  pattern, and bans.
-- The first time any exercise is chosen, its tags are checked by hand before
-  the plan ships, and the result goes into overrides.
-- The reviewed set grows as the app is used. Until an exercise is reviewed,
-  only reviewed exercises may fill a big-lift slot.
+- **Review at build time:** every exercise usable with typical gym equipment
+  gets its primary and secondary muscles, class, pattern and stretched-position
+  flag reviewed against joint actions and the research report's mapping table.
+  Corrections go into `assets/exercises/overrides.json`, each with a one-line
+  reason.
+- **Anatomy rules in code:** tests check the whole catalogue against rules that
+  must always hold. For example, a leg curl is primary hamstrings, a row is
+  never primary chest, an overhead extension is primary triceps, and a hip
+  thrust is primary glutes. A tag that breaks a rule fails the build.
+- **Only reviewed exercises can be chosen.** An exercise not reviewed at build
+  time is not offered to the model at all.
 
 ### How a session is planned
 
@@ -217,17 +229,17 @@ the model into structured notes. Each note says which exercise it is about
 | Reason | Example | What the app does |
 |---|---|---|
 | `wrong_muscle` | "didn't feel it in my glutes" | Swap it next time for a different exercise with the same muscle; remember that this exercise misses for her |
-| `pain` | "hurt my knee" | Never choose it again; avoid similar exercises that load the same joint the same way |
+| `pain` | "hurt my knee" | Swap it next time and note it. It can come back later. She may write "hurt" for a burn, so this is never a ban |
 | `too_hard` | "couldn't keep form" | An easier variation, or a lighter weight |
 | `too_easy` | "way too light" | Raise the weight now, without waiting for the rep rule |
-| `dislike` | "hated it" | Don't choose it again unless nothing else fits |
+| `dislike` | "hated it" | Never choose it again |
 | `one_off` | "machine was taken" | No change |
 | `liked` | "loved these" | Prefer it when it fits |
 
 - The notes live in a `memory` table and are included in every planning
   prompt.
-- Code applies `pain` and `dislike` as hard filters, so the model cannot
-  overrule them.
+- Code applies `dislike` as the only hard filter, so the model cannot
+  overrule it. Every other reason is guidance.
 - When the app acts on a note, the next email shows one line saying so, for
   example "Swapped hip thrust for glute bridge, since you said you didn't feel
   it".
@@ -323,8 +335,12 @@ goes where a mistake would be silent:
   of range must all fail.
 - **Progression:** every row of the rules above.
 - **Weight steps:** every suggested weight must exist.
-- **Comment memory:** each reason has its effect, and `pain` and `dislike`
-  cannot be overruled.
+- **Comment memory:** each reason has its effect, and `dislike` cannot be
+  overruled.
+- **Catalogue tags:** the anatomy rules hold for every exercise that can be
+  chosen.
+- **Skeleton:** the full body week alternates, and every muscle stays in its
+  volume range in both kinds of week.
 - **The dynamic email:** checked against the AMP rules.
 - **Pipeline:** an end-to-end test from a booking to an email, with a canned
   model.
