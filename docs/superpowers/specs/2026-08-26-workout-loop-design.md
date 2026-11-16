@@ -1,5 +1,7 @@
 # Workout Loop — design
 
+> **Superseded** by the rebuild of 13 November 2026: `docs/superpowers/specs/2026-11-13-workout-loop-v2-design.md`. Kept as history.
+
 **Date:** 2026-08-26
 **Status:** approved, ready for implementation planning
 

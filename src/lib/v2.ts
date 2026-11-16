@@ -1,10 +1,10 @@
 /**
- * The rebuild, wired into the kept plumbing (plan stage 12).
+ * The training engine, wired into the plumbing: planning the next session
+ * from the log, the email for it, logging from the one Save, and reading
+ * replies and comments into the log and memory.
  *
- * Not pure: the database, the mailbox and the model. Behind PLAN_VERSION=2 a
- * booking goes through the v2 engine: history, then a checked plan, then the
- * new email. Retries, idempotency and the booking webhook are unchanged; a
- * workout that already has a v1 plan finishes as v1.
+ * Not pure: the database, the mailbox and the model. Retries, idempotency and
+ * the booking webhook live in delivery.ts and cron.ts.
  */
 
 import { after } from "next/server";
@@ -38,13 +38,11 @@ import { LOWER, nextPosition, targets, UPPER, type Position, type SessionType } 
 import { weekSummary } from "../training/summary";
 import type { LogEntry, PlanV2, Tap } from "../training/types";
 import { budgetFromCheckins } from "./checkin";
-import { appUrl } from "./reminders";
+import { appUrl } from "./app-url";
 import { weekStart } from "./when";
 
 const { workouts, feedback } = schema;
 
-/** Live from 17 November, her go-ahead: v2 is the app. PLAN_VERSION=1 switches back to the old one. */
-export const v2On = () => process.env.PLAN_VERSION?.trim() !== "1";
 
 /** "upper" means the next upper day in order, and so on; anything else, the next session. */
 export function positionFor(last: Position | null, focus: string | null): Position | undefined {

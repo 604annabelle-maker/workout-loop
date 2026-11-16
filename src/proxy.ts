@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 /**
- * Basic auth on the preferences page (design §Security).
+ * Basic auth on the gym page (design §Security).
  *
  * One person edits one form a handful of times a year, from a computer. A login
  * system would be more code than the thing it protects.

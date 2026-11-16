@@ -17,7 +17,7 @@ process.loadEnvFile(".env");
 
 const { recordBooking, deliverWorkout } = await import("../lib/delivery.ts");
 const { pollReplies } = await import("../lib/replies.ts");
-const { trainingLog } = await import("../lib/workouts.ts");
+const { loadHistory } = await import("../training/history.ts");
 
 const minutes = Number(process.argv[2]) || 60;
 
@@ -32,7 +32,7 @@ if (replies.filed > 0) {
   console.log("mailbox not configured, skipping the reply check");
 }
 
-const history = await trainingLog();
+const history = await loadHistory();
 console.log(`history: ${history.length} session(s) in the log\n`);
 
 const { id } = await recordBooking({

@@ -14,22 +14,10 @@ import { randomBytes } from "node:crypto";
 import { eq } from "drizzle-orm";
 import { db, schema } from "@/db";
 import type { Booking } from "./booking-payload";
-import { buildBrief, current, reviveBrief, storeBrief, type Brief } from "./coach";
-import { generateWorkout } from "./generate";
-import { sendMail } from "./mail-out";
-import { exerciseKey, mainExercises, readPlan, type Plan } from "./plan";
-import { workoutPictures } from "./picture-library";
-import { readPreferences } from "./preferences";
-import { PICTURE_EXPOSURES } from "./program";
-import { exposures, type Session } from "./progress";
-import { appUrl, forgotten } from "./reminders";
-import { snapshot } from "./summary";
-import { dateOnly } from "./when";
-import { composeAmp } from "./workout-amp";
-import { composeLegacyMail, composeText, composeWorkoutMail, type Composed } from "./workout-mail";
-import { sessionsSent, trainingLog } from "./workouts";
+import { sendMail, type Mail } from "./mail-out";
 import { readPlanV2 } from "../training/history";
-import { mailFor, planNext, v2On } from "./v2";
+import { mailFor, planNext } from "./v2";
+import { dateOnly } from "./when";
 
 const { workouts } = schema;
 
@@ -86,118 +74,14 @@ export async function deliverWorkout(workoutId: string): Promise<Delivery> {
   const to = process.env.OWNER_EMAIL;
   if (!to) return recordFailure(workout, "OWNER_EMAIL is not set");
 
-  // The rebuild: a workout already planned as v2 finishes as v2, and a new one goes v2 once it is switched on.
-  if (workout.version === 2 || (v2On() && !workout.plan && !workout.planText)) return deliverV2(workout, to);
-
-  const slot = { startsAt: workout.slotStartsAt, minutes: workout.slotMinutes };
-
-  /*
-   * Read whether or not a plan has to be generated. A retry sends the plan
-   * already in the row, and it has to carry the same bars and the same
-   * last-time lines the first attempt would have. Only sessions planned the
-   * current way count: progress started fresh with it.
-   */
-  const sessions = current((await trainingLog()).filter((s) => s.at < slot.startsAt));
-
-  let plan: Plan | null = null;
-  try {
-    plan = workout.plan ? readPlan(workout.plan) : null;
-  } catch {
-    plan = null;
-  }
-  let brief = reviveBrief(workout.brief);
-
-  // A plain text plan with no structure is a workout generated before the
-  // coach existed and never sent. Send it as written rather than paying to
-  // write another one.
-  if (!plan && workout.planText) {
-    const mail = composeLegacyMail(workout.planText, slot);
-    return send(workout, to, mail);
-  }
-
-  if (!plan || !brief) {
-    try {
-      const preferences = await readPreferences();
-      brief = buildBrief({
-        preferences,
-        sessions,
-        slot,
-        sessionNumber: (await sessionsSent()) + 1,
-        // Kept on the row, so a retry asks for the same session.
-        request: {
-          focus: workout.focus === "upper" || workout.focus === "lower" || workout.focus === "full" ? workout.focus : null,
-          note: workout.note,
-        },
-      });
-
-      const generated = await generateWorkout({ preferences, sessions, brief, slot });
-      plan = generated.plan;
-
-      // Written down before the send is attempted. If the send fails, the next
-      // attempt sends this plan rather than paying to write another one.
-      await db
-        .update(workouts)
-        .set({
-          plan,
-          brief: storeBrief(brief),
-          planText: composeText({ plan, brief, slot, snapshot: null }),
-          status: "generated",
-        })
-        .where(eq(workouts.id, workoutId));
-    } catch (err) {
-      return recordFailure(workout, `generation failed: ${err}`);
-    }
-  }
-
-  // The secret in this email's log buttons. Kept on a retry, so an email
-  // that did go out despite a reported failure still logs to this row.
-  const token = workout.logToken ?? newLogToken();
-  if (!workout.logToken) {
-    await db.update(workouts).set({ logToken: token }).where(eq(workouts.id, workoutId));
-  }
-
-  return send(workout, to, workoutMail({ plan, brief, slot, sessions, token }));
-}
-
-/**
- * The email for a planned workout, all three versions: pictures for what she
- * is still learning, the bars, the earlier workouts to ask about, and log
- * buttons that post with this workout's secret.
- */
-export function workoutMail(input: {
-  plan: Plan;
-  brief: Brief;
-  slot: { startsAt: Date; minutes: number };
-  sessions: Session[];
-  token: string;
-}): Composed {
-  const { plan, brief, slot, sessions, token } = input;
-  const names = mainExercises(plan).map((e) => e.name);
-  const seen = exposures(sessions, slot.startsAt);
-  const base = appUrl();
-
-  return composeWorkoutMail(
-    {
-      plan,
-      brief,
-      slot,
-      snapshot: snapshot(sessions, brief, slot.startsAt, plan),
-      pictures: workoutPictures(names),
-      learning: new Set(
-        names.filter((n) => (seen.get(exerciseKey(n)) ?? 0) < PICTURE_EXPOSURES).map((n) => n.trim().toUpperCase()),
-      ),
-      log: base ? { base, token } : null,
-      unlogged: forgotten(sessions),
-    },
-    composeAmp,
-  );
+  return planAndSend(workout, to);
 }
 
 /**
  * A v2 workout: planned from the training log, checked, written down before
  * sending so a retry sends the same plan, then the new email.
  */
-async function deliverV2(workout: WorkoutRow, to: string): Promise<Delivery> {
+async function planAndSend(workout: WorkoutRow, to: string): Promise<Delivery> {
   let plan = readPlanV2(workout.planV2);
   if (!plan) {
     try {
@@ -212,14 +96,14 @@ async function deliverV2(workout: WorkoutRow, to: string): Promise<Delivery> {
   return send(workout, to, await mailFor(plan, { date: workout.slotStartsAt, token }));
 }
 
-/** A new secret for a workout's log buttons. */
+/** A new secret for a workout's log form. */
 export function newLogToken(): string {
   return randomBytes(18).toString("base64url");
 }
 
 type WorkoutRow = typeof workouts.$inferSelect;
 
-async function send(workout: WorkoutRow, to: string, mail: Composed): Promise<Delivery> {
+async function send(workout: WorkoutRow, to: string, mail: Omit<Mail, "to">): Promise<Delivery> {
   const result = await sendMail({ to, ...mail });
 
   if (!result.sent) {
