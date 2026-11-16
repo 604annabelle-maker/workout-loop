@@ -20,7 +20,7 @@ import {
   SESSION_SETS,
   TARGETED,
   WEEKLY_CAP,
-  WEEKLY_FLOOR,
+  floorFor,
   type Muscle,
 } from "./rules";
 import { balance, cycleTypes, plannedVolume, TEMPLATES, type Skeleton, type Targets } from "./skeleton";
@@ -151,7 +151,7 @@ export function checkPlan(input: {
     }
     for (const m of TARGETED) {
       const n = week[m] ?? 0;
-      if (n < WEEKLY_FLOOR - 1e-9) failures.push(`${m} is projected at ${n} sets this week, under ${WEEKLY_FLOOR}`);
+      if (n < floorFor(m) - 1e-9) failures.push(`${m} is projected at ${n} sets this week, under ${floorFor(m)}`);
       if (n > WEEKLY_CAP + 1e-9) failures.push(`${m} is projected at ${n} sets this week, over ${WEEKLY_CAP}`);
     }
   }

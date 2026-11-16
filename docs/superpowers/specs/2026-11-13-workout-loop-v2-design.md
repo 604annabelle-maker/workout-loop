@@ -72,22 +72,27 @@ carries its reason and its confidence rating from the research report.
 
 ### Weekly structure
 
-- **Split:** Upper / Lower / Upper / Lower. This is the research report's pick
-  for 4 days a week: every muscle is trained twice a week, and it fits 60
-  minutes. Each upper day carries direct biceps and triceps work. The two
-  lower days each end with the abs finisher.
-- **Full body every other week:** on alternate weeks, the second lower day is
-  a full body day instead. Legs are still trained twice that week, and the
-  full body day carries that week's second abs finisher. Weekly volume is
-  counted the same way, so the skeleton rebalances the other days to keep
-  every muscle in range.
+- **Split (changed 16 November, her choice):** four focused days, two muscle
+  groups each, so every muscle is trained hard once a week:
+  1. Back + biceps
+  2. Glutes + hamstrings, ending with abs
+  3. Chest + triceps, with a little shoulder work
+  4. Quads + glutes, ending with abs
+
+  The research finds growth about equal to twice a week when weekly sets
+  match, with a slight edge to twice (Schoenfeld 2019, Pelland 2024). She
+  chose focus. Each day carries its muscles' whole week.
+- **Full body every other week:** on alternate weeks, the quads + glutes day
+  is a full body day instead.
 - **Volume:** counted per muscle per week in fractional sets. A set counts 1
   for each primary muscle of its exercise and 0.5 for each secondary muscle.
   Warm-up sets count 0.
-  - Start at 10 sets per muscle (biceps and triceps 12 to 13), then grow
-    toward 16 (arms 18), never past 20.
-  - At most 8 fractional sets per muscle in one session.
-  - Each session holds 14 to 20 working sets.
+  - Start at 10 sets per muscle (biceps and triceps 12 to 13, shoulders 5
+    as a small extra), then grow toward 16 (arms 18), never past 20.
+  - At most 12 fractional sets per muscle in one session, since each muscle
+    has one day a week.
+  - Each session holds at least 14 working sets and at most 22 sets in all
+    (about 50 minutes, warm-up excluded).
 - **Volume growth:** add one weekly set to a muscle only when all its
   exercises progressed over the last 2 weeks without a `hard` tap.
 
@@ -282,21 +287,28 @@ buttons move between those steps.
    - Every weight says what it means: "each hand" for dumbbells, "total with
      bar" for barbells, "on the stack" for machines and cables, or
      "bodyweight".
-   - Tapping easy, done or hard saves the exercise with the numbers shown.
-   - **Swap** opens in place with the swap exercise and its own numbers.
-   - **How to** opens a picture and one line on form.
+   - **easy / done / hard / skip**, with nothing picked. An exercise counts
+     only once she picks one.
+   - **Swap** opens in place with the swap exercise, its own numbers, and
+     "did this instead".
+   - **How to** opens one line on form and the Everkinetic sketch: two small
+     frames side by side, the set she chose. Sketches are shown only when
+     they are exactly the movement; the others show the line on form alone,
+     and exercises with an exact sketch are preferred when choosing.
    - On a first-time exercise, the weight shows "find it" until she sets it.
 5. **The abs finisher**, as cards, on lower days.
-6. **"Anything about today?"**, a comment box, then **All done**, which marks
-   every untapped card as done.
+6. **"Anything about today?"**, a comment box, then **one Save** for the
+   whole workout. It logs every exercise with a pick, using the numbers on
+   its card; skip removes one. There is no All done. Saving again replaces
+   what was saved.
 7. **The weekly summary:** sets per muscle this week against the target. It
    starts over each Sunday.
 
 ### Versions
 
-- **Dynamic (AMP):** − / + uses `amp-bind` state, and each easy / done / hard
-  button submits an `amp-form` to `/api/log` with the exercise, weight, reps
-  and tap. The tests check it against the AMP for Email rules, because Gmail
+- **Dynamic (AMP):** − / + uses `amp-bind` state. The cards, the comment and
+  the Save are one `amp-form` posting to `/api/log`, with each card's weight,
+  reps and pick. The tests check it against the AMP for Email rules, because Gmail
   silently falls back to the plain version on any break.
 - **Plain HTML, and plain text wrapped to 50 characters:** the same content,
   with no buttons. These are logged by replying with "done", or only what was

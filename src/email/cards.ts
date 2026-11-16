@@ -33,7 +33,9 @@ export interface Numbers {
   range: [number, number];
   findIt: boolean;
   form: string;
+  /** The drawing's two frames, and a line on how it differs when it shows a near version. */
   frames: Frame[];
+  drawingNote: string;
 }
 
 export interface Card {
@@ -48,7 +50,6 @@ export interface Card {
   swap: Numbers | null;
   why?: string;
   finisher: boolean;
-  isNew: boolean;
 }
 
 export interface WarmLine {
@@ -76,10 +77,11 @@ export interface Mail {
   preview: boolean;
 }
 
-export type Photos = (exerciseId: string) => Frame[];
+export type Pictures = (exerciseId: string) => { frames: Frame[]; note: string };
 
-function numbers(p: Prescription, photos: Photos): Numbers {
+function numbers(p: Prescription, pictures: Pictures): Numbers {
   const e = exercise(p.exerciseId);
+  const pic = pictures(p.exerciseId);
   return {
     exerciseId: p.exerciseId,
     name: e?.name ?? p.exerciseId,
@@ -90,7 +92,8 @@ function numbers(p: Prescription, photos: Photos): Numbers {
     range: p.range,
     findIt: p.findIt,
     form: e?.form ?? "",
-    frames: photos(p.exerciseId),
+    frames: pic.frames,
+    drawingNote: pic.note,
   };
 }
 
@@ -110,9 +113,7 @@ export function compose(input: {
   summary: SummaryRow[];
   logUrl: string | null;
   base: string | null;
-  photos: Photos;
-  /** Exercises she has logged before, so new ones can be marked. */
-  familiar: Set<string>;
+  pictures: Pictures;
   preview?: boolean;
 }): Mail {
   const { plan } = input;
@@ -125,11 +126,10 @@ export function compose(input: {
     sets: x.sets,
     rest: restText(x.rest),
     effort: x.effort,
-    main: numbers(x.main, input.photos),
-    swap: x.swap ? numbers(x.swap, input.photos) : null,
+    main: numbers(x.main, input.pictures),
+    swap: x.swap ? numbers(x.swap, input.pictures) : null,
     ...(x.why ? { why: x.why } : {}),
     finisher: !!x.finisher,
-    isNew: !input.familiar.has(x.main.exerciseId),
   }));
   const warmup: WarmLine[] = plan.warmup.map((w) => {
     const name = exercise(w.exerciseId)?.name ?? w.exerciseId;

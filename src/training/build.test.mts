@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { buildSession, type Picker } from "./build.ts";
-import { catalogue, exercise } from "./catalogue.ts";
+import { catalogue, exercise, family } from "./catalogue.ts";
 import { checkPlan } from "./check.ts";
 import { DEFAULT_EQUIPMENT as EQ, isWeighted, loadable } from "./equipment.ts";
 import { rng, simulate } from "./fixtures.mts";
@@ -13,7 +13,7 @@ const fresh = async (pick?: Picker, notes: Note[] = []) => buildSession({ histor
 
 test("with no history, the first session is Upper A and passes every check", async () => {
   const { plan } = await fresh();
-  assert.equal(plan.position.type, "upper_a");
+  assert.equal(plan.position.type, "back_biceps");
   assert.ok(plan.exercises.length >= 5);
   for (const x of plan.exercises) assert.ok(exercise(x.main.exerciseId), x.main.exerciseId);
 });
@@ -33,7 +33,17 @@ test("a wrong-muscle answer is refused, asked again with the reason, then filled
 });
 
 test("a good answer is used as given", async () => {
-  const stub: Picker = async (req) => ({ picks: req.slots.map((s) => ({ slot: s.key, exerciseId: s.candidates[s.candidates.length - 1].id, why: "variety" })) });
+  const stub: Picker = async (req) => {
+    const used = new Set<string>();
+    return {
+      picks: req.slots.map((s) => {
+        // A sensible answer: each exercise once, no two versions of one movement, no bodyweight.
+        const c = s.candidates.find((x) => !used.has(family(exercise(x.id)!)) && x.equipment !== "bodyweight")!;
+        used.add(family(exercise(c.id)!));
+        return { slot: s.key, exerciseId: c.id, why: "variety" };
+      }),
+    };
+  };
   const built = await fresh(stub);
   assert.equal(built.modelUsed, true);
   assert.ok(built.plan.exercises.some((x) => x.why === "variety"));
@@ -80,7 +90,7 @@ test("the checker refuses wrong muscles, wrong swaps, off-target warm-ups and ba
 
   const swapMain = structuredClone(plan);
   swapMain.exercises[0].main.exerciseId = "Leg_Extensions";
-  assert.ok(ok(swapMain).some((f) => /does not train chest/.test(f)));
+  assert.ok(ok(swapMain).some((f) => /does not train back/.test(f)));
 
   const badSwap = structuredClone(plan);
   badSwap.exercises[0].swap!.exerciseId = "Seated_Leg_Curl";
@@ -103,11 +113,12 @@ test("the checker refuses wrong muscles, wrong swaps, off-target warm-ups and ba
   assert.ok(ok(badWeight).some((f) => /does not exist/.test(f)));
 });
 
-test("lower days warm up the legs, upper days the upper body", async () => {
+test("leg days warm up the legs, upper days the upper body", async () => {
   const h = await simulate(4, { seed: 3 });
   const legs = new Set(["quads", "hamstrings", "glutes"]);
   for (const s of h) {
-    const lower = s.plan.position.type.startsWith("lower");
+    if (s.plan.position.type === "full") continue;
+    const lower = s.plan.position.type === "glutes_hams" || s.plan.position.type === "quads_glutes";
     for (const w of s.plan.warmup.filter((w) => !w.practice)) {
       const isLeg = exercise(w.exerciseId)!.primary.some((m) => legs.has(m));
       assert.equal(isLeg, lower, `${s.plan.position.type}: ${exercise(w.exerciseId)!.name}`);

@@ -73,7 +73,7 @@ test("undo deletes the note's effect and the original exercise comes back", asyn
     plan = (await buildSession({ history: h, notes: undone, equipment: EQ, now: t })).plan;
     h = [...h, { workoutId: `u${i}`, date: t, plan, logs: logAll(plan, () => ({ reps: 8, tap: "done" as const })) }];
     t = new Date(t.getTime() + 2 * DAY);
-    if (plan.position.type === "upper_a") break;
+    if (plan.position.type === "back_biceps") break;
   }
   assert.equal(plan.exercises.find((x) => x.slot === slot)!.main.exerciseId, slotOf(first, "biceps").main.exerciseId);
 });

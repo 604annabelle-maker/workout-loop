@@ -53,8 +53,12 @@ export interface Exercise {
   /** A bodyweight exercise's easier and harder variations. */
   easier?: string;
   harder?: string;
-  /** Not in free-exercise-db, so it has no photos. */
+  /** Not in free-exercise-db. */
   custom?: boolean;
+  /** The Everkinetic drawing of this movement, by name (assets/exercise-drawings). */
+  drawing?: string;
+  /** One line on how the drawing differs, when it shows a near version. */
+  drawingNote?: string;
   /** Why the review changed free-exercise-db's tags. */
   why?: string;
 }
@@ -84,6 +88,11 @@ export function banned(): readonly string[] {
 }
 
 export const trains = (e: Exercise, m: Muscle) => e.primary.includes(m);
+
+const EQUIPMENT_WORDS = /\b(dumbbell|barbell|ez-bar|ez|cable|machine|band|one-arm|single-leg|single-arm|seated|standing|lying|alternating|rope|v-bar|bodyweight)\b/g;
+
+/** The movement without its equipment: "Dumbbell skull crusher" and "EZ-bar skull crusher" are both "skull crusher". */
+export const family = (e: Exercise) => e.name.toLowerCase().replace(EQUIPMENT_WORDS, " ").replace(/\s+/g, " ").trim();
 
 export const isBodyweight = (e: Exercise) => e.load === "bodyweight";
 

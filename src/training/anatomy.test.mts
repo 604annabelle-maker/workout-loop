@@ -69,7 +69,8 @@ test("every slot of every session has at least three exercises that fit, and eve
     for (const spec of slots) {
       const slot = { ...spec, setCount: 3, reps: [8, 12] as [number, number] };
       const n = all.filter((e) => fits(e, slot)).length;
-      assert.ok(n >= (spec.class === "heavy" ? 1 : 3), `${type} ${spec.key}: only ${n} fit`);
+      // Optional slots only need one; heavy slots are one or two barbell lifts kept for a long time.
+      assert.ok(n >= (spec.class === "heavy" || spec.sets[0] === 0 ? 1 : 3), `${type} ${spec.key}: only ${n} fit`);
     }
   for (const m of ["quads", "hamstrings", "glutes", "chest", "back", "side_delts", "biceps", "triceps"] as const) {
     const drills = all.filter((e) => (e.class === "drill" || e.warmup) && e.primary.includes(m) && (e.load === "bodyweight" || e.load === "band"));

@@ -18,9 +18,9 @@ email marked "Preview". Its buttons work, but a preview is never read as
 training. On her phone she checks:
 
 - − / + on weight and reps, and tapping the weight for the row of nearby weights
-- easy / done / hard on a card, then on a swap; each shows "Saved"
-- How to (a photo and one line), Swap
-- a comment, then All done
+- easy / done / hard / skip on a few cards, with nothing picked to start; on one, open Swap and tick "did this instead"
+- How to (the sketch and one line)
+- a comment, then the one Save at the bottom: it says what it saved
 - the line at the top changing from "Nothing logged yet"
 
 ## 3. Her gym

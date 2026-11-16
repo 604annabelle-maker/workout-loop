@@ -156,7 +156,9 @@ export function candidates(
   const score = (e: Exercise) =>
     (e.stretched ? (slot.preferStretched ? 4 : 1) : 0) +
     (liked(ctx.notes, e.id) ? 3 : 0) +
-    (done.has(e.id) ? 1 : 0) -
+    (done.has(e.id) ? 1 : 0) +
+    // She learns a movement from its drawing, and only exact drawings are kept, so a drawn one is preferred.
+    (e.drawing ? 2 : 0) -
     (isBodyweight(e) && !slot.finisher ? 5 : 0);
   return [...list].sort((a, b) => score(b) - score(a) || a.name.localeCompare(b.name));
 }

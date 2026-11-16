@@ -9,7 +9,7 @@ import { compose, type Mail } from "./cards.ts";
 import { composeHtml } from "./html.ts";
 import { composeText } from "./text.ts";
 
-const frames = (id: string) => (id.startsWith("B") ? [{ file: `${id}-0.jpg`, width: 400, height: 267 }] : []);
+const pictures = (id: string) => ({ frames: id.startsWith("B") ? [{ file: `${id}-0.png`, width: 400, height: 315 }, { file: `${id}-1.png`, width: 400, height: 315 }] : [], note: "" });
 
 async function mails(n = 6): Promise<Mail[]> {
   const h = await simulate(n, { seed: 21 });
@@ -20,8 +20,7 @@ async function mails(n = 6): Promise<Mail[]> {
       summary: weekSummary({ history: h.slice(0, i), today: s.plan, weekStart: new Date(0), targets: targets() }),
       logUrl: "https://workout.example.app/api/log?t=abcdefghijklmnop",
       base: "https://workout.example.app",
-      photos: frames,
-      familiar: new Set(),
+      pictures,
     }),
   );
 }
@@ -64,18 +63,38 @@ test("every weight − / + can reach exists, and is labelled", async () => {
       }
 });
 
-test("each card has − / +, the weights row, easy / done / hard, and posts its slot", async () => {
+test("each card has − / +, the weights row, easy / done / hard / skip with nothing picked, and one Save for all", async () => {
   const [m] = await mails(1);
   const amp = composeAmp(m);
   for (const c of m.cards) {
-    assert.ok(amp.includes(`name="slot" value="${c.slot}"`));
-    assert.ok(amp.includes(`id="${c.id}-easy"`) && amp.includes(`id="${c.id}-done"`) && amp.includes(`id="${c.id}-hard"`));
+    assert.ok(amp.includes(`name="slot_${c.id}" value="${c.slot}"`));
+    for (const t of ["easy", "done", "hard", "skip"]) assert.ok(amp.includes(`id="${c.id}-${t}" name="t_${c.id}" value="${t}">`), `${c.id} ${t}`);
     if (c.main.weight !== null) {
       assert.ok(amp.includes(`<amp-state id="${c.id}w">`));
       assert.ok(amp.includes(`[class]="${c.id}.o ? 'row open' : 'row'"`));
+      assert.ok(amp.includes(`name="w_${c.id}"`));
     }
+    assert.ok(amp.includes(`name="r_${c.id}"`));
   }
-  assert.ok(amp.includes('name="kind" value="all"') && amp.includes('name="kind" value="comment"'));
+  assert.ok(!/\schecked/.test(amp), "nothing is picked for her");
+  assert.ok(!/All done/.test(amp), "no All done button");
+  assert.equal((amp.match(/name="kind" value="save"/g) ?? []).length, 1, "one Save");
+  assert.equal((amp.match(/type="submit">Save</g) ?? []).length, 1);
+  assert.ok(!/on="change:/.test(amp), "nothing saves on its own");
+  const save = amp.slice(amp.indexOf('<form id="save"'), amp.indexOf("</form>", amp.indexOf('<form id="save"')));
+  assert.ok(save.includes('name="note"'), "the note goes with the Save");
+  for (const c of m.cards) assert.ok(save.includes(`name="t_${c.id}"`), "every card is inside the one form");
+});
+
+test("How to shows the two drawing frames side by side, with the note on what differs", async () => {
+  const [m] = await mails(1);
+  const c = { ...m.cards[0], main: { ...m.cards[0].main, frames: [{ file: "0001-0.png", width: 400, height: 315 }, { file: "0001-1.png", width: 400, height: 315 }], drawingNote: "Shown seated." } };
+  const amp = composeAmp({ ...m, cards: [c] });
+  assert.ok(amp.includes("/pictures/d/0001-0.png") && amp.includes("/pictures/d/0001-1.png"));
+  assert.match(amp, /<table class="pics" role="presentation"><tr><td>/);
+  assert.ok(amp.includes("Shown seated."));
+  assert.match(amp, /Everkinetic/);
+  assert.ok(!amp.includes("/pictures/p/"), "no photos");
 });
 
 test("the same exercises and numbers in all three versions", async () => {
