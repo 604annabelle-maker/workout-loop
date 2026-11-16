@@ -11,7 +11,7 @@ import type { PickAnswer, Picker, PickRequest } from "./build";
 
 const SYSTEM = `You choose exercises for one gym session for a woman in her early twenties training for lean muscle and strength, balanced, with a small extra emphasis on arms.
 
-You fill only the slots you are given, and only with an ID from that slot's candidate list. Code has already checked that every candidate trains the slot's muscle, fits her gym and avoids what she dislikes; it sets every weight, rep and set.
+You fill only the slots you are given, and only with an ID from that slot's candidate list. Use each exercise once per session, and avoid two versions of the same movement (two skull crushers, two lateral raises). Code has already checked that every candidate trains the slot's muscle, fits her gym and avoids what she dislikes; it sets every weight, rep and set.
 
 Choose using the evidence:
 - Prefer exercises that load the muscle hard in its stretched position where a slot asks for it (seated over lying leg curl, overhead triceps extension, incline or Bayesian curls, deep dumbbell presses) — Maeo 2021, Maeo 2023, Pedrosa 2023.

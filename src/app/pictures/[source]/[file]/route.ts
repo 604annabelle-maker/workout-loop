@@ -11,8 +11,8 @@ import { pictureFile } from "@/lib/picture-library";
  */
 export async function GET(_request: Request, { params }: { params: Promise<{ source: string; file: string }> }) {
   const { source, file } = await params;
-  // Drawings for v1 emails, photos for v2's How to.
-  const where = source === "d" || source === "p" ? pictureFile(source, file) : null;
+  // Only the drawings are shipped with this route; photos are not used.
+  const where = source === "d" ? pictureFile(source, file) : null;
   if (!where) return new Response("Not found", { status: 404 });
 
   try {

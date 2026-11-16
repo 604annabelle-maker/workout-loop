@@ -11,7 +11,7 @@
 
 import { fresh, swapLine, tooHard, weightLine } from "../memory/apply";
 import { capRotations, candidates, decide, fits, fitsSwap, slotHistory, swapFor, type Decision } from "./candidates";
-import { catalogue, exercise, isBodyweight, type Exercise } from "./catalogue";
+import { catalogue, exercise, family, isBodyweight, type Exercise } from "./catalogue";
 import { checkPlan, volumeOf } from "./check";
 import { deloadNow, growth } from "./deload";
 import { stepDown, type Equipment } from "./equipment";
@@ -115,7 +115,15 @@ export async function buildSession(input: BuildInput): Promise<Built> {
     if (decisions[i].mode !== "open") continue;
     const d = decisions[i];
     const exclude = d.previous ? [d.previous] : [];
-    lists.set(slot.key, candidates(slot, { notes, now, equipment, history, taken: [...locked.values()], exclude }));
+    const ctx = { notes, now, equipment, history, taken: [...locked.values()], exclude };
+    let list = candidates(slot, ctx);
+    // No heavy lift left for this muscle (she disliked the only one, or the gym lacks it): a compound takes the slot.
+    if (!list.length && slot.class === "heavy") {
+      const lighter: Slot = { ...slot, class: "compound", reps: [...CLASS.compound.reps] as [number, number] };
+      sk = { ...sk, slots: sk.slots.map((x, j) => (j === i ? lighter : x)) };
+      list = candidates(lighter, ctx);
+    }
+    lists.set(slot.key, list);
   }
 
   const open = sk.slots.filter((_, i) => decisions[i].mode === "open");
@@ -145,11 +153,28 @@ export async function buildSession(input: BuildInput): Promise<Built> {
     for (const slot of open) {
       pending = pending.slice(pending.indexOf(slot));
       const list = (lists.get(slot.key) ?? []).filter((e) => ![...chosen.values()].includes(e.id));
+      // Two versions of the same movement in one session is one exercise twice: avoid it while anything else fits.
+      const families = new Set([...chosen.values()].map((id) => family(exercise(id)!)));
+      // Only for small exercises: a barbell row and a dumbbell row are different lifts, two skull crushers are not.
+      const distinct = (e: Exercise) =>
+        e.class !== "isolation" || !families.has(family(e)) || !list.some((x) => !families.has(family(x)));
       const okBody = (e: Exercise) =>
-        (slot.finisher || !isBodyweight(e) || bodyweight < ROTATION.maxBodyweightPerSession) && underCap(e, slot.setCount);
+        (slot.finisher || !isBodyweight(e) || bodyweight < ROTATION.maxBodyweightPerSession) && underCap(e, slot.setCount) && distinct(e);
       const p = picks.get(slot.key);
       let e = p ? list.find((x) => x.id === p.id && okBody(x)) : undefined;
-      if (p && !e) bad.push(`${p.id} is not one of the candidates for ${slot.key}${exercise(p.id) && !fits(exercise(p.id)!, slot) ? ` (it does not train ${slot.muscle})` : ""}`);
+      if (p && !e) {
+        const said = exercise(p.id);
+        const why = !said
+          ? "it is not in the catalogue"
+          : !fits(said, slot)
+            ? `it does not train ${slot.muscle}`
+            : [...chosen.values()].includes(said.id)
+              ? "it is already in this session"
+              : !list.some((x) => x.id === said.id)
+                ? "it is not one of the candidates"
+                : "it is too like another exercise today, or one bodyweight exercise is already in";
+        bad.push(`${p.id} for ${slot.key}: ${why}`);
+      }
       if (!e) e = list.find(okBody) ?? list[0];
       if (!e) throw new Error(`no candidate fits ${slot.key} (${slot.muscle}, ${slot.class})`);
       if (isBodyweight(e) && !slot.finisher) bodyweight++;

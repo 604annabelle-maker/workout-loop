@@ -26,12 +26,25 @@ for (let i = 0; i < 2; i++) {
   console.log(" ", plan.position.type, "version", row.version, "status", row.status, "token", !!row.logToken);
   ids.push(id);
   if (i === 0) {
-    const x = plan.exercises[0];
-    console.log(" tap:", (await handleLogV2(id, plan, fd({ kind: "tap", slot: x.slot, swap: "0", w: String((x.main.weight ?? 0) + 2.5), r: "7", tap: "easy" }))).body.saved);
-    console.log(" tap again:", (await handleLogV2(id, plan, fd({ kind: "tap", slot: x.slot, swap: "0", w: String(x.main.weight), r: "8", tap: "done" }))).body.saved);
-    const y = plan.exercises[1];
-    if (y.swap) console.log(" swap tap:", (await handleLogV2(id, plan, fd({ kind: "tap", slot: y.slot, swap: "1", w: String(y.swap.weight ?? ""), r: "9", tap: "hard" }))).body.saved);
-    console.log(" all:", (await handleLogV2(id, plan, fd({ kind: "all" }))).body.saved);
+    // One Save: the first card heavier and easy, the second as its swap, the third skipped, the rest left unpicked.
+    const [x, y] = plan.exercises;
+    const form: Record<string, string> = { kind: "save" };
+    plan.exercises.forEach((e, k) => {
+      form[`slot_c${k + 1}`] = e.slot;
+      form[`r_c${k + 1}`] = String(e.main.reps);
+      if (e.main.weight !== null) form[`w_c${k + 1}`] = String(e.main.weight);
+    });
+    form.w_c1 = String((x.main.weight ?? 0) + 2.5);
+    form.t_c1 = "easy";
+    if (y.swap) {
+      form.s_c2 = "1";
+      form.r_c2s = "9";
+      if (y.swap.weight !== null) form.w_c2s = String(y.swap.weight);
+    }
+    form.t_c2 = "hard";
+    form.t_c3 = "skip";
+    console.log(" save:", (await handleLogV2(id, plan, fd(form))).body.saved);
+    console.log(" save with nothing picked:", (await handleLogV2(id, plan, fd({ kind: "save" }))).body);
     console.log(" logged:", loggedLine(plan, await logsFor(id)), (await logsFor(id)).length);
     const biceps = plan.exercises.find((e) => e.muscle === "biceps")!;
     const name = exercise(biceps.main.exerciseId)!.name;

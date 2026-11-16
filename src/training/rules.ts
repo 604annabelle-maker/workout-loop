@@ -77,7 +77,7 @@ export const CLASS: Record<Exclude<ExerciseClass, "drill">, ClassRule> = {
   isolation: { reps: [10, 15], shortOfFailure: [0, 1], rest: 75, setTime: 35 },
 };
 
-/** Heavy lifts on the second day of their kind use the higher range. */
+/** Heavy lifts on the full body day use the higher range. */
 export const HEAVY_REPS_B: [number, number] = [6, 10];
 /** Lateral raises and calves do better with more reps (low). */
 export const HIGH_REP_PATTERNS: Record<string, [number, number]> = {
@@ -97,7 +97,8 @@ export const WEEKLY: Record<Targeted, { start: number; grow: number }> = {
   glutes: { start: 10, grow: 16 },
   chest: { start: 10, grow: 16 },
   back: { start: 10, grow: 16 },
-  side_delts: { start: 10, grow: 16 },
+  // Shoulders are a small extra on chest day, not one of the day's two groups.
+  side_delts: { start: 5, grow: 10 },
   biceps: { start: 12.5, grow: 18 },
   triceps: { start: 12.5, grow: 18 },
 };
@@ -105,12 +106,18 @@ export const WEEKLY: Record<Targeted, { start: number; grow: number }> = {
 export const WEEKLY_CAP = 20;
 /** Below this a muscle is under-trained; the checker refuses a week projected under it. */
 export const WEEKLY_FLOOR = 6;
+/** The floor for one muscle: shoulders, a small extra rather than a day's group, may sit a little lower. */
+export const floorFor = (m: Targeted) => Math.min(WEEKLY_FLOOR, WEEKLY[m].start - 2);
 /** A secondary muscle counts half a set (Pelland 2024 found this predicted growth best; moderate). */
 export const SECONDARY_CREDIT = 0.5;
-/** Per session, per muscle (low: expert consensus on per-session ceilings). */
-export const SESSION_MUSCLE_CAP = 8;
-/** Working sets in a 60 minute session, warm-up excluded. */
-export const SESSION_SETS: [number, number] = [14, 20];
+/**
+ * Per session, per muscle. With each muscle trained once a week, its day
+ * carries its week's sets, so the ceiling is higher than the 8 often quoted
+ * for twice-a-week plans (low: per-session ceilings are expert consensus).
+ */
+export const SESSION_MUSCLE_CAP = 12;
+/** Sets in a 60 minute session, warm-up excluded: at least 14 working, at most 22 in all (about 50 minutes). */
+export const SESSION_SETS: [number, number] = [14, 22];
 
 /** Growth: one weekly set added when every exercise for the muscle progressed over this many weeks without a hard tap. */
 export const GROWTH_WINDOW_WEEKS = 2;

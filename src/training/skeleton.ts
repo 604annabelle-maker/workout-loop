@@ -6,10 +6,10 @@
  * each gets. The model only fills slots (choose.ts), and check.ts refuses any
  * filling that does not train the slot's muscle.
  *
- * A "week" here is a cycle of four sessions in order: Upper A, Lower A, Upper
- * B, Lower B. Sessions go in order rather than by weekday, so a missed day
- * shifts the rest and nothing is lost. Every other cycle, Lower B is a full
- * body day instead. Weekly volume is aimed at per cycle; the summary in the
+ * A "week" here is a cycle of four sessions in order: back and biceps,
+ * glutes and hamstrings, chest and triceps, quads and glutes. Sessions go in
+ * order rather than by weekday, so a missed day shifts the rest and nothing
+ * is lost. Every other cycle, the quads and glutes day is full body instead. Weekly volume is aimed at per cycle; the summary in the
  * email counts Sunday to Saturday, which is what she sees.
  */
 
@@ -30,19 +30,23 @@ import {
   type Targeted,
 } from "./rules";
 
-export const SESSION_TYPES = ["upper_a", "lower_a", "upper_b", "lower_b", "full"] as const;
+export const SESSION_TYPES = ["back_biceps", "glutes_hams", "chest_triceps", "quads_glutes", "full"] as const;
 export type SessionType = (typeof SESSION_TYPES)[number];
 
 export const SESSION_NAME: Record<SessionType, string> = {
-  upper_a: "Upper",
-  lower_a: "Lower",
-  upper_b: "Upper",
-  lower_b: "Lower",
+  back_biceps: "Back + biceps",
+  glutes_hams: "Glutes + hamstrings",
+  chest_triceps: "Chest + triceps",
+  quads_glutes: "Quads + glutes",
   full: "Full body",
 };
 
+/** Which days count as upper and lower, for "send me an upper workout". */
+export const UPPER: SessionType[] = ["back_biceps", "chest_triceps"];
+export const LOWER: SessionType[] = ["glutes_hams", "quads_glutes"];
+
 export interface SlotSpec {
-  /** Stable across weeks: "upper_a:2". Rotation is tracked per key. */
+  /** Stable across weeks: "back_biceps:2". Rotation is tracked per key. */
   key: string;
   muscle: Muscle;
   class: Exclude<ExerciseClass, "drill">;
@@ -84,58 +88,64 @@ const finisher = (type: SessionType, n: number): SlotSpec[] =>
     s(type, n + i, "abs", "isolation", ["core"], [FINISHER.sets, FINISHER.sets], {}, { finisher: true }),
   );
 
+/**
+ * Four focused days, two muscle groups each, as she chose: every muscle is
+ * trained hard once a week. The research finds growth about equal to twice a
+ * week when weekly sets match (Schoenfeld 2019, Pelland 2024, a slight edge
+ * to twice), so each day carries the whole week's sets for its muscles.
+ * Chest day has a little shoulder work, and both leg days end with abs.
+ */
 export const TEMPLATES: Record<SessionType, SlotSpec[]> = {
-  upper_a: [
-    s("upper_a", 1, "chest", "heavy", ["h_push"], [3, 4], PRESS),
-    s("upper_a", 2, "back", "heavy", ["h_pull"], [3, 4], PULL),
-    s("upper_a", 3, "back", "compound", ["v_pull"], [2, 4], PULLDOWN),
-    s("upper_a", 4, "side_delts", "isolation", ["lateral_raise"], [2, 4], {}),
-    s("upper_a", 5, "biceps", "isolation", ["elbow_flex"], [2, 4], {}),
-    s("upper_a", 6, "triceps", "isolation", ["elbow_ext"], [2, 4], {}, { preferStretched: true }),
+  back_biceps: [
+    s("back_biceps", 1, "back", "heavy", ["h_pull"], [3, 4], PULL),
+    s("back_biceps", 2, "back", "compound", ["v_pull"], [3, 4], PULLDOWN, { preferStretched: true }),
+    s("back_biceps", 3, "back", "compound", ["h_pull"], [2, 3], PULL),
+    s("back_biceps", 4, "back", "isolation", ["pullover"], [0, 3], {}),
+    s("back_biceps", 5, "biceps", "isolation", ["elbow_flex"], [3, 4], {}, { preferStretched: true }),
+    s("back_biceps", 6, "biceps", "isolation", ["elbow_flex"], [2, 4], {}),
   ],
-  lower_a: [
-    s("lower_a", 1, "quads", "heavy", ["squat"], [3, 4], { glutes: 0.5 }),
-    s("lower_a", 2, "hamstrings", "heavy", ["hinge"], [3, 4], { glutes: 0.5 }),
-    s("lower_a", 3, "glutes", "compound", ["hip_ext", "lunge"], [2, 4], { hamstrings: 0.5 }),
-    s("lower_a", 4, "quads", "isolation", ["knee_ext"], [2, 3], {}),
-    s("lower_a", 5, "hamstrings", "isolation", ["knee_flex"], [2, 3], {}, { preferStretched: true }),
-    s("lower_a", 6, "side_delts", "isolation", ["lateral_raise"], [0, 3], {}),
-    ...finisher("lower_a", 7),
+  glutes_hams: [
+    s("glutes_hams", 1, "hamstrings", "heavy", ["hinge"], [3, 4], { glutes: 0.5 }),
+    // The hip thrust, not a second heavy hinge on top of the first lift.
+    s("glutes_hams", 2, "glutes", "heavy", ["hip_ext"], [3, 4], { hamstrings: 0.5 }),
+    s("glutes_hams", 3, "hamstrings", "isolation", ["knee_flex"], [3, 4], {}, { preferStretched: true }),
+    s("glutes_hams", 4, "glutes", "isolation", ["abduction", "hip_ext"], [2, 3], {}),
+    s("glutes_hams", 5, "glutes", "compound", ["lunge", "hip_ext"], [0, 3], { hamstrings: 0.5 }),
+    ...finisher("glutes_hams", 6),
   ],
-  upper_b: [
-    s("upper_b", 1, "chest", "compound", ["h_push"], [3, 4], PRESS, { preferStretched: true }),
-    s("upper_b", 2, "back", "compound", ["v_pull"], [3, 4], PULLDOWN),
-    s("upper_b", 3, "back", "compound", ["h_pull"], [2, 3], PULL),
-    s("upper_b", 4, "chest", "isolation", ["fly"], [0, 3], {}),
-    s("upper_b", 5, "side_delts", "isolation", ["lateral_raise"], [2, 4], {}),
-    s("upper_b", 6, "biceps", "isolation", ["elbow_flex"], [2, 4], {}, { preferStretched: true }),
-    s("upper_b", 7, "triceps", "isolation", ["elbow_ext"], [2, 4], {}, { preferStretched: true }),
+  chest_triceps: [
+    s("chest_triceps", 1, "chest", "heavy", ["h_push"], [3, 4], PRESS),
+    s("chest_triceps", 2, "chest", "compound", ["h_push"], [3, 4], PRESS, { preferStretched: true }),
+    s("chest_triceps", 3, "chest", "isolation", ["fly"], [0, 3], {}),
+    s("chest_triceps", 4, "side_delts", "isolation", ["lateral_raise"], [2, 6], {}),
+    s("chest_triceps", 5, "triceps", "isolation", ["elbow_ext"], [3, 4], {}, { preferStretched: true }),
+    s("chest_triceps", 6, "triceps", "isolation", ["elbow_ext"], [2, 4], {}),
   ],
-  lower_b: [
-    s("lower_b", 1, "glutes", "heavy", ["hip_ext", "hinge"], [3, 4], { hamstrings: 0.5 }),
-    s("lower_b", 2, "quads", "compound", ["squat", "lunge"], [3, 4], { glutes: 0.5 }),
-    s("lower_b", 3, "hamstrings", "isolation", ["knee_flex"], [2, 3], {}, { preferStretched: true }),
-    s("lower_b", 4, "glutes", "isolation", ["abduction", "hip_ext"], [2, 3], {}),
-    s("lower_b", 5, "quads", "isolation", ["knee_ext"], [0, 3], {}),
-    s("lower_b", 6, "triceps", "isolation", ["elbow_ext"], [0, 2], {}),
-    ...finisher("lower_b", 7),
+  quads_glutes: [
+    s("quads_glutes", 1, "quads", "heavy", ["squat"], [3, 4], { glutes: 0.5 }),
+    s("quads_glutes", 2, "quads", "compound", ["squat", "lunge"], [3, 4], { glutes: 0.5 }),
+    s("quads_glutes", 3, "glutes", "compound", ["hip_ext", "lunge"], [2, 3], { hamstrings: 0.5 }),
+    s("quads_glutes", 4, "quads", "isolation", ["knee_ext"], [2, 4], {}),
+    s("quads_glutes", 5, "glutes", "isolation", ["abduction"], [0, 3], {}),
+    ...finisher("quads_glutes", 6),
   ],
   full: [
-    s("full", 1, "quads", "heavy", ["squat"], [3, 3], { glutes: 0.5 }),
+    s("full", 1, "quads", "heavy", ["squat"], [3, 4], { glutes: 0.5 }),
     s("full", 2, "chest", "compound", ["h_push"], [2, 3], PRESS),
     s("full", 3, "back", "compound", ["v_pull", "h_pull"], [2, 3], PULLDOWN),
     s("full", 4, "hamstrings", "compound", ["hinge"], [2, 3], { glutes: 0.5 }),
     s("full", 5, "glutes", "compound", ["hip_ext", "lunge"], [2, 3], { hamstrings: 0.5 }),
-    s("full", 6, "side_delts", "isolation", ["lateral_raise"], [0, 3], {}),
-    s("full", 7, "biceps", "isolation", ["elbow_flex"], [0, 3], {}),
-    s("full", 8, "triceps", "isolation", ["elbow_ext"], [0, 3], {}),
-    ...finisher("full", 9),
+    s("full", 6, "quads", "isolation", ["knee_ext"], [0, 3], {}),
+    s("full", 7, "side_delts", "isolation", ["lateral_raise"], [0, 3], {}),
+    s("full", 8, "biceps", "isolation", ["elbow_flex"], [0, 2], {}),
+    s("full", 9, "triceps", "isolation", ["elbow_ext"], [0, 2], {}),
+    ...finisher("full", 10),
   ],
 };
 
-/** Upper A, Lower A, Upper B, then Lower B, or full body on every other cycle. */
+/** The four focused days in order; every other cycle the quads and glutes day is full body instead. */
 export function cycleTypes(cycle: number): SessionType[] {
-  return ["upper_a", "lower_a", "upper_b", cycle % 2 === 1 ? "full" : "lower_b"];
+  return ["back_biceps", "glutes_hams", "chest_triceps", cycle % 2 === 1 ? "full" : "quads_glutes"];
 }
 
 export interface Position {
@@ -148,7 +158,7 @@ export interface Position {
 
 /** The session after the last one sent, in order. With no history, Upper A of cycle 0. */
 export function nextPosition(last: Position | null): Position {
-  if (!last) return { type: "upper_a", cycle: 0, index: 0 };
+  if (!last) return { type: "back_biceps", cycle: 0, index: 0 };
   const index = (last.index + 1) % 4;
   const cycle = index === 0 ? last.cycle + 1 : last.cycle;
   return { type: cycleTypes(cycle)[index], cycle, index };
@@ -268,13 +278,12 @@ export function skeleton(pos: Position, opts: { targets?: Targets; deload?: bool
   const types = cycleTypes(pos.cycle);
   const all = balance(types, opts.targets ?? targets());
   const sets = all[pos.index];
-  const isB = pos.type === "upper_b" || pos.type === "lower_b";
   const slots: Slot[] = TEMPLATES[pos.type]
     .map((spec, j) => {
       let setCount = sets[j];
       if (opts.deload && setCount > 0) setCount = Math.max(1, Math.round(setCount * DELOAD.setFactor));
       const high = spec.patterns.length && spec.patterns.every((p) => HIGH_REP_PATTERNS[p]) ? HIGH_REP_PATTERNS[spec.patterns[0]] : null;
-      const reps = high ?? (spec.class === "heavy" && isB ? HEAVY_REPS_B : CLASS[spec.class].reps);
+      const reps = high ?? (spec.class === "heavy" && pos.type === "full" ? HEAVY_REPS_B : CLASS[spec.class].reps);
       return { ...spec, setCount, reps: [...reps] as [number, number] };
     })
     .filter((slot) => slot.setCount > 0);

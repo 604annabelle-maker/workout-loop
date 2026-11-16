@@ -13,7 +13,7 @@ import { db, schema } from "@/db";
 import { composeAmp } from "../email/amp";
 import { compose, type Mail } from "../email/cards";
 import { composeHtml } from "../email/html";
-import { photos } from "../email/photos";
+import { drawings } from "../email/drawings";
 import { asLogged, readShorthand } from "../email/reply";
 import { composeText } from "../email/text";
 import { readComment } from "../memory/read";
@@ -27,13 +27,14 @@ import {
   loadEquipment,
   loadHistory,
   loadNotes,
+  deleteLog,
   logsFor,
   readPlanV2,
   saveLog,
   saveUntapped,
   undoNote,
 } from "../training/history";
-import { nextPosition, targets, type Position, type SessionType } from "../training/skeleton";
+import { LOWER, nextPosition, targets, UPPER, type Position, type SessionType } from "../training/skeleton";
 import { weekSummary } from "../training/summary";
 import type { LogEntry, PlanV2, Tap } from "../training/types";
 import { budgetFromCheckins } from "./checkin";
@@ -46,7 +47,7 @@ export const v2On = () => process.env.PLAN_VERSION?.trim() === "2";
 
 /** "upper" means the next upper day in order, and so on; anything else, the next session. */
 export function positionFor(last: Position | null, focus: string | null): Position | undefined {
-  const want: Record<string, SessionType[]> = { upper: ["upper_a", "upper_b"], lower: ["lower_a", "lower_b"], full: ["full"] };
+  const want: Record<string, SessionType[]> = { upper: UPPER, lower: LOWER, full: ["full"] };
   if (!focus || !want[focus]) return undefined;
   let pos = nextPosition(last);
   for (let i = 0; i < 8; i++) {
@@ -83,8 +84,7 @@ export async function mailFor(plan: PlanV2, input: { date: Date; token: string; 
     summary: weekSummary({ history, today: plan, weekStart: weekStart(input.date), targets: targets(growth(history)) }),
     logUrl: base ? `${base}/api/log?t=${encodeURIComponent(input.token)}` : null,
     base,
-    photos,
-    familiar: new Set(history.flatMap((s) => s.logs.map((l) => l.exerciseId))),
+    pictures: drawings,
     preview: input.preview,
   });
   const amp = composeAmp(mail);
@@ -110,56 +110,79 @@ export function loggedLine(plan: PlanV2, logs: LogEntry[]): string {
   return n >= plan.exercises.length ? "All logged" : `${n} of ${plan.exercises.length} logged`;
 }
 
-/** One tap, the comment, all done or an undo, from the dynamic email. */
+/** One exercise as she left it on its card: the weight snapped to one that exists, reps on every set. */
+function entryFrom(
+  planned: PlanV2["exercises"][number],
+  usedSwap: boolean,
+  rawW: FormDataEntryValue | null,
+  rawR: FormDataEntryValue | null,
+  tap: Tap,
+  equipment: Awaited<ReturnType<typeof loadEquipment>>,
+): LogEntry {
+  const p = usedSwap ? planned.swap! : planned.main;
+  const reps = Math.round(Number(rawR));
+  let weight: number | null = null;
+  if (isWeighted(p.load)) {
+    const w = Number(rawW);
+    weight = Number.isFinite(w) && w > 0 ? (nearest(w, loadable(p.load, equipment)) ?? p.weight) : p.weight;
+  }
+  return {
+    slot: planned.slot,
+    exerciseId: p.exerciseId,
+    usedSwap,
+    weight,
+    reps: Array(planned.sets).fill(Number.isFinite(reps) && reps > 0 && reps <= 50 ? reps : p.reps),
+    tap,
+  };
+}
+
+/** Her note, filed like a reply and read after the answer: the model can take a few seconds, and the cron reads anything this misses. */
+async function fileComment(workoutId: string, note: string): Promise<void> {
+  const [row] = await db
+    .insert(feedback)
+    .values({ workoutId, sourceMessageId: `amp:${workoutId}:${Date.now()}`, body: note })
+    .returning({ id: feedback.id });
+  after(async () => {
+    await readFeedbackV2(row.id).catch((err) => console.error(`reading comment ${row.id}:`, err));
+  });
+}
+
+/** The one Save, or an undo, from the dynamic email. */
 export async function handleLogV2(workoutId: string, plan: PlanV2, form: FormData): Promise<LogAnswer> {
   const kind = String(form.get("kind") ?? "");
   const equipment = await loadEquipment();
 
-  if (kind === "tap") {
-    const slot = String(form.get("slot") ?? "");
-    const planned = plan.exercises.find((x) => x.slot === slot);
-    const tap = readTap(form.get("tap"));
-    if (!planned || !tap) return { status: 400, body: { error: "nothing to save" } };
-    const usedSwap = form.get("swap") === "1" && !!planned.swap;
-    const p = usedSwap ? planned.swap! : planned.main;
-    const reps = Math.round(Number(form.get("r")));
-    let weight: number | null = null;
-    if (isWeighted(p.load)) {
-      const w = Number(form.get("w"));
-      weight = Number.isFinite(w) && w > 0 ? (nearest(w, loadable(p.load, equipment)) ?? p.weight) : p.weight;
+  if (kind === "save") {
+    // One Save for the whole workout. Only cards with a pick count; skip removes one; an untouched card is left as it was.
+    let saved = 0;
+    let skipped = 0;
+    for (let i = 1; i <= plan.exercises.length; i++) {
+      const id = `c${i}`;
+      const slot = String(form.get(`slot_${id}`) ?? plan.exercises[i - 1].slot);
+      const planned = plan.exercises.find((x) => x.slot === slot);
+      const pick = String(form.get(`t_${id}`) ?? "");
+      if (!planned || !pick) continue;
+      if (pick === "skip") {
+        await deleteLog(workoutId, slot);
+        skipped++;
+        continue;
+      }
+      const tap = readTap(pick);
+      if (!tap) continue;
+      const usedSwap = form.get(`s_${id}`) === "1" && !!planned.swap;
+      const sid = usedSwap ? `${id}s` : id;
+      await saveLog(workoutId, entryFrom(planned, usedSwap, form.get(`w_${sid}`), form.get(`r_${sid}`), tap, equipment));
+      saved++;
     }
-    const entry: LogEntry = {
-      slot,
-      exerciseId: p.exerciseId,
-      usedSwap,
-      weight,
-      reps: Array(planned.sets).fill(Number.isFinite(reps) && reps > 0 && reps <= 50 ? reps : p.reps),
-      tap,
-    };
-    await saveLog(workoutId, entry);
-    const name = exercise(p.exerciseId)?.name ?? p.exerciseId;
-    return { status: 200, body: { saved: `Saved: ${name}, ${weight === null ? "" : `${kg(weight)} kg × `}${entry.reps[0]}, ${tap}` } };
-  }
-
-  if (kind === "all") {
-    const logged = new Set((await logsFor(workoutId)).map((l) => l.slot));
-    const rest = plan.exercises.filter((x) => !logged.has(x.slot)).map((x) => asLogged(plan, x.slot)!);
-    const n = await saveUntapped(workoutId, rest);
-    return { status: 200, body: { saved: n ? `All done: ${n} more logged as written` : "All done" } };
-  }
-
-  if (kind === "comment") {
     const note = String(form.get("note") ?? "").trim().slice(0, 1000);
-    if (!note) return { status: 400, body: { error: "nothing to save" } };
-    const [row] = await db
-      .insert(feedback)
-      .values({ workoutId, sourceMessageId: `amp:${workoutId}:${Date.now()}`, body: note })
-      .returning({ id: feedback.id });
-    // Read after answering: the model can take a few seconds, and the cron reads anything this misses.
-    after(async () => {
-      await readFeedbackV2(row.id).catch((err) => console.error(`reading comment ${row.id}:`, err));
-    });
-    return { status: 200, body: { saved: "Saved, thank you" } };
+    if (note) await fileComment(workoutId, note);
+    if (!saved && !skipped && !note) return { status: 400, body: { error: "Pick easy, done, hard or skip first" } };
+    const parts = [
+      saved ? `${saved} exercise${saved === 1 ? "" : "s"}` : "",
+      skipped ? `${skipped} skipped` : "",
+      note ? "your note" : "",
+    ].filter(Boolean);
+    return { status: 200, body: { saved: `Saved ${parts.join(", ")}` } };
   }
 
   if (kind === "undo") {

@@ -6,8 +6,8 @@ import { exercise } from "../training/catalogue.ts";
 import { readShorthand } from "./reply.ts";
 import { checkinMail } from "./checkin.ts";
 
-const plan = async (type = "lower_a") => {
-  const position = { type, cycle: 0, index: type === "lower_a" ? 1 : 0 } as const;
+const plan = async (type = "glutes_hams") => {
+  const position = { type, cycle: 0, index: type === "glutes_hams" ? 1 : 0 } as const;
   return (await buildSession({ history: [], notes: [], equipment: EQ, now: new Date("2026-11-15"), position: position as never })).plan;
 };
 

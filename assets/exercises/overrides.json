@@ -18,7 +18,8 @@
    "load": "barbell",
    "warmup": false,
    "form": "Brace, sit down between your hips, knees follow your toes.",
-   "reviewed": true
+   "reviewed": true,
+   "drawing": "Barbell Squat"
   },
   {
    "id": "Front_Barbell_Squat",
@@ -35,7 +36,8 @@
    "load": "barbell",
    "warmup": false,
    "form": "Elbows high, stay upright, sit straight down.",
-   "reviewed": true
+   "reviewed": true,
+   "drawing": "Front Squat with Barbell"
   },
   {
    "id": "Goblet_Squat",
@@ -70,7 +72,8 @@
    "load": "machine:leg_press",
    "warmup": false,
    "form": "Lower until your knees are well bent, keep your lower back on the pad.",
-   "reviewed": true
+   "reviewed": true,
+   "drawing": "Leg Press"
   },
   {
    "id": "Hack_Squat",
@@ -88,6 +91,7 @@
    "warmup": false,
    "form": "Feet mid-platform, lower deep under control, drive up through the whole foot.",
    "reviewed": true,
+   "drawing": "Hack Squat: Machine",
    "why": "Raw tags call it calves-led; it is a knee-dominant squat."
   },
   {
@@ -142,7 +146,8 @@
    "load": "dumbbell",
    "warmup": false,
    "form": "Step forward, both knees to about 90 degrees, push back up.",
-   "reviewed": true
+   "reviewed": true,
+   "drawing": "Lunges: Dumbbell"
   },
   {
    "id": "Dumbbell_Rear_Lunge",
@@ -158,7 +163,8 @@
    "load": "dumbbell",
    "warmup": false,
    "form": "Step back, drop the back knee, drive up through the front heel.",
-   "reviewed": true
+   "reviewed": true,
+   "drawing": "Lunges: Dumbbell (Rear)"
   },
   {
    "id": "Dumbbell_Step_Ups",
@@ -174,7 +180,8 @@
    "load": "dumbbell",
    "warmup": false,
    "form": "Whole foot on the box, stand up through that leg without pushing off the back one.",
-   "reviewed": true
+   "reviewed": true,
+   "drawing": "Step Ups: Dumbbell"
   },
   {
    "id": "Leg_Extensions",
@@ -189,7 +196,8 @@
    "load": "machine:leg_extension",
    "warmup": false,
    "form": "Knees in line with the pivot, straighten fully, lower slowly.",
-   "reviewed": true
+   "reviewed": true,
+   "drawing": "Leg Extensions"
   },
   {
    "id": "Single-Leg_Leg_Extension",
@@ -288,6 +296,7 @@
    "warmup": false,
    "form": "Soft knees, push your hips back, bar close to your legs, stop when your hamstrings are stretched.",
    "reviewed": true,
+   "drawing": "Romanian Dead Lift",
    "why": "Counted as hamstrings first and half for glutes, as the research mapping does."
   },
   {
@@ -343,6 +352,7 @@
    "warmup": false,
    "form": "Bar over mid-foot, flat back, push the floor away and stand tall.",
    "reviewed": true,
+   "drawing": "Dead Lifts: Barbell",
    "why": "Raw tags say lower back first; the hips do most of the work."
   },
   {
@@ -360,7 +370,8 @@
    "load": "barbell",
    "warmup": false,
    "form": "Bar on your upper back, soft knees, hinge until your back is near level.",
-   "reviewed": true
+   "reviewed": true,
+   "drawing": "Good Mornings: Barbell"
   },
   {
    "id": "Seated_Leg_Curl",
@@ -375,7 +386,8 @@
    "load": "machine:leg_curl_seated",
    "warmup": false,
    "form": "Lean slightly forward, curl all the way, return slowly to a full stretch.",
-   "reviewed": true
+   "reviewed": true,
+   "drawing": "Seated Leg Curl"
   },
   {
    "id": "Lying_Leg_Curls",
@@ -390,7 +402,8 @@
    "load": "machine:leg_curl_lying",
    "warmup": false,
    "form": "Hips pressed down, curl to your glutes, lower slowly.",
-   "reviewed": true
+   "reviewed": true,
+   "drawing": "Lying Leg Curl Machine"
   },
   {
    "id": "Standing_Leg_Curl",
@@ -405,7 +418,8 @@
    "load": "machine:leg_curl_standing",
    "warmup": false,
    "form": "Stay upright, curl the heel up, lower slowly.",
-   "reviewed": true
+   "reviewed": true,
+   "drawing": "Standing Leg Curls"
   },
   {
    "id": "Natural_Glute_Ham_Raise",
@@ -544,7 +558,8 @@
    "load": "bodyweight",
    "warmup": true,
    "form": "Feet flat, push through your heels, squeeze at the top.",
-   "reviewed": true
+   "reviewed": true,
+   "drawing": "Bridging"
   },
   {
    "id": "Thigh_Abductor",
@@ -560,6 +575,7 @@
    "warmup": false,
    "form": "Lean slightly forward, push your knees out, return slowly.",
    "reviewed": true,
+   "drawing": "Thigh Abductor",
    "why": "Raw tags say abductors; it trains the upper glutes (glute medius), counted as glutes."
   },
   {
@@ -613,7 +629,8 @@
    "load": "cable",
    "warmup": false,
    "form": "Ankle strap on, kick back and up without arching your lower back.",
-   "reviewed": true
+   "reviewed": true,
+   "drawing": "One Legged Cable Kickback"
   },
   {
    "id": "Pull_Through",
@@ -649,6 +666,7 @@
    "warmup": false,
    "form": "Round slightly and squeeze your glutes to come up; stop at a straight line.",
    "reviewed": true,
+   "drawing": "Hyperextensions",
    "why": "Raw tags say lower back; done glute-biased."
   },
   {
@@ -700,7 +718,8 @@
    "load": "barbell",
    "warmup": false,
    "form": "Shoulder blades back, bar to mid-chest, press up and slightly back.",
-   "reviewed": true
+   "reviewed": true,
+   "drawing": "Bench Press: Barbell"
   },
   {
    "id": "Barbell_Incline_Bench_Press_-_Medium_Grip",
@@ -718,7 +737,8 @@
    "load": "barbell",
    "warmup": false,
    "form": "Bench at a low incline, bar to upper chest, press straight up.",
-   "reviewed": true
+   "reviewed": true,
+   "drawing": "Bench Press: Barbell (Incline)"
   },
   {
    "id": "Dumbbell_Bench_Press",
@@ -736,7 +756,8 @@
    "load": "dumbbell",
    "warmup": false,
    "form": "Lower until you feel your chest stretch, press up together.",
-   "reviewed": true
+   "reviewed": true,
+   "drawing": "Bench Press: Dumbbell"
   },
   {
    "id": "Incline_Dumbbell_Press",
@@ -754,7 +775,8 @@
    "load": "dumbbell",
    "warmup": false,
    "form": "Low incline, deep stretch at the bottom, press up.",
-   "reviewed": true
+   "reviewed": true,
+   "drawing": "Incline Dumbbell Press"
   },
   {
    "id": "Machine_Bench_Press",
@@ -807,7 +829,8 @@
    "load": "dumbbell",
    "warmup": false,
    "form": "Slight bend in the elbows, open wide until your chest stretches, hug back up.",
-   "reviewed": true
+   "reviewed": true,
+   "drawing": "Dumbbell Flys"
   },
   {
    "id": "Incline_Dumbbell_Flyes",
@@ -824,7 +847,8 @@
    "load": "dumbbell",
    "warmup": false,
    "form": "Low incline, open wide with soft elbows, bring the dumbbells together.",
-   "reviewed": true
+   "reviewed": true,
+   "drawing": "Incline Dumbbell Fly's"
   },
   {
    "id": "Butterfly",
@@ -858,7 +882,8 @@
    "load": "cable",
    "warmup": false,
    "form": "Step forward, arms wide, bring your hands together in front of your chest.",
-   "reviewed": true
+   "reviewed": true,
+   "drawing": "Cable Crossover"
   },
   {
    "id": "Low_Cable_Crossover",
@@ -895,7 +920,8 @@
    "form": "Body in a straight line, chest to the floor, push up.",
    "reviewed": true,
    "easier": "Incline_Push-Up",
-   "harder": "Push-Ups_With_Feet_Elevated"
+   "harder": "Push-Ups_With_Feet_Elevated",
+   "drawing": "Push Up: Body Weight"
   },
   {
    "id": "Incline_Push-Up",
@@ -933,7 +959,8 @@
    "warmup": false,
    "form": "Feet on a bench, body straight, chest to the floor.",
    "reviewed": true,
-   "easier": "Pushups"
+   "easier": "Pushups",
+   "drawing": "Push Up: Bench (Feet Elevated)"
   },
   {
    "id": "Dips_-_Chest_Version",
@@ -951,7 +978,8 @@
    "load": "bodyweight",
    "warmup": false,
    "form": "Lean forward, lower until your shoulders are just below your elbows, press up.",
-   "reviewed": true
+   "reviewed": true,
+   "drawing": "Chest Dips"
   },
   {
    "id": "Bent_Over_Barbell_Row",
@@ -988,7 +1016,8 @@
    "load": "dumbbell",
    "warmup": false,
    "form": "Hand and knee on the bench, let the weight hang, pull your elbow to your hip.",
-   "reviewed": true
+   "reviewed": true,
+   "drawing": "Rear Deltoid Row Dumbbell"
   },
   {
    "id": "Bent_Over_Two-Dumbbell_Row",
@@ -1024,7 +1053,8 @@
    "load": "cable",
    "warmup": false,
    "form": "Sit tall, let your shoulders reach forward, pull to your stomach.",
-   "reviewed": true
+   "reviewed": true,
+   "drawing": "Seated Cable Rows"
   },
   {
    "id": "Seated_One-arm_Cable_Pulley_Rows",
@@ -1060,7 +1090,8 @@
    "load": "bodyweight",
    "warmup": true,
    "form": "Under a bar, body straight, pull your chest to the bar.",
-   "reviewed": true
+   "reviewed": true,
+   "drawing": "Body Row"
   },
   {
    "id": "Wide-Grip_Lat_Pulldown",
@@ -1095,7 +1126,8 @@
    "load": "machine:lat_pulldown",
    "warmup": false,
    "form": "Hands shoulder-width, pull to your chest, full stretch at the top.",
-   "reviewed": true
+   "reviewed": true,
+   "drawing": "Pull Down: V Bar"
   },
   {
    "id": "Underhand_Cable_Pulldowns",
@@ -1112,7 +1144,8 @@
    "load": "machine:lat_pulldown",
    "warmup": false,
    "form": "Palms facing you, pull to your chest, elbows down to your sides.",
-   "reviewed": true
+   "reviewed": true,
+   "drawing": "Pull Down: Underhand"
   },
   {
    "id": "V-Bar_Pulldown",
@@ -1129,7 +1162,8 @@
    "load": "machine:lat_pulldown",
    "warmup": false,
    "form": "Neutral grip, pull to your chest, let your shoulders rise at the top.",
-   "reviewed": true
+   "reviewed": true,
+   "drawing": "Pull Down: V Bar"
   },
   {
    "id": "One_Arm_Lat_Pulldown",
@@ -1164,7 +1198,8 @@
    "warmup": false,
    "form": "Hang fully, pull your chest toward the bar, lower all the way.",
    "reviewed": true,
-   "easier": "Band_Assisted_Pull-Up"
+   "easier": "Band_Assisted_Pull-Up",
+   "drawing": "Pull Ups"
   },
   {
    "id": "Chin-Up",
@@ -1215,7 +1250,8 @@
    "load": "cable",
    "warmup": false,
    "form": "Arms long, sweep the bar down to your thighs, let it rise to a stretch.",
-   "reviewed": true
+   "reviewed": true,
+   "drawing": "Straight Arm Push Down"
   },
   {
    "id": "Scapular_Pull-Up",
@@ -1247,6 +1283,7 @@
    "warmup": false,
    "form": "Slight lean forward, raise out to the sides to shoulder height, lower slowly.",
    "reviewed": true,
+   "drawing": "Lateral Dumbbell Raises",
    "why": "Raw tags say shoulders; this is the side delts."
   },
   {
@@ -1412,7 +1449,8 @@
    "load": "cable",
    "warmup": false,
    "form": "Cables crossed in front, sweep your arms out and back.",
-   "reviewed": true
+   "reviewed": true,
+   "drawing": "Bent-over Lateral Cable Raises"
   },
   {
    "id": "Seated_Bent-Over_Rear_Delt_Raise",
@@ -1446,7 +1484,8 @@
    "load": "band",
    "warmup": true,
    "form": "Arms straight in front, pull the band apart to your chest.",
-   "reviewed": true
+   "reviewed": true,
+   "drawing": "Back Fly's with Exercise Band"
   },
   {
    "id": "Barbell_Curl",
@@ -1461,7 +1500,8 @@
    "load": "barbell",
    "warmup": false,
    "form": "Elbows at your sides, curl up, lower all the way.",
-   "reviewed": true
+   "reviewed": true,
+   "drawing": "Biceps Curl: Barbell"
   },
   {
    "id": "EZ-Bar_Curl",
@@ -1476,7 +1516,8 @@
    "load": "ezbar",
    "warmup": false,
    "form": "Elbows still, curl up, lower to straight arms.",
-   "reviewed": true
+   "reviewed": true,
+   "drawing": "EZ Bar Curl with Barbell"
   },
   {
    "id": "Dumbbell_Bicep_Curl",
@@ -1491,7 +1532,8 @@
    "load": "dumbbell",
    "warmup": false,
    "form": "Palms forward, curl both up, lower slowly to straight arms.",
-   "reviewed": true
+   "reviewed": true,
+   "drawing": "Biceps Curl: Dumbbell"
   },
   {
    "id": "Dumbbell_Alternate_Bicep_Curl",
@@ -1506,7 +1548,8 @@
    "load": "dumbbell",
    "warmup": false,
    "form": "One arm at a time, turn the palm up as you curl.",
-   "reviewed": true
+   "reviewed": true,
+   "drawing": "Alternating Bicep Curl with Dumbbell"
   },
   {
    "id": "Incline_Dumbbell_Curl",
@@ -1536,7 +1579,8 @@
    "load": "dumbbell",
    "warmup": false,
    "form": "Palms facing each other, curl up, lower slowly.",
-   "reviewed": true
+   "reviewed": true,
+   "drawing": "Biceps Curl: Dumbbell (Hammer)"
   },
   {
    "id": "Cable_Hammer_Curls_-_Rope_Attachment",
@@ -1551,7 +1595,8 @@
    "load": "cable",
    "warmup": false,
    "form": "Rope on a low cable, palms facing in, curl up.",
-   "reviewed": true
+   "reviewed": true,
+   "drawing": "Hammer Curls with Rope and Cable"
   },
   {
    "id": "Preacher_Curl",
@@ -1581,7 +1626,8 @@
    "load": "dumbbell",
    "warmup": false,
    "form": "Arm on the pad, lower to nearly straight, curl up.",
-   "reviewed": true
+   "reviewed": true,
+   "drawing": "Preacher Curl: Dumbbell (One Arm)"
   },
   {
    "id": "Machine_Preacher_Curls",
@@ -1596,7 +1642,8 @@
    "load": "machine:preacher_curl",
    "warmup": false,
    "form": "Arms on the pad, curl up, return to a full stretch.",
-   "reviewed": true
+   "reviewed": true,
+   "drawing": "Preacher Curl: Machine"
   },
   {
    "id": "Cable_Preacher_Curl",
@@ -1611,7 +1658,8 @@
    "load": "cable",
    "warmup": false,
    "form": "Preacher bench in front of a low cable, lower to nearly straight, curl up.",
-   "reviewed": true
+   "reviewed": true,
+   "drawing": "Preacher Curl: Cable"
   },
   {
    "id": "Standing_Biceps_Cable_Curl",
@@ -1626,7 +1674,8 @@
    "load": "cable",
    "warmup": false,
    "form": "Low cable, elbows at your sides, curl up.",
-   "reviewed": true
+   "reviewed": true,
+   "drawing": "Standing Biceps Curl with Cable"
   },
   {
    "id": "Bayesian_Cable_Curl",
@@ -1658,7 +1707,8 @@
    "load": "dumbbell",
    "warmup": false,
    "form": "Seated, elbow against your inner thigh, curl up slowly.",
-   "reviewed": true
+   "reviewed": true,
+   "drawing": "Concentration Curls with Dumbbell"
   },
   {
    "id": "Band_Curl",
@@ -1674,6 +1724,7 @@
    "warmup": true,
    "form": "Stand on the band, curl up, lower slowly.",
    "reviewed": true,
+   "drawing": "Quick Alternating Biceps Curls with Band",
    "custom": true,
    "why": "Not in free-exercise-db; a light biceps warm-up."
   },
@@ -1690,7 +1741,8 @@
    "load": "cable",
    "warmup": false,
    "form": "Elbows pinned to your sides, push the bar down until your arms are straight.",
-   "reviewed": true
+   "reviewed": true,
+   "drawing": "Triceps Pushdown: Cable"
   },
   {
    "id": "Triceps_Pushdown_-_Rope_Attachment",
@@ -1705,7 +1757,8 @@
    "load": "cable",
    "warmup": false,
    "form": "Elbows still, push down and spread the rope at the bottom.",
-   "reviewed": true
+   "reviewed": true,
+   "drawing": "Triceps Pushdown: Cable (Rope)"
   },
   {
    "id": "Triceps_Pushdown_-_V-Bar_Attachment",
@@ -1720,7 +1773,8 @@
    "load": "cable",
    "warmup": false,
    "form": "Elbows still, push down to straight arms.",
-   "reviewed": true
+   "reviewed": true,
+   "drawing": "Triceps Pushdown: Cable (V-Bar)"
   },
   {
    "id": "Cable_Rope_Overhead_Triceps_Extension",
@@ -1750,7 +1804,8 @@
    "load": "dumbbell",
    "warmup": false,
    "form": "One dumbbell in both hands overhead, lower behind your head, press back up.",
-   "reviewed": true
+   "reviewed": true,
+   "drawing": "Triceps Extension: Dumbbell (Standing)"
   },
   {
    "id": "EZ-Bar_Skullcrusher",
@@ -1765,7 +1820,8 @@
    "load": "ezbar",
    "warmup": false,
    "form": "Lying down, lower the bar behind your head, straighten your arms.",
-   "reviewed": true
+   "reviewed": true,
+   "drawing": "Lying Triceps Press with Barbell"
   },
   {
    "id": "Lying_Dumbbell_Tricep_Extension",
@@ -1780,7 +1836,8 @@
    "load": "dumbbell",
    "warmup": false,
    "form": "Lying down, palms facing in, lower beside your head, straighten up.",
-   "reviewed": true
+   "reviewed": true,
+   "drawing": "Triceps Extension: Dumbbell (Lying)"
   },
   {
    "id": "Machine_Triceps_Extension",
@@ -1795,7 +1852,8 @@
    "load": "machine:triceps_extension",
    "warmup": false,
    "form": "Elbows on the pad, push the handles down to straight arms.",
-   "reviewed": true
+   "reviewed": true,
+   "drawing": "Triceps Extension: Machine"
   },
   {
    "id": "Tricep_Dumbbell_Kickback",
@@ -1810,7 +1868,8 @@
    "load": "dumbbell",
    "warmup": false,
    "form": "Hinge forward, upper arm still, straighten your arm back.",
-   "reviewed": true
+   "reviewed": true,
+   "drawing": "Triceps Kickback with Dumbbell"
   },
   {
    "id": "Close-Grip_Barbell_Bench_Press",
@@ -1828,7 +1887,8 @@
    "load": "barbell",
    "warmup": false,
    "form": "Hands shoulder-width, elbows close, bar to lower chest.",
-   "reviewed": true
+   "reviewed": true,
+   "drawing": "Bench Press: Barbell (Close Grip)"
   },
   {
    "id": "Dips_-_Triceps_Version",
@@ -1847,7 +1907,8 @@
    "warmup": false,
    "form": "Stay upright, lower until your elbows are at 90 degrees, press up.",
    "reviewed": true,
-   "easier": "Bench_Dips"
+   "easier": "Bench_Dips",
+   "drawing": "Triceps Dips: Body Weight"
   },
   {
    "id": "Bench_Dips",
@@ -1866,7 +1927,8 @@
    "warmup": true,
    "form": "Hands on a bench behind you, lower until your elbows are at 90 degrees.",
    "reviewed": true,
-   "harder": "Dips_-_Triceps_Version"
+   "harder": "Dips_-_Triceps_Version",
+   "drawing": "Bench Dips"
   },
   {
    "id": "Dip_Machine",
@@ -1884,7 +1946,8 @@
    "load": "machine:dip",
    "warmup": false,
    "form": "Sit tall, push the handles down to straight arms.",
-   "reviewed": true
+   "reviewed": true,
+   "drawing": "Triceps Dips: Machine"
   },
   {
    "id": "Band_Pushdown",
@@ -1933,7 +1996,8 @@
    "load": "machine:calf_raise",
    "warmup": false,
    "form": "Heels down to a full stretch, pause, rise all the way up.",
-   "reviewed": true
+   "reviewed": true,
+   "drawing": "Standing Calf Raises using Machine"
   },
   {
    "id": "Seated_Calf_Raise",
@@ -1948,7 +2012,8 @@
    "load": "machine:seated_calf",
    "warmup": false,
    "form": "Pad on your knees, heels down to a stretch, rise up.",
-   "reviewed": true
+   "reviewed": true,
+   "drawing": "Seated Calf Raise using Machine"
   },
   {
    "id": "Standing_Dumbbell_Calf_Raise",
@@ -2040,7 +2105,8 @@
    "load": "bodyweight",
    "warmup": false,
    "form": "On your back, roll your hips off the floor toward your chest.",
-   "reviewed": true
+   "reviewed": true,
+   "drawing": "Bent Knee Hip Raise"
   },
   {
    "id": "Dead_Bug",
@@ -2070,7 +2136,8 @@
    "load": "bodyweight",
    "warmup": false,
    "form": "On your knees, roll out as far as you can with a flat back, pull back in.",
-   "reviewed": true
+   "reviewed": true,
+   "drawing": "Ab Rollout on Knees with Barbell"
   },
   {
    "id": "Pallof_Press",
@@ -2100,7 +2167,8 @@
    "load": "bodyweight",
    "warmup": false,
    "form": "On a decline bench, curl up halfway, lower slowly.",
-   "reviewed": true
+   "reviewed": true,
+   "drawing": "Decline Crunch"
   },
   {
    "id": "Thigh_Adductor",
@@ -2115,7 +2183,8 @@
    "load": "machine:adductor",
    "warmup": false,
    "form": "Squeeze your knees together, return slowly.",
-   "reviewed": true
+   "reviewed": true,
+   "drawing": "Thigh Adductor"
   }
  ],
  "banned": [

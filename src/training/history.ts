@@ -110,7 +110,12 @@ export async function saveLog(workoutId: string, entry: LogEntry): Promise<void>
     .onConflictDoUpdate({ target: [exerciseLog.workoutId, exerciseLog.slot], set: values });
 }
 
-/** "All done": every slot not tapped yet is logged as written. */
+/** Skip: the exercise is not counted, even if it was saved before. */
+export async function deleteLog(workoutId: string, slot: string): Promise<void> {
+  await db.delete(exerciseLog).where(and(eq(exerciseLog.workoutId, workoutId), eq(exerciseLog.slot, slot)));
+}
+
+/** A reply of "done": every slot not logged yet is logged as written. */
 export async function saveUntapped(workoutId: string, entries: LogEntry[]): Promise<number> {
   if (!entries.length) return 0;
   const rows = await db

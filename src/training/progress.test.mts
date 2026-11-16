@@ -13,14 +13,14 @@ function hist(id: string, load: SessionRecord["plan"]["exercises"][number]["main
     const main = { exerciseId: id, load, weight, steps: [], reps: reps[0], range, findIt: false };
     const plan: PlanV2 = {
       version: 2,
-      position: { type: "upper_a", cycle: i, index: 0 },
+      position: { type: "back_biceps", cycle: i, index: 0 },
       deload: false,
-      exercises: [{ slot: "upper_a:1", muscle: "chest", class: "heavy", sets: reps.length, rest: 165, effort: "", main, swap: null }],
+      exercises: [{ slot: "back_biceps:1", muscle: "chest", class: "heavy", sets: reps.length, rest: 165, effort: "", main, swap: null }],
       warmup: [],
       changes: [],
       minutes: 50,
     };
-    return { workoutId: `w${i}`, date: new Date(t0.getTime() + i * 7 * DAY), plan, logs: [{ slot: "upper_a:1", exerciseId: id, usedSwap: false, weight, reps, tap }] };
+    return { workoutId: `w${i}`, date: new Date(t0.getTime() + i * 7 * DAY), plan, logs: [{ slot: "back_biceps:1", exerciseId: id, usedSwap: false, weight, reps, tap }] };
   });
 }
 const bench = (entries: [number | null, number[], Tap][], range: [number, number] = [5, 8]) =>

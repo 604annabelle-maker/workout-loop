@@ -4,8 +4,9 @@
  * Pure. Designed from scratch for a narrow phone: no frame, one column, big
  * targets. Nothing is ever typed except the comment: weight and reps sit on
  * the card already, − / + move them through weights that exist, and tapping
- * the weight opens a row of nearby weights so a big change is one tap. Easy,
- * done or hard saves the exercise with the numbers on the card.
+ * the weight opens a row of nearby weights so a big change is one tap. She
+ * picks easy, done, hard or skip on each exercise (nothing is picked for
+ * her), then one Save at the end logs them all with the numbers on the cards.
  *
  * Gmail silently shows the plain version instead of one that breaks any AMP
  * for Email rule, so the rules are kept with care (amp.test.mts checks): no
@@ -47,7 +48,6 @@ body{margin:0;padding:0 4px;background-color:${C.paper};color:${C.ink};font-fami
 .warm .p{color:${C.muted}}
 .card{padding:14px 0 12px;border-top:1px solid ${C.rule}}
 .name{margin:0;font-size:18px;font-weight:700;line-height:1.25}
-.new{display:inline-block;margin:0 0 0 6px;padding:1px 7px;border-radius:999px;background-color:${C.accentSoft};color:${C.accent};font-size:11px;font-weight:700;vertical-align:middle}
 .meta{margin:2px 0 0;font-size:13px;color:${C.muted}}
 .nums{margin:10px 0 0;width:100%;border-collapse:collapse}
 .nums td{padding:0;vertical-align:middle}
@@ -64,7 +64,7 @@ body{margin:0;padding:0 4px;background-color:${C.paper};color:${C.ink};font-fami
 .find{margin:8px 0 0;font-size:13px;color:${C.warn}}
 .taps{margin:10px 0 0}
 .r{-webkit-appearance:none;appearance:none;width:0;height:0;margin:0;padding:0;border:0}
-.tap{display:inline-block;margin:0 6px 0 0;padding:9px 18px;border-radius:999px;background-color:${C.chip};color:${C.ink};font-size:15px}
+.tap{display:inline-block;margin:0 6px 6px 0;padding:9px 18px;border-radius:999px;background-color:${C.chip};color:${C.ink};font-size:15px}
 .r:checked + .tap{background-color:${C.accent};color:${C.paper};font-weight:700}
 .saved{margin:6px 0 0;font-size:13px;color:${C.accent};font-weight:700}
 .failed{margin:6px 0 0;font-size:13px;color:${C.warn};font-weight:700}
@@ -75,7 +75,12 @@ body{margin:0;padding:0 4px;background-color:${C.paper};color:${C.ink};font-fami
 .inner .name{font-size:16px}
 .form{margin:0 0 8px;font-size:14px;line-height:1.4;color:${C.ink}}
 .why{margin:0 0 8px;font-size:13px;color:${C.muted}}
-.pic{margin:0 0 6px;max-width:420px}
+.pics{width:100%;max-width:320px;border-collapse:collapse}
+.pics td{width:50%;padding:0 4px 0 0;vertical-align:top}
+.frame{border:1px solid ${C.rule};border-radius:8px}
+.shows{margin:0 0 6px;font-size:13px;color:${C.muted};font-style:italic}
+.hint{margin:8px 0 0;font-size:12px;color:${C.faint}}
+.tap.skip{color:${C.muted}}
 .end{margin:22px 0 0;padding:14px 0 0;border-top:1px solid ${C.rule}}
 .label{margin:0 0 6px;font-size:14px;color:${C.muted}}
 .box{width:100%;box-sizing:border-box;margin:0;padding:10px;border:1px solid ${C.rule};border-radius:12px;font-size:15px;font-family:-apple-system,Roboto,Helvetica,Arial,sans-serif;color:${C.ink};background-color:${C.paper}}
@@ -93,7 +98,7 @@ body{margin:0;padding:0 4px;background-color:${C.paper};color:${C.ink};font-fami
 const RESULT = `<div submit-success><template type="amp-mustache"><p class="saved">{{saved}} &#10003;</p></template></div>
 <div submit-error><template type="amp-mustache"><p class="failed">Not saved, tap again</p></template></div>`;
 
-/** A form posting to this workout's log, with what it is. */
+/** A small form posting to this workout's log, for an undo. */
 function form(mail: Mail, id: string, fields: Record<string, string>, body: string, refresh = true): string {
   const hidden = Object.entries(fields)
     .map(([k, v]) => `<input type="hidden" name="${k}" value="${esc(v)}">`)
@@ -103,8 +108,11 @@ ${RESULT}
 </form>`;
 }
 
-/** The weight and reps, with − / +, a row of nearby weights, and the three taps. `sid` names its state. */
-function numbersBlock(mail: Mail, card: Card, n: Numbers, sid: string, swap: boolean): string {
+/**
+ * The weight and reps with − / + and the row of nearby weights. `sid` names
+ * its state; the bound hidden inputs carry the numbers into the one Save.
+ */
+function numbersBlock(card: Card, n: Numbers, sid: string): string {
   const weighted = n.weight !== null && n.steps.length > 0;
   const wi = weighted ? Math.max(0, n.steps.findIndex((s) => Math.abs(s - n.weight!) < 1e-9)) : 0;
   const ws = `${sid}w`;
@@ -130,38 +138,39 @@ ${weighted ? `<amp-state id="${ws}"><script type="application/json">${JSON.strin
         )
         .join("")}</div>`
     : "";
-
-  const radios = (["easy", "done", "hard"] as const)
-    .map(
-      (t) =>
-        `<input class="r" type="radio" id="${sid}-${t}" name="tap" value="${t}" on="change:f${sid}.submit"><label class="tap" for="${sid}-${t}">${t}</label>`,
-    )
-    .join("");
-  const fields = { kind: "tap", slot: card.slot, swap: swap ? "1" : "0" };
-  const bound = `${weighted ? `<input type="hidden" name="w" value="${kg(n.weight!)}" [value]="${ws}[${sid}.w]">` : ""}<input type="hidden" name="r" value="${n.reps}" [value]="${sid}.r">`;
+  const bound = `${weighted ? `<input type="hidden" name="w_${sid}" value="${kg(n.weight!)}" [value]="${ws}[${sid}.w]">` : ""}<input type="hidden" name="r_${sid}" value="${n.reps}" [value]="${sid}.r">`;
 
   return `${state}
 <table class="nums" role="presentation"><tr>${weightCells}${repsCells}</tr></table>
 <p class="what">${esc(n.weightLabel)}</p>
 ${row}
-${n.findIt ? `<p class="find">First time: find a weight you could lift about 2 more times, set it above, then tap.</p>` : ""}
-<p class="effort">${esc(card.effort)}</p>
-${form(mail, `f${sid}`, fields, `${bound}<div class="taps">${radios}</div>`)}`;
+${n.findIt ? `<p class="find">First time: find a weight you could lift about 2 more times and set it above.</p>` : ""}
+${bound}`;
+}
+
+/** Easy, done, hard or skip. Nothing is picked: an exercise counts only once she picks one. */
+function taps(c: Card): string {
+  return `<div class="taps">${(["easy", "done", "hard", "skip"] as const)
+    .map(
+      (t) =>
+        `<input class="r" type="radio" id="${c.id}-${t}" name="t_${c.id}" value="${t}"><label class="${t === "skip" ? "tap skip" : "tap"}" for="${c.id}-${t}">${t}</label>`,
+    )
+    .join("")}</div>`;
 }
 
 function howTo(mail: Mail, n: Numbers, why?: string): string {
-  const pics = mail.base
+  const cells = mail.base
     ? n.frames
         .map(
           (f) =>
-            `<div class="pic"><amp-img src="${esc(`${mail.base}/pictures/p/${encodeURIComponent(f.file)}`)}" alt="${esc(n.name)}" width="${f.width}" height="${f.height}" layout="responsive"></amp-img></div>`,
+            `<td><div class="frame"><amp-img src="${esc(`${mail.base}/pictures/d/${encodeURIComponent(f.file)}`)}" alt="${esc(n.name)}" width="${f.width}" height="${f.height}" layout="responsive"></amp-img></div></td>`,
         )
         .join("")
     : "";
-  if (!n.form && !pics) return "";
+  if (!n.form && !cells) return "";
   return `<section>
 <h4>How to &#9662;</h4>
-<div class="inner">${n.form ? `<p class="form">${esc(n.form)}</p>` : ""}${why ? `<p class="why">${esc(why)}</p>` : ""}${pics}</div>
+<div class="inner">${n.form ? `<p class="form">${esc(n.form)}</p>` : ""}${cells && n.drawingNote ? `<p class="shows">${esc(n.drawingNote)}</p>` : ""}${cells ? `<table class="pics" role="presentation"><tr>${cells}</tr></table>` : ""}${why ? `<p class="why">${esc(why)}</p>` : ""}</div>
 </section>`;
 }
 
@@ -171,13 +180,18 @@ function card(mail: Mail, c: Card): string {
     ? `<section>
 <h4>Swap &#9662;</h4>
 <div class="inner"><p class="name">${esc(c.swap.name)}</p><p class="meta">${esc(dose(c.sets, c.swap.reps))}</p>
-${numbersBlock(mail, c, c.swap, `${c.id}s`, true)}</div>
+${numbersBlock(c, c.swap, `${c.id}s`)}
+<input class="r" type="checkbox" id="${c.id}-swap" name="s_${c.id}" value="1"><label class="tap" for="${c.id}-swap">did this instead</label>
+</div>
 </section>`
     : "";
   return `<div class="card">
-<p class="name">${esc(c.main.name)}${c.isNew ? `<span class="new">new</span>` : ""}</p>
+<input type="hidden" name="slot_${c.id}" value="${esc(c.slot)}">
+<p class="name">${esc(c.main.name)}</p>
 <p class="meta">${esc(`${c.muscle} · ${dose(c.sets, c.main.reps)} · rest ${c.rest}`)}</p>
-${numbersBlock(mail, c, c.main, c.id, false)}
+${numbersBlock(c, c.main, c.id)}
+<p class="effort">${esc(c.effort)}</p>
+${taps(c)}
 ${swap || how ? `<amp-accordion class="more" animate>
 ${swap}
 ${how}
@@ -242,15 +256,21 @@ export function composeAmp(mail: Mail): string {
 ${changes(mail)}
 <p class="sec">WARM-UP · ${mail.warmupMinutes} MIN</p>
 ${mail.warmup.map((w) => `<p class="warm${w.practice ? " p" : ""}">${esc(w.text)}</p>`).join("\n")}
+<form id="save" method="post" action-xhr="${esc(mail.logUrl)}" on="submit-success:logged.refresh">
+<input type="hidden" name="kind" value="save">
 <p class="sec">WORKOUT</p>
 ${work.map((c) => card(mail, c)).join("\n")}
 ${abs.length ? `<p class="sec">ABS</p>\n${abs.map((c) => card(mail, c)).join("\n")}` : ""}
 <div class="end">
-${form(mail, "fc", { kind: "comment" }, `<p class="label">Anything about today?</p><textarea class="box" name="note" rows="3" maxlength="1000" placeholder="e.g. didn't feel the hip thrust in my glutes"></textarea><button class="save" type="submit">Save</button>`)}
-${form(mail, "fa", { kind: "all" }, `<button class="all" type="submit">All done</button>`)}
+<p class="label">Anything about today?</p>
+<textarea class="box" name="note" rows="3" maxlength="1000" placeholder="e.g. didn't feel the hip thrust in my glutes"></textarea>
+<p class="hint">Only exercises with easy, done, hard or skip picked are saved. Saving again replaces them.</p>
+<button class="all" type="submit">Save</button>
+${RESULT}
 </div>
+</form>
 ${week(mail)}
-${pictured ? `<p class="credit">Photos: free-exercise-db, public domain.</p>` : ""}
+${pictured ? `<p class="credit">Drawings: Everkinetic (everkinetic.com), CC BY-SA 4.0.</p>` : ""}
 </body>
 </html>`;
 }
