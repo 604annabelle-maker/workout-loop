@@ -86,13 +86,16 @@ test("each card has − / +, the weights row, easy / done / hard / skip with not
   for (const c of m.cards) assert.ok(save.includes(`name="t_${c.id}"`), "every card is inside the one form");
 });
 
-test("How to shows the two drawing frames side by side, with the note on what differs", async () => {
+test("How to is the drawing alone, two frames side by side; the warm-up opens on drawings too; no words under the bars", async () => {
   const [m] = await mails(1);
-  const c = { ...m.cards[0], main: { ...m.cards[0].main, frames: [{ file: "0001-0.png", width: 400, height: 315 }, { file: "0001-1.png", width: 400, height: 315 }], drawingNote: "Shown seated." } };
-  const amp = composeAmp({ ...m, cards: [c] });
+  const frames = [{ file: "0001-0.png", width: 400, height: 315 }, { file: "0001-1.png", width: 400, height: 315 }];
+  const c = { ...m.cards[0], main: { ...m.cards[0].main, frames } };
+  const amp = composeAmp({ ...m, cards: [c], warmup: [{ name: "Band squat", text: "Band squat × 10", practice: false, frames }] });
   assert.ok(amp.includes("/pictures/d/0001-0.png") && amp.includes("/pictures/d/0001-1.png"));
   assert.match(amp, /<table class="pics" role="presentation"><tr><td>/);
-  assert.ok(amp.includes("Shown seated."));
+  assert.ok(!amp.includes(c.main.form), "no form line under How to");
+  assert.match(amp, /<h4 class="warm">Band squat × 10 &#9662;<\/h4>/);
+  assert.ok(!/Dark is done/.test(amp));
   assert.match(amp, /Everkinetic/);
   assert.ok(!amp.includes("/pictures/p/"), "no photos");
 });

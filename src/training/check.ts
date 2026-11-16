@@ -129,7 +129,7 @@ export function checkPlan(input: {
   const v = planVolume(plan);
   const working = plan.exercises.reduce((s, x) => s + (x.finisher ? 0 : x.sets), 0);
   const total = plan.exercises.reduce((s, x) => s + x.sets, 0);
-  if (!plan.deload && working < SESSION_SETS[0]) failures.push(`${working} working sets, under ${SESSION_SETS[0]}`);
+  if (!plan.deload && !skeleton.dropped && working < SESSION_SETS[0]) failures.push(`${working} working sets, under ${SESSION_SETS[0]}`);
   if (total > SESSION_SETS[1]) failures.push(`${total} sets, over ${SESSION_SETS[1]}`);
   for (const m of TARGETED)
     if ((v[m] ?? 0) > SESSION_MUSCLE_CAP + 1e-9) failures.push(`${v[m]} sets of ${m} in one session`);

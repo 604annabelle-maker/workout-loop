@@ -42,7 +42,7 @@ export async function budgetFromCheckins(now = new Date()): Promise<number | und
 }
 
 export async function sendCheckinIfDue(now = new Date()): Promise<boolean> {
-  if (process.env.PLAN_VERSION?.trim() !== "2" || !isCheckinDay(now)) return false;
+  if (process.env.PLAN_VERSION?.trim() === "1" || !isCheckinDay(now)) return false;
   const to = process.env.OWNER_EMAIL?.trim();
   if (!to) return false;
   const token = randomBytes(18).toString("base64url");

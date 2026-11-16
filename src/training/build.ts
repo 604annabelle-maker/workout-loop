@@ -94,8 +94,8 @@ export async function buildSession(input: BuildInput): Promise<Built> {
   }
 
   // Which slots keep their exercise, and which may change.
-  const histories = sk.slots.map((slot) => slotHistory(slot.key, history));
-  const decisions: Decision[] = capRotations(
+  let histories = sk.slots.map((slot) => slotHistory(slot.key, history));
+  let decisions: Decision[] = capRotations(
     sk.slots.map((slot, i) => {
       const h = histories[i];
       const cur = h.current ? exercise(h.current) : undefined;
@@ -117,6 +117,8 @@ export async function buildSession(input: BuildInput): Promise<Built> {
     const exclude = d.previous ? [d.previous] : [];
     const ctx = { notes, now, equipment, history, taken: [...locked.values()], exclude };
     let list = candidates(slot, ctx);
+    // Due to rotate but nothing else fits (few exercises have exact drawings): it stays.
+    if (!list.length && exclude.length) list = candidates(slot, { ...ctx, exclude: [] });
     // No heavy lift left for this muscle (she disliked the only one, or the gym lacks it): a compound takes the slot.
     if (!list.length && slot.class === "heavy") {
       const lighter: Slot = { ...slot, class: "compound", reps: [...CLASS.compound.reps] as [number, number] };
@@ -124,6 +126,15 @@ export async function buildSession(input: BuildInput): Promise<Built> {
       list = candidates(lighter, ctx);
     }
     lists.set(slot.key, list);
+  }
+
+  // A slot nothing can fill (she disliked its only exercise, or the gym lacks the machine) is left out, not a failed workout.
+  const empty = new Set([...lists.entries()].filter(([, l]) => !l.length).map(([k]) => k));
+  if (empty.size) {
+    const keep = sk.slots.map((x) => !empty.has(x.key));
+    sk = { ...sk, slots: sk.slots.filter((_, i) => keep[i]), dropped: empty.size };
+    decisions = decisions.filter((_, i) => keep[i]);
+    histories = histories.filter((_, i) => keep[i]);
   }
 
   const open = sk.slots.filter((_, i) => decisions[i].mode === "open");
@@ -159,7 +170,7 @@ export async function buildSession(input: BuildInput): Promise<Built> {
       const distinct = (e: Exercise) =>
         e.class !== "isolation" || !families.has(family(e)) || !list.some((x) => !families.has(family(x)));
       const okBody = (e: Exercise) =>
-        (slot.finisher || !isBodyweight(e) || bodyweight < ROTATION.maxBodyweightPerSession) && underCap(e, slot.setCount) && distinct(e);
+        (slot.finisher || !isBodyweight(e) || bodyweight < ROTATION.maxBodyweightPerSession) && underCap(e, setsOf(slot.key)) && distinct(e);
       const p = picks.get(slot.key);
       let e = p ? list.find((x) => x.id === p.id && okBody(x)) : undefined;
       if (p && !e) {
@@ -177,6 +188,13 @@ export async function buildSession(input: BuildInput): Promise<Built> {
       }
       if (!e) e = list.find(okBody) ?? list[0];
       if (!e) throw new Error(`no candidate fits ${slot.key} (${slot.muscle}, ${slot.class})`);
+      // Nothing fits under a muscle's session cap (few exercises have exact drawings): fewer sets, down to two, rather than too many.
+      if (!underCap(e, setsOf(slot.key))) {
+        let n = setsOf(slot.key) - 1;
+        while (n > 2 && !underCap(e, n)) n--;
+        const key = slot.key;
+        sk = { ...sk, slots: sk.slots.map((x) => (x.key === key ? { ...x, setCount: n } : x)) };
+      }
       if (isBodyweight(e) && !slot.finisher) bodyweight++;
       chosen.set(slot.key, e.id);
       if (p?.why && e.id === p.id) why.set(slot.key, p.why);

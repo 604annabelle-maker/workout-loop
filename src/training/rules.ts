@@ -167,7 +167,8 @@ export const DELOAD = {
 
 /** The warm-up (spec §The warm-up; moderate for the practice set, Ribeiro 2020). */
 export const WARMUP = {
-  drills: [3, 4] as [number, number],
+  // Two to four: only drills with an exact drawing are used, and some muscles have two.
+  drills: [2, 4] as [number, number],
   drillReps: 10,
   /** The one light practice set of the first heavy lift. */
   practiceFraction: 0.5,

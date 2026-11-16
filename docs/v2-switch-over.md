@@ -1,8 +1,10 @@
 # Switching to v2
 
-The rebuild (spec: `docs/superpowers/specs/2026-11-13-workout-loop-v2-design.md`)
-is in the code behind one setting. Until it is switched on, bookings go
-through the old app exactly as before.
+**v2 is live since 17 November, on her go-ahead.** It is on by default; setting
+`PLAN_VERSION=1` in Vercel switches bookings back to the old app. The steps
+below are how it got there.
+
+The rebuild (spec: `docs/superpowers/specs/2026-11-13-workout-loop-v2-design.md`).
 
 ## 1. Deploy
 
@@ -31,11 +33,11 @@ typical gym stands in.
 
 ## 4. Switch on
 
-Set `PLAN_VERSION=2` in Vercel and redeploy. From the next booking, workouts
+Done in code: v2 is the default. From the next booking, workouts
 are v2. A workout already planned the old way finishes the old way. The
 monthly check-in starts going out on the first Sunday of the next month.
 
 ## Switching back
 
-Unset `PLAN_VERSION`. v2 workouts already sent keep logging to v2; new
+Set `PLAN_VERSION=1`. v2 workouts already sent keep logging to v2; new
 bookings go through the old app. Nothing is lost either way.

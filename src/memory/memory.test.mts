@@ -88,18 +88,24 @@ test("too easy: heavier now, with a line; too hard with no easier version: a ste
 });
 
 test("the keyword reader: reasons, the exercise, and a burn is not pain", () => {
-  const ids = ["Barbell_Hip_Thrust", "Leg_Press", "Seated_Leg_Curl"];
-  assert.deepEqual(readByKeywords("didn't feel the hip thrust in my glutes", ids).map((n) => [n.reason, n.exerciseId]), [["wrong_muscle", "Barbell_Hip_Thrust"]]);
+  const ids = ["Dumbbell_Rear_Lunge", "Leg_Press", "Seated_Leg_Curl"];
+  assert.deepEqual(readByKeywords("didn't feel the reverse lunge in my glutes", ids).map((n) => [n.reason, n.exerciseId]), [["wrong_muscle", "Dumbbell_Rear_Lunge"]]);
   assert.deepEqual(readByKeywords("leg press hurt my knee", ids).map((n) => [n.reason, n.exerciseId]), [["pain", "Leg_Press"]]);
   assert.deepEqual(readByKeywords("leg curl hurt, good burn", ids).map((n) => n.reason), []);
   assert.deepEqual(readByKeywords("leg press machine was taken", ids).map((n) => n.reason), ["one_off"]);
   assert.deepEqual(readByKeywords("hated the leg curls", ids).map((n) => [n.reason, n.exerciseId]), [["dislike", "Seated_Leg_Curl"]]);
   assert.deepEqual(readByKeywords("so worn out today", ids).map((n) => [n.reason, n.exerciseId]), [["too_hard", null]]);
-  assert.deepEqual(readByKeywords("loved the hip thrusts but leg press was too easy", ids).map((n) => [n.reason, n.exerciseId]), [["liked", "Barbell_Hip_Thrust"], ["too_easy", "Leg_Press"]]);
+  assert.deepEqual(readByKeywords("loved the reverse lunges but leg press was too easy", ids).map((n) => [n.reason, n.exerciseId]), [["liked", "Dumbbell_Rear_Lunge"], ["too_easy", "Leg_Press"]]);
 });
 
 test("saying worn out makes the rest of the cycle lighter", async () => {
   const { history, now } = await upperAWith(() => []);
   const built = await buildSession({ history, notes: [{ ...note("too_hard", null, "worn out"), createdAt: new Date(now.getTime() - DAY) }], equipment: EQ, now });
   assert.equal(built.plan.deload, true);
+});
+
+test("disliking the only exercise for a slot leaves the slot out instead of failing the workout", async () => {
+  const notes: Note[] = [{ id: "d1", reason: "dislike", exerciseId: "Leg_Extensions", text: "hate leg extensions", createdAt: t0, undoneAt: null }];
+  const built = await buildSession({ history: [], notes, equipment: EQ, now: t0, position: { type: "quads_glutes", cycle: 0, index: 3 } });
+  assert.ok(!built.plan.exercises.some((x) => x.main.exerciseId === "Leg_Extensions" || x.swap?.exerciseId === "Leg_Extensions"));
 });

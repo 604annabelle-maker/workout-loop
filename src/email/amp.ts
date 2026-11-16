@@ -16,7 +16,7 @@
  */
 
 import { kg } from "../training/equipment";
-import type { Card, Mail, Numbers } from "./cards";
+import type { Card, Frame, Mail, Numbers } from "./cards";
 import { dose } from "./cards";
 
 export const C = {
@@ -45,7 +45,10 @@ body{margin:0;padding:0 4px;background-color:${C.paper};color:${C.ink};font-fami
 .ghost{margin:4px 0 0;padding:0;border:0;background-color:transparent;color:${C.accent};font-size:13px;font-weight:700}
 .sec{margin:18px 0 6px;font-size:12px;font-weight:700;letter-spacing:1.2px;color:${C.accent}}
 .warm{margin:0;padding:0 0 4px;font-size:15px;line-height:1.5}
-.warm .p{color:${C.muted}}
+.warm.p{color:${C.muted}}
+.warmups section{margin:0}
+.warmups h4{margin:0;padding:2px 0;border:0;background-color:${C.paper};font-size:15px;font-weight:400;line-height:1.5;color:${C.ink}}
+.warmups h4.p{color:${C.muted}}
 .card{padding:14px 0 12px;border-top:1px solid ${C.rule}}
 .name{margin:0;font-size:18px;font-weight:700;line-height:1.25}
 .meta{margin:2px 0 0;font-size:13px;color:${C.muted}}
@@ -73,12 +76,9 @@ body{margin:0;padding:0 4px;background-color:${C.paper};color:${C.ink};font-fami
 .more h4{margin:0;padding:4px 0;border:0;background-color:${C.paper};color:${C.accent};font-size:14px;font-weight:700}
 .inner{padding:8px 0 4px 12px;border-left:2px solid ${C.rule}}
 .inner .name{font-size:16px}
-.form{margin:0 0 8px;font-size:14px;line-height:1.4;color:${C.ink}}
-.why{margin:0 0 8px;font-size:13px;color:${C.muted}}
 .pics{width:100%;max-width:320px;border-collapse:collapse}
 .pics td{width:50%;padding:0 4px 0 0;vertical-align:top}
 .frame{border:1px solid ${C.rule};border-radius:8px}
-.shows{margin:0 0 6px;font-size:13px;color:${C.muted};font-style:italic}
 .hint{margin:8px 0 0;font-size:12px;color:${C.faint}}
 .tap.skip{color:${C.muted}}
 .end{margin:22px 0 0;padding:14px 0 0;border-top:1px solid ${C.rule}}
@@ -158,24 +158,40 @@ function taps(c: Card): string {
     .join("")}</div>`;
 }
 
-function howTo(mail: Mail, n: Numbers, why?: string): string {
-  const cells = mail.base
-    ? n.frames
-        .map(
-          (f) =>
-            `<td><div class="frame"><amp-img src="${esc(`${mail.base}/pictures/d/${encodeURIComponent(f.file)}`)}" alt="${esc(n.name)}" width="${f.width}" height="${f.height}" layout="responsive"></amp-img></div></td>`,
-        )
-        .join("")
-    : "";
-  if (!n.form && !cells) return "";
-  return `<section>
-<h4>How to &#9662;</h4>
-<div class="inner">${n.form ? `<p class="form">${esc(n.form)}</p>` : ""}${cells && n.drawingNote ? `<p class="shows">${esc(n.drawingNote)}</p>` : ""}${cells ? `<table class="pics" role="presentation"><tr>${cells}</tr></table>` : ""}${why ? `<p class="why">${esc(why)}</p>` : ""}</div>
-</section>`;
+/** The drawing, two frames small and side by side. */
+function pics(mail: Mail, frames: Frame[], name: string): string {
+  if (!mail.base || !frames.length) return "";
+  const cells = frames
+    .map(
+      (f) =>
+        `<td><div class="frame"><amp-img src="${esc(`${mail.base}/pictures/d/${encodeURIComponent(f.file)}`)}" alt="${esc(name)}" width="${f.width}" height="${f.height}" layout="responsive"></amp-img></div></td>`,
+    )
+    .join("");
+  return `<table class="pics" role="presentation"><tr>${cells}</tr></table>`;
+}
+
+/** How to: the drawing and nothing else. Every exercise has an exact one, so no words are needed. */
+function howTo(mail: Mail, n: Numbers): string {
+  const p = pics(mail, n.frames, n.name);
+  return p ? `<section>\n<h4>How to &#9662;</h4>\n<div class="inner">${p}</div>\n</section>` : "";
+}
+
+/** The warm-up: each line opens on its drawing. */
+function warmup(mail: Mail): string {
+  const sections = mail.warmup
+    .map((w) => {
+      const p = pics(mail, w.frames, w.name);
+      return p
+        ? `<section>\n<h4 class="warm${w.practice ? " p" : ""}">${esc(w.text)} &#9662;</h4>\n<div class="inner">${p}</div>\n</section>`
+        : "";
+    })
+    .filter(Boolean);
+  const plain = mail.warmup.filter((w) => !pics(mail, w.frames, w.name)).map((w) => `<p class="warm${w.practice ? " p" : ""}">${esc(w.text)}</p>`);
+  return `${sections.length ? `<amp-accordion class="warmups" animate>\n${sections.join("\n")}\n</amp-accordion>` : ""}${plain.join("\n")}`;
 }
 
 function card(mail: Mail, c: Card): string {
-  const how = howTo(mail, c.main, c.why);
+  const how = howTo(mail, c.main);
   const swap = c.swap
     ? `<section>
 <h4>Swap &#9662;</h4>
@@ -223,7 +239,6 @@ function week(mail: Mail): string {
   return `<div class="week">
 <p class="sec">THIS WEEK · SETS</p>
 <table role="presentation">${rows}</table>
-<p class="what">Dark is done since Sunday, light is today.</p>
 </div>`;
 }
 
@@ -255,7 +270,7 @@ export function composeAmp(mail: Mail): string {
 </div>
 ${changes(mail)}
 <p class="sec">WARM-UP · ${mail.warmupMinutes} MIN</p>
-${mail.warmup.map((w) => `<p class="warm${w.practice ? " p" : ""}">${esc(w.text)}</p>`).join("\n")}
+${warmup(mail)}
 <form id="save" method="post" action-xhr="${esc(mail.logUrl)}" on="submit-success:logged.refresh">
 <input type="hidden" name="kind" value="save">
 <p class="sec">WORKOUT</p>

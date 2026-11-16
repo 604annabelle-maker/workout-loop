@@ -56,6 +56,8 @@ export interface WarmLine {
   name: string;
   text: string;
   practice: boolean;
+  /** Its drawing, under a tap like How to. */
+  frames: Frame[];
 }
 
 export interface Mail {
@@ -133,9 +135,10 @@ export function compose(input: {
   }));
   const warmup: WarmLine[] = plan.warmup.map((w) => {
     const name = exercise(w.exerciseId)?.name ?? w.exerciseId;
+    const frames = input.pictures(w.exerciseId).frames;
     return w.practice
-      ? { name, text: `${name} × ${w.reps} at ${w.weight === null ? "a light weight" : `${kg(w.weight)} kg`}, light practice set`, practice: true }
-      : { name, text: `${name} × ${w.reps}`, practice: false };
+      ? { name, text: `${name} × ${w.reps} at ${w.weight === null ? "a light weight" : `${kg(w.weight)} kg`}, light practice set`, practice: true, frames }
+      : { name, text: `${name} × ${w.reps}`, practice: false, frames };
   });
   const day = dateOnly(input.date);
   return {

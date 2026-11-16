@@ -71,7 +71,12 @@ interface Banned {
 const ALL = data.exercises as unknown as (Exercise & { reviewed: boolean })[];
 const BANNED = (data.banned as Banned[]).map((b) => b.id);
 
-const REACHABLE: Exercise[] = ALL.filter((e) => e.reviewed && !BANNED.includes(e.id));
+/**
+ * Choosable: reviewed, not banned, and with an exact drawing. She learns each
+ * movement from its drawing alone, so an exercise without an accurate one is
+ * never offered (asked for on 16 November).
+ */
+const REACHABLE: Exercise[] = ALL.filter((e) => e.reviewed && !BANNED.includes(e.id) && !!e.drawing);
 const BY_ID = new Map(REACHABLE.map((e) => [e.id, e]));
 
 /** Every exercise that can be chosen. */
