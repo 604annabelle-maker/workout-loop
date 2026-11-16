@@ -1,5 +1,7 @@
 # The plan she approved
 
+> **Superseded** by the rebuild of 13 November 2026: `docs/superpowers/specs/2026-11-13-workout-loop-v2-design.md`. Kept as history.
+
 Agreed with her on 3 November 2026, after planning it together question by
 question, and built from this. Where the research reports disagree with it,
 this is what the app does.

@@ -64,8 +64,8 @@ export default async function EquipmentForm() {
     </div>
   );
   return (
-    <form action={updateEquipment} style={{ marginTop: "3rem" }}>
-      <h2 style={{ fontSize: "1.25rem", marginBottom: "0.25rem" }}>Your gym</h2>
+    <form action={updateEquipment}>
+      <h1 style={{ fontSize: "1.5rem", marginBottom: "0.25rem" }}>Your gym</h1>
       <p style={{ color: "#57534e", marginTop: 0, marginBottom: "1.5rem" }}>
         The weights that exist, in kg. The app only ever suggests these. Leave a machine blank and it uses the general
         machine steps.

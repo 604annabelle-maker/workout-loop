@@ -22,9 +22,6 @@ import { and, desc, eq, gte, isNull, lt } from "drizzle-orm";
 import { db, schema } from "@/db";
 import { eachUnseen, type Incoming } from "./mail-in";
 import { sendMail } from "./mail-out";
-import { readPlan, type Plan } from "./plan";
-import { isEmptyLog } from "./reply-log";
-import { readReply } from "./reply-read";
 import { matchWorkout, type Candidate } from "./reply-match";
 import { normalizeMessageId, parseReply } from "./reply-parse";
 import { readFeedbackV2 } from "./v2";
@@ -97,15 +94,14 @@ export async function readPendingLogs(now = new Date()): Promise<number> {
     .select({
       id: feedback.id,
       body: feedback.body,
-      attempts: feedback.logAttempts,
-      plan: workouts.plan,
-      version: workouts.version,
     })
     .from(feedback)
     .innerJoin(workouts, eq(feedback.workoutId, workouts.id))
     .where(
       and(
         isNull(feedback.log),
+        // Replies to the old app's workouts stay filed as prose; only v2 workouts are read.
+        eq(workouts.version, 2),
         lt(feedback.logAttempts, READ_ATTEMPTS),
         gte(feedback.receivedAt, since),
       ),
@@ -115,39 +111,10 @@ export async function readPendingLogs(now = new Date()): Promise<number> {
   let read = 0;
 
   for (const row of pending) {
-    // A reply to a v2 workout: shorthand into its exercise log, the rest into memory.
-    if (row.version === 2) {
-      try {
-        if (await readFeedbackV2(row.id)) read += 1;
-      } catch (err) {
-        console.error(`reading v2 reply ${row.id} failed:`, err);
-      }
-      continue;
-    }
-    let plan: Plan | null = null;
     try {
-      plan = row.plan ? readPlan(row.plan) : null;
-    } catch {
-      plan = null;
-    }
-
-    try {
-      const log = await readReply(row.body, plan);
-      await db
-        .update(feedback)
-        .set({
-          // An empty log is still a read: there was simply nothing to record.
-          log: isEmptyLog(log) ? { ...log, empty: true } : log,
-          logAttempts: row.attempts + 1,
-        })
-        .where(eq(feedback.id, row.id));
-      read += 1;
+      if (await readFeedbackV2(row.id)) read += 1;
     } catch (err) {
       console.error(`reading reply ${row.id} failed:`, err);
-      await db
-        .update(feedback)
-        .set({ logAttempts: row.attempts + 1 })
-        .where(eq(feedback.id, row.id));
     }
   }
 

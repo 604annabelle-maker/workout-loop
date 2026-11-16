@@ -2,7 +2,7 @@
  * End to end against a real database (plan stage 12): two bookings through
  * the v2 path, taps, a swap, all done, a reply with shorthand and a comment,
  * then the history the next plan reads. `npm run e2e:v2` with DATABASE_URL
- * pointing at a scratch database, PLAN_VERSION=2 and no mailbox (mail prints).
+ * pointing at a scratch database and no mailbox (mail prints).
  */
 import { eq } from "drizzle-orm";
 import { db, schema } from "../db/index.ts";

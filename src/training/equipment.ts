@@ -1,7 +1,7 @@
 /**
  * Weights that exist (spec §Weights that exist).
  *
- * Pure. She enters her gym's equipment once on the preferences page; until
+ * Pure. She enters her gym's equipment once on the gym page; until
  * then a typical commercial gym stands in. Every weight the app suggests is a
  * member of `loadable(load)`, and − / + move between those and nothing else.
  */
@@ -147,7 +147,7 @@ export function label(load: Load): string {
 /** "40", "42.5", "1.25". */
 export const kg = (w: number) => String(round(w));
 
-/** What she typed on the preferences page into equipment, keeping the defaults for anything blank. */
+/** What she typed on the gym page into equipment, keeping the defaults for anything blank. */
 export function readEquipment(raw: unknown): Equipment {
   const r = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
   const nums = (v: unknown, fallback: number[]) => {
