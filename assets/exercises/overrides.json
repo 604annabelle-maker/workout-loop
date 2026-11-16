@@ -3,6 +3,147 @@
  "note": "Reviewed by hand from anatomy and docs/research/2026-11-progressive-overload.md. Only these exercises can be chosen.",
  "exercises": [
   {
+   "id": "Reverse_Grip_Bent-Over_Rows",
+   "name": "Reverse-grip barbell row",
+   "primary": [
+    "back"
+   ],
+   "secondary": [
+    "biceps",
+    "rear_delts"
+   ],
+   "class": "heavy",
+   "pattern": "h_pull",
+   "stretched": false,
+   "load": "barbell",
+   "warmup": false,
+   "form": "Palms up, hinge to about 45 degrees, pull the bar to your lower ribs.",
+   "reviewed": true,
+   "drawing": "Reverse Grips Bent Over Barbell Rows",
+   "why": "Raw tags say middle back; counted as back. Chosen because its drawing is exact."
+  },
+  {
+   "id": "Neutral_Grip_Chin-Up",
+   "name": "Neutral-grip chin-up",
+   "primary": [
+    "back"
+   ],
+   "secondary": [
+    "biceps"
+   ],
+   "class": "compound",
+   "pattern": "v_pull",
+   "stretched": true,
+   "load": "bodyweight",
+   "warmup": false,
+   "form": "Palms facing each other, hang fully, pull your chin over the bar.",
+   "reviewed": true,
+   "drawing": "Narrow Parallel Grip Chin-ups",
+   "custom": true,
+   "why": "Not in free-exercise-db under this name; its drawing is exact."
+  },
+  {
+   "id": "Standing_Dumbbell_Upright_Row",
+   "name": "Dumbbell upright row",
+   "primary": [
+    "side_delts"
+   ],
+   "secondary": [],
+   "class": "isolation",
+   "pattern": "lateral_raise",
+   "stretched": false,
+   "load": "dumbbell",
+   "warmup": false,
+   "form": "Hands shoulder-width, lead with your elbows, stop at chest height.",
+   "reviewed": true,
+   "drawing": "Upright Row: Dumbbell",
+   "why": "Raw tags say traps; with a wide grip to chest height it is a side-delt lift."
+  },
+  {
+   "id": "Upright_Row_-_With_Bands",
+   "name": "Band upright row",
+   "primary": [
+    "side_delts"
+   ],
+   "secondary": [],
+   "class": "drill",
+   "pattern": "lateral_raise",
+   "stretched": false,
+   "load": "band",
+   "warmup": true,
+   "form": "Stand on the band, lead with your elbows up to chest height.",
+   "reviewed": true,
+   "drawing": "Upright Band Rows",
+   "why": "Raw tags say traps; used light as a shoulder warm-up."
+  },
+  {
+   "id": "Squats_-_With_Bands",
+   "name": "Band squat",
+   "primary": [
+    "quads"
+   ],
+   "secondary": [
+    "glutes"
+   ],
+   "class": "drill",
+   "pattern": "squat",
+   "stretched": false,
+   "load": "band",
+   "warmup": true,
+   "form": "Stand on the band, handles at your shoulders, sit down and stand up.",
+   "reviewed": true,
+   "drawing": "Squats: Exercise Bands",
+   "why": "A light squat warm-up."
+  },
+  {
+   "id": "Crunches",
+   "name": "Crunch",
+   "primary": [
+    "abs"
+   ],
+   "secondary": [],
+   "class": "isolation",
+   "pattern": "core",
+   "stretched": false,
+   "load": "bodyweight",
+   "warmup": false,
+   "form": "Hands by your head, curl your shoulders off the floor, lower slowly.",
+   "reviewed": true,
+   "drawing": "Crunches"
+  },
+  {
+   "id": "Flat_Bench_Lying_Leg_Raise",
+   "name": "Lying leg raise",
+   "primary": [
+    "abs"
+   ],
+   "secondary": [],
+   "class": "isolation",
+   "pattern": "core",
+   "stretched": false,
+   "load": "bodyweight",
+   "warmup": false,
+   "form": "Lying on a bench, legs straight, raise them to vertical and lower slowly.",
+   "reviewed": true,
+   "drawing": "Flat Bench Leg Raises"
+  },
+  {
+   "id": "Cable_Seated_Crunch",
+   "name": "Seated cable crunch",
+   "primary": [
+    "abs"
+   ],
+   "secondary": [],
+   "class": "isolation",
+   "pattern": "core",
+   "stretched": false,
+   "load": "cable",
+   "warmup": false,
+   "form": "Seated facing away from a high cable, curl your ribs down to your hips.",
+   "reviewed": true,
+   "drawing": "Seated Ab Crunch with Cable"
+  },
+  {
    "id": "Barbell_Squat",
    "name": "Back squat",
    "primary": [
@@ -663,7 +804,7 @@
    "pattern": "hinge",
    "stretched": true,
    "load": "bodyweight",
-   "warmup": false,
+   "warmup": true,
    "form": "Round slightly and squeeze your glutes to come up; stop at a straight line.",
    "reviewed": true,
    "drawing": "Hyperextensions",
@@ -1553,7 +1694,7 @@
   },
   {
    "id": "Incline_Dumbbell_Curl",
-   "name": "Incline dumbbell curl",
+   "name": "Alternating incline curl",
    "primary": [
     "biceps"
    ],
@@ -1563,8 +1704,9 @@
    "stretched": true,
    "load": "dumbbell",
    "warmup": false,
-   "form": "Back on an incline bench, arms hanging behind you, curl without moving your elbows.",
-   "reviewed": true
+   "form": "Back on an incline bench, arms hanging behind you, curl one arm at a time without moving your elbow.",
+   "reviewed": true,
+   "drawing": "Alternating Incline Curl with Dumbbell"
   },
   {
    "id": "Hammer_Curls",

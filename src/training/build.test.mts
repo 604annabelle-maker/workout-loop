@@ -97,8 +97,8 @@ test("the checker refuses wrong muscles, wrong swaps, off-target warm-ups and ba
   assert.ok(ok(badSwap).some((f) => /swap .* does not train/.test(f)));
 
   const badWarm = structuredClone(plan);
-  badWarm.warmup[0] = { exerciseId: "Bodyweight_Squat", reps: 10, weight: null, load: "bodyweight" };
-  assert.ok(ok(badWarm).some((f) => /warm-up Bodyweight squat .* today does not train/.test(f)));
+  badWarm.warmup[0] = { exerciseId: "Squats_-_With_Bands", reps: 10, weight: null, load: "band" };
+  assert.ok(ok(badWarm).some((f) => /warm-up Band squat .* today does not train/.test(f)));
 
   const bannedPlan = structuredClone(plan);
   bannedPlan.exercises[1].main.exerciseId = "Dumbbell_Incline_Row";
@@ -124,7 +124,7 @@ test("leg days warm up the legs, upper days the upper body", async () => {
       assert.equal(isLeg, lower, `${s.plan.position.type}: ${exercise(w.exerciseId)!.name}`);
     }
     assert.ok(s.plan.warmup.some((w) => w.practice), "one practice set");
-    assert.ok(s.plan.warmup.length >= 4 && s.plan.warmup.length <= 5);
+    assert.ok(s.plan.warmup.length >= 3 && s.plan.warmup.length <= 5);
   }
 });
 

@@ -43,7 +43,8 @@ import { weekStart } from "./when";
 
 const { workouts, feedback } = schema;
 
-export const v2On = () => process.env.PLAN_VERSION?.trim() === "2";
+/** Live from 17 November, her go-ahead: v2 is the app. PLAN_VERSION=1 switches back to the old one. */
+export const v2On = () => process.env.PLAN_VERSION?.trim() !== "1";
 
 /** "upper" means the next upper day in order, and so on; anything else, the next session. */
 export function positionFor(last: Position | null, focus: string | null): Position | undefined {

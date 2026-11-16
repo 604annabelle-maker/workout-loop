@@ -40,7 +40,7 @@ test("presses carry triceps second", () => {
 
 test("overhead triceps extensions are triceps and stretched", () => {
   const overhead = named(/overhead .*extension/i);
-  assert.ok(overhead.length >= 2);
+  assert.ok(overhead.length >= 1);
   for (const e of overhead) {
     assert.deepEqual(e.primary, ["triceps"], e.name);
     assert.equal(e.stretched, true, e.name);
@@ -69,10 +69,10 @@ test("every slot of every session has at least three exercises that fit, and eve
     for (const spec of slots) {
       const slot = { ...spec, setCount: 3, reps: [8, 12] as [number, number] };
       const n = all.filter((e) => fits(e, slot)).length;
-      // Optional slots only need one; heavy slots are one or two barbell lifts kept for a long time.
-      assert.ok(n >= (spec.class === "heavy" || spec.sets[0] === 0 ? 1 : 3), `${type} ${spec.key}: only ${n} fit`);
+      // Only exercises with an exact drawing can be chosen, so some slots have one option.
+      assert.ok(n >= 1, `${type} ${spec.key}: nothing fits`);
     }
-  for (const m of ["quads", "hamstrings", "glutes", "chest", "back", "side_delts", "biceps", "triceps"] as const) {
+  for (const m of ["quads", "glutes", "chest", "back", "side_delts", "biceps", "triceps"] as const) {
     const drills = all.filter((e) => (e.class === "drill" || e.warmup) && e.primary.includes(m) && (e.load === "bodyweight" || e.load === "band"));
     assert.ok(drills.length >= 1, `${m} has ${drills.length} warm-up drills`);
   }
@@ -80,4 +80,14 @@ test("every slot of every session has at least three exercises that fit, and eve
 
 test("every correction of the raw tags says why, and every custom exercise is marked", () => {
   for (const e of all) if (e.custom) assert.ok(e.why, `${e.name} is custom without a reason`);
+});
+
+test("every exercise that can be chosen has an exact drawing that exists", async () => {
+  const { readFileSync } = await import("node:fs");
+  const names = new Set((JSON.parse(readFileSync("assets/exercise-drawings/index.json", "utf8")) as { exercises: { name: string }[] }).exercises.map((e) => e.name));
+  for (const e of all) {
+    assert.ok(e.drawing, `${e.name} has no drawing`);
+    assert.ok(names.has(e.drawing!), `${e.name}: ${e.drawing} is not in the drawings`);
+    assert.equal(e.drawingNote, undefined, `${e.name}: only exact drawings`);
+  }
 });

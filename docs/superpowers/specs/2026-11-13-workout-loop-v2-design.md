@@ -291,10 +291,11 @@ buttons move between those steps.
      only once she picks one.
    - **Swap** opens in place with the swap exercise, its own numbers, and
      "did this instead".
-   - **How to** opens one line on form and the Everkinetic sketch: two small
-     frames side by side, the set she chose. Sketches are shown only when
-     they are exactly the movement; the others show the line on form alone,
-     and exercises with an exact sketch are preferred when choosing.
+   - **How to** opens the Everkinetic sketch alone: two small frames side by
+     side, the set she chose, and no words. Every exercise that can be chosen
+     has an exact sketch (17 November): one without an accurate drawing is
+     never offered. That leaves out the hip thrust, so the glute day leads
+     with a lunge or step-up. Warm-up lines open on their sketches too.
    - On a first-time exercise, the weight shows "find it" until she sets it.
 5. **The abs finisher**, as cards, on lower days.
 6. **"Anything about today?"**, a comment box, then **one Save** for the

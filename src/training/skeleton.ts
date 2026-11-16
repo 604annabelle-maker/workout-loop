@@ -106,11 +106,11 @@ export const TEMPLATES: Record<SessionType, SlotSpec[]> = {
   ],
   glutes_hams: [
     s("glutes_hams", 1, "hamstrings", "heavy", ["hinge"], [3, 4], { glutes: 0.5 }),
-    // The hip thrust, not a second heavy hinge on top of the first lift.
-    s("glutes_hams", 2, "glutes", "heavy", ["hip_ext"], [3, 4], { hamstrings: 0.5 }),
+    // A glute-led lunge or step-up: the hip thrust has no accurate drawing, and a second heavy hinge would be too much.
+    s("glutes_hams", 2, "glutes", "compound", ["lunge", "hinge"], [3, 4], { hamstrings: 0.5 }),
     s("glutes_hams", 3, "hamstrings", "isolation", ["knee_flex"], [3, 4], {}, { preferStretched: true }),
     s("glutes_hams", 4, "glutes", "isolation", ["abduction", "hip_ext"], [2, 3], {}),
-    s("glutes_hams", 5, "glutes", "compound", ["lunge", "hip_ext"], [0, 3], { hamstrings: 0.5 }),
+    s("glutes_hams", 5, "glutes", "isolation", ["hip_ext"], [0, 3], { hamstrings: 0.5 }),
     ...finisher("glutes_hams", 6),
   ],
   chest_triceps: [
@@ -124,9 +124,10 @@ export const TEMPLATES: Record<SessionType, SlotSpec[]> = {
   quads_glutes: [
     s("quads_glutes", 1, "quads", "heavy", ["squat"], [3, 4], { glutes: 0.5 }),
     s("quads_glutes", 2, "quads", "compound", ["squat", "lunge"], [3, 4], { glutes: 0.5 }),
-    s("quads_glutes", 3, "glutes", "compound", ["hip_ext", "lunge"], [2, 3], { hamstrings: 0.5 }),
+    // Glutes by isolation here: the lunges with exact drawings also count fully for quads, which this day already has plenty of.
+    s("quads_glutes", 3, "glutes", "isolation", ["abduction", "hip_ext"], [2, 3], {}),
     s("quads_glutes", 4, "quads", "isolation", ["knee_ext"], [2, 4], {}),
-    s("quads_glutes", 5, "glutes", "isolation", ["abduction"], [0, 3], {}),
+    s("quads_glutes", 5, "glutes", "compound", ["lunge", "hinge"], [0, 3], { quads: 1 }),
     ...finisher("quads_glutes", 6),
   ],
   full: [
@@ -134,7 +135,7 @@ export const TEMPLATES: Record<SessionType, SlotSpec[]> = {
     s("full", 2, "chest", "compound", ["h_push"], [2, 3], PRESS),
     s("full", 3, "back", "compound", ["v_pull", "h_pull"], [2, 3], PULLDOWN),
     s("full", 4, "hamstrings", "compound", ["hinge"], [2, 3], { glutes: 0.5 }),
-    s("full", 5, "glutes", "compound", ["hip_ext", "lunge"], [2, 3], { hamstrings: 0.5 }),
+    s("full", 5, "glutes", "compound", ["hip_ext", "lunge", "hinge"], [2, 3], { hamstrings: 0.5 }),
     s("full", 6, "quads", "isolation", ["knee_ext"], [0, 3], {}),
     s("full", 7, "side_delts", "isolation", ["lateral_raise"], [0, 3], {}),
     s("full", 8, "biceps", "isolation", ["elbow_flex"], [0, 2], {}),
@@ -271,6 +272,8 @@ export interface Skeleton {
   index: number;
   deload: boolean;
   slots: Slot[];
+  /** Slots left out because nothing could fill them; the session may then be shorter. */
+  dropped?: number;
 }
 
 /** One session's slots, with sets from the cycle's balance and reps by class. */
