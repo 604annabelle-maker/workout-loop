@@ -2,7 +2,7 @@
  * Weights that exist (spec §Weights that exist).
  *
  * Pure. She enters her gym's equipment once on the gym page; until
- * then a typical commercial gym stands in. Every weight the app suggests is a
+ * then a typical commercial gym stands in, with her own plates. Every weight the app suggests is a
  * member of `loadable(load)`, and − / + move between those and nothing else.
  */
 
@@ -47,7 +47,8 @@ export const DEFAULT_EQUIPMENT: Equipment = {
   dumbbells: [...range(1, 10, 1), ...range(12, 30, 2)],
   barbell: 20,
   ezbar: 10,
-  plates: [1.25, 2.5, 5, 10, 15, 20],
+  /** Her gym's plates (her reply, 19 Nov 2026): 10, 7.5 and 5 kg. */
+  plates: [5, 7.5, 10],
   cable: range(2.5, 60, 2.5),
   machines: {},
   machine: range(5, 120, 5),

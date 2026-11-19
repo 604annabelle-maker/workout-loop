@@ -1,6 +1,7 @@
 /**
  * End to end against a real database (plan stage 12): two bookings through
- * the v2 path, taps, a swap, all done, a reply with shorthand and a comment,
+ * the v2 path, taps kept as she goes and picked back up, a swap, a skip, one
+ * Save, a reply with shorthand and a comment,
  * then the history the next plan reads. `npm run e2e:v2` with DATABASE_URL
  * pointing at a scratch database and no mailbox (mail prints).
  */
@@ -26,25 +27,28 @@ for (let i = 0; i < 2; i++) {
   console.log(" ", plan.position.type, "version", row.version, "status", row.status, "token", !!row.logToken);
   ids.push(id);
   if (i === 0) {
-    // One Save: the first card heavier and easy, the second as its swap, the third skipped, the rest left unpicked.
+    // Taps kept as she goes, picked back up, then one Save: the first card heavier, the second as its swap, the third skipped, the rest as written.
     const [x, y] = plan.exercises;
+    console.log(" draft:", (await handleLogV2(id, plan, fd({ kind: "draft", card: "c1", back: "0", c1w: "1", c1r: "9", c1k: "0", c1s: "0" }))).body);
+    console.log(" note:", (await handleLogV2(id, plan, fd({ kind: "note", note: "felt strong" }))).body);
+    const back = (await handleLogV2(id, plan, fd({ kind: "restore" }))).body as Record<string, unknown>;
+    console.log(" picked up:", JSON.stringify(back.c1), JSON.stringify(back.nt));
     const form: Record<string, string> = { kind: "save" };
     plan.exercises.forEach((e, k) => {
       form[`slot_c${k + 1}`] = e.slot;
       form[`r_c${k + 1}`] = String(e.main.reps);
       if (e.main.weight !== null) form[`w_c${k + 1}`] = String(e.main.weight);
     });
-    form.w_c1 = String((x.main.weight ?? 0) + 2.5);
-    form.t_c1 = "easy";
+    if (x.main.weight !== null) form.w_c1 = String(x.main.steps[Math.min(1, x.main.steps.length - 1)] ?? x.main.weight);
     if (y.swap) {
       form.s_c2 = "1";
       form.r_c2s = "9";
       if (y.swap.weight !== null) form.w_c2s = String(y.swap.weight);
     }
-    form.t_c2 = "hard";
-    form.t_c3 = "skip";
+    form.k_c3 = "1";
+    form.note = "felt strong";
     console.log(" save:", (await handleLogV2(id, plan, fd(form))).body.saved);
-    console.log(" save with nothing picked:", (await handleLogV2(id, plan, fd({ kind: "save" }))).body);
+    console.log(" save again, the note not filed twice:", (await handleLogV2(id, plan, fd(form))).body.saved);
     console.log(" logged:", loggedLine(plan, await logsFor(id)), (await logsFor(id)).length);
     const biceps = plan.exercises.find((e) => e.muscle === "biceps")!;
     const name = exercise(biceps.main.exerciseId)!.name;

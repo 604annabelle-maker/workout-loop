@@ -35,7 +35,7 @@ const staticView = (amp: string) =>
     .replace(/<script[^>]*><\/script>/g, "")
     .replace(/<style amp4email-boilerplate>[^<]*<\/style>/, "")
     .replace(/<amp-state[\s\S]*?<\/amp-state>/g, "")
-    .replace(/<amp-list[\s\S]*?<\/amp-list>/g, '<p class="logged">2 of 7 logged</p>')
+    .replace(/<amp-list[\s\S]*?<\/amp-list>/g, '<button class="resume" type="submit">&#8634; Pick up where you left off</button>')
     .replace(/<div submit-(success|error)>[\s\S]*?<\/div>/g, "")
     .replace(/<amp-img ([^>]*)><\/amp-img>/g, (_m, a) => `<img ${a.replace(/layout="responsive"/, 'style="width:100%;height:auto"')}>`)
     .replace(/<\/?amp-accordion[^>]*>/g, "")

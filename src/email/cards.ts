@@ -13,6 +13,7 @@ import { LABEL } from "../training/rules";
 import { SESSION_NAME } from "../training/skeleton";
 import type { SummaryRow } from "../training/summary";
 import type { PlannedExercise, PlanV2, Prescription } from "../training/types";
+import { stepsOf } from "./draft";
 
 export interface Frame {
   file: string;
@@ -56,7 +57,7 @@ export interface WarmLine {
   name: string;
   text: string;
   practice: boolean;
-  /** Its drawing, under a tap like How to. */
+  /** Its drawing, under the small arrow by its name. */
   frames: Frame[];
 }
 
@@ -89,7 +90,7 @@ function numbers(p: Prescription, pictures: Pictures): Numbers {
     name: e?.name ?? p.exerciseId,
     weight: p.weight,
     weightLabel: weightLabel(p.load),
-    steps: p.steps.length ? p.steps : p.weight !== null ? [p.weight] : [],
+    steps: stepsOf(p),
     reps: p.reps,
     range: p.range,
     findIt: p.findIt,
@@ -161,6 +162,6 @@ export function compose(input: {
 export const REPLY_HELP = [
   "To log, reply with: done",
   "Or only what was different, one per line:",
-  "RDL 42.5 8 8 7 hard",
+  "RDL 42.5 8 8 7",
   "Anything else, in your own words.",
 ];

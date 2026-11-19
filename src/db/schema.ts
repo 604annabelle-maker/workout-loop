@@ -133,6 +133,12 @@ export const workouts = pgTable("workouts", {
   version: integer("version").notNull().default(1),
   /** The checked v2 plan (src/training/types.ts PlanV2), exactly as sent. */
   planV2: jsonb("plan_v2"),
+  /**
+   * What she has set in the dynamic email so far, saved as she goes so it is
+   * there again when she reopens it (src/email/draft.ts). Not training: only
+   * the Save logs.
+   */
+  draft: jsonb("draft"),
 });
 
 /**

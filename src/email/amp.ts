@@ -5,8 +5,16 @@
  * targets. Nothing is ever typed except the comment: weight and reps sit on
  * the card already, − / + move them through weights that exist, and tapping
  * the weight opens a row of nearby weights so a big change is one tap. She
- * picks easy, done, hard or skip on each exercise (nothing is picked for
- * her), then one Save at the end logs them all with the numbers on the cards.
+ * sets the numbers to what she did and skips what she did not do; one Save
+ * at the end logs every card that is not skipped (her reply, 19 Nov 2026: no
+ * easy, done or hard).
+ *
+ * Every tap is also saved as she goes (draft.ts), because Gmail forgets the
+ * email's state when it closes. Coming back, one tap at the top brings it
+ * all back: an email cannot load state by itself.
+ *
+ * An exercise's drawing opens from a small arrow by its name, as the
+ * warm-up's do, and the swap's from its own name inside Swap.
  *
  * Gmail silently shows the plain version instead of one that breaks any AMP
  * for Email rule, so the rules are kept with care (amp.test.mts checks): no
@@ -18,6 +26,7 @@
 import { kg } from "../training/equipment";
 import type { Card, Frame, Mail, Numbers } from "./cards";
 import { dose } from "./cards";
+import { indexOf } from "./draft";
 
 export const C = {
   ink: "#1F1D1A",
@@ -39,7 +48,7 @@ body{margin:0;padding:0 4px;background-color:${C.paper};color:${C.ink};font-fami
 .top{padding:6px 0 12px}
 .title{margin:0;font-size:28px;font-weight:700;letter-spacing:-0.5px}
 .sub{margin:2px 0 0;font-size:14px;color:${C.muted}}
-.logged{margin:6px 0 0;font-size:13px;color:${C.accent}}
+.logged{display:inline-block;margin:6px 0 0;font-size:13px;color:${C.accent}}
 .change{margin:0 0 8px;padding:8px 10px;background-color:${C.accentSoft};border-radius:10px;font-size:14px;line-height:1.35}
 .change p{margin:0}
 .ghost{margin:4px 0 0;padding:0;border:0;background-color:transparent;color:${C.accent};font-size:13px;font-weight:700}
@@ -51,6 +60,10 @@ body{margin:0;padding:0 4px;background-color:${C.paper};color:${C.ink};font-fami
 .warmups h4.p{color:${C.muted}}
 .card{padding:14px 0 12px;border-top:1px solid ${C.rule}}
 .name{margin:0;font-size:18px;font-weight:700;line-height:1.25}
+.look section{margin:0}
+.look h4{margin:0;padding:0;border:0;background-color:${C.paper};color:${C.ink};font-size:18px;font-weight:700;line-height:1.25}
+.inner .look h4{font-size:16px}
+.arrow{font-size:13px;font-weight:400;color:${C.muted}}
 .meta{margin:2px 0 0;font-size:13px;color:${C.muted}}
 .nums{margin:10px 0 0;width:100%;border-collapse:collapse}
 .nums td{padding:0;vertical-align:middle}
@@ -66,21 +79,20 @@ body{margin:0;padding:0 4px;background-color:${C.paper};color:${C.ink};font-fami
 .effort{margin:8px 0 0;font-size:13px;color:${C.muted};font-style:italic}
 .find{margin:8px 0 0;font-size:13px;color:${C.warn}}
 .taps{margin:10px 0 0}
-.r{-webkit-appearance:none;appearance:none;width:0;height:0;margin:0;padding:0;border:0}
-.tap{display:inline-block;margin:0 6px 6px 0;padding:9px 18px;border-radius:999px;background-color:${C.chip};color:${C.ink};font-size:15px}
-.r:checked + .tap{background-color:${C.accent};color:${C.paper};font-weight:700}
+.tap{display:inline-block;margin:0 6px 6px 0;padding:9px 18px;border:0;border-radius:999px;background-color:${C.chip};color:${C.ink};font-size:15px}
+.tap.on{background-color:${C.accent};color:${C.paper};font-weight:700}
+.resume{margin:6px 8px 0 0;padding:7px 14px;border:1px solid ${C.accent};border-radius:999px;background-color:${C.paper};color:${C.accent};font-size:14px;font-weight:700}
 .saved{margin:6px 0 0;font-size:13px;color:${C.accent};font-weight:700}
 .failed{margin:6px 0 0;font-size:13px;color:${C.warn};font-weight:700}
 .more{margin:10px 0 0}
 .more section{margin:0 0 2px}
-.more h4{margin:0;padding:4px 0;border:0;background-color:${C.paper};color:${C.accent};font-size:14px;font-weight:700}
+.more>section>h4{margin:0;padding:4px 0;border:0;background-color:${C.paper};color:${C.accent};font-size:14px;font-weight:700}
 .inner{padding:8px 0 4px 12px;border-left:2px solid ${C.rule}}
 .inner .name{font-size:16px}
 .pics{width:100%;max-width:320px;border-collapse:collapse}
 .pics td{width:50%;padding:0 4px 0 0;vertical-align:top}
 .frame{border:1px solid ${C.rule};border-radius:8px}
 .hint{margin:8px 0 0;font-size:12px;color:${C.faint}}
-.tap.skip{color:${C.muted}}
 .end{margin:22px 0 0;padding:14px 0 0;border-top:1px solid ${C.rule}}
 .label{margin:0 0 6px;font-size:14px;color:${C.muted}}
 .box{width:100%;box-sizing:border-box;margin:0;padding:10px;border:1px solid ${C.rule};border-radius:12px;font-size:15px;font-family:-apple-system,Roboto,Helvetica,Arial,sans-serif;color:${C.ink};background-color:${C.paper}}
@@ -111,19 +123,22 @@ ${RESULT}
 /**
  * The weight and reps with − / + and the row of nearby weights. `sid` names
  * its state; the bound hidden inputs carry the numbers into the one Save.
+ * Every change also posts the draft (`draftForm`), so closing Gmail loses
+ * nothing.
  */
 function numbersBlock(card: Card, n: Numbers, sid: string): string {
   const weighted = n.weight !== null && n.steps.length > 0;
-  const wi = weighted ? Math.max(0, n.steps.findIndex((s) => Math.abs(s - n.weight!) < 1e-9)) : 0;
+  const wi = weighted ? indexOf(n.weight, n.steps) : 0;
   const ws = `${sid}w`;
   const last = n.steps.length - 1;
-  const state = `<amp-state id="${sid}"><script type="application/json">${JSON.stringify({ w: wi, r: n.reps, o: false })}</script></amp-state>
+  const main = sid === card.id;
+  const state = `<amp-state id="${sid}"><script type="application/json">${JSON.stringify(main ? { w: wi, r: n.reps, o: false, k: false, s: false } : { w: wi, r: n.reps, o: false })}</script></amp-state>
 ${weighted ? `<amp-state id="${ws}"><script type="application/json">${JSON.stringify(n.steps)}</script></amp-state>` : ""}`;
-  const set = (expr: string) => `AMP.setState({${sid}: {${expr}}})`;
+  const set = (expr: string) => keep(card, `${sid}: {${expr}}`);
 
   const weightCells = weighted
     ? `<td><button type="button" class="step" on="tap:${set(`w: max(${sid}.w - 1, 0)`)}">&minus;</button></td>
-<td><button type="button" class="val" on="tap:${set(`o: !${sid}.o`)}"><span [text]="${ws}[${sid}.w]">${kg(n.weight!)}</span><span class="unit"> kg</span></button></td>
+<td><button type="button" class="val" on="tap:AMP.setState({${sid}: {o: !${sid}.o}})"><span [text]="${ws}[${sid}.w]">${kg(n.weight!)}</span><span class="unit"> kg</span></button></td>
 <td><button type="button" class="step" on="tap:${set(`w: min(${sid}.w + 1, ${last})`)}">+</button></td>
 <td class="gap"></td>`
     : "";
@@ -148,14 +163,14 @@ ${n.findIt ? `<p class="find">First time: find a weight you could lift about 2 m
 ${bound}`;
 }
 
-/** Easy, done, hard or skip. Nothing is picked: an exercise counts only once she picks one. */
-function taps(c: Card): string {
-  return `<div class="taps">${(["easy", "done", "hard", "skip"] as const)
-    .map(
-      (t) =>
-        `<input class="r" type="radio" id="${c.id}-${t}" name="t_${c.id}" value="${t}"><label class="${t === "skip" ? "tap skip" : "tap"}" for="${c.id}-${t}">${t}</label>`,
-    )
-    .join("")}</div>`;
+/** Set state, say which card she touched, then post the draft. */
+const keep = (c: Card, state: string) => `AMP.setState({${state}, cur: {c: '${c.id}'}}), draft.submit`;
+
+/** A chip that toggles one of the card's flags, sent with the Save as 1 or nothing. */
+function toggle(c: Card, key: "k" | "s", off: string, on: string): string {
+  const f = `${c.id}.${key}`;
+  return `<button type="button" class="tap" [class]="${f} ? 'tap on' : 'tap'" on="tap:${keep(c, `${c.id}: {${key}: !${f}}`)}"><span [text]="${f} ? '${on}' : '${off}'">${off}</span></button>
+<input type="hidden" name="${key}_${c.id}" value="" [value]="${f} ? '1' : ''">`;
 }
 
 /** The drawing, two frames small and side by side. */
@@ -170,10 +185,12 @@ function pics(mail: Mail, frames: Frame[], name: string): string {
   return `<table class="pics" role="presentation"><tr>${cells}</tr></table>`;
 }
 
-/** How to: the drawing and nothing else. Every exercise has an exact one, so no words are needed. */
-function howTo(mail: Mail, n: Numbers): string {
+/** An exercise's name with a small arrow that drops its drawing down, as the warm-up does. No drawing: the name alone. */
+function named(mail: Mail, n: Numbers): string {
   const p = pics(mail, n.frames, n.name);
-  return p ? `<section>\n<h4>How to &#9662;</h4>\n<div class="inner">${p}</div>\n</section>` : "";
+  return p
+    ? `<amp-accordion class="look" animate>\n<section>\n<h4>${esc(n.name)} <span class="arrow">&#9662;</span></h4>\n<div class="inner">${p}</div>\n</section>\n</amp-accordion>`
+    : `<p class="name">${esc(n.name)}</p>`;
 }
 
 /** The warm-up: each line opens on its drawing. */
@@ -191,28 +208,64 @@ function warmup(mail: Mail): string {
 }
 
 function card(mail: Mail, c: Card): string {
-  const how = howTo(mail, c.main);
   const swap = c.swap
-    ? `<section>
+    ? `<amp-accordion class="more" animate>
+<section>
 <h4>Swap &#9662;</h4>
-<div class="inner"><p class="name">${esc(c.swap.name)}</p><p class="meta">${esc(dose(c.sets, c.swap.reps))}</p>
+<div class="inner">${named(mail, c.swap)}
+<p class="meta">${esc(dose(c.sets, c.swap.reps))}</p>
 ${numbersBlock(c, c.swap, `${c.id}s`)}
-<input class="r" type="checkbox" id="${c.id}-swap" name="s_${c.id}" value="1"><label class="tap" for="${c.id}-swap">did this instead</label>
+<div class="taps">${toggle(c, "s", "did this instead", "did this instead ✓")}</div>
 </div>
-</section>`
+</section>
+</amp-accordion>`
     : "";
   return `<div class="card">
 <input type="hidden" name="slot_${c.id}" value="${esc(c.slot)}">
-<p class="name">${esc(c.main.name)}</p>
+${named(mail, c.main)}
 <p class="meta">${esc(`${c.muscle} · ${dose(c.sets, c.main.reps)} · rest ${c.rest}`)}</p>
 ${numbersBlock(c, c.main, c.id)}
 <p class="effort">${esc(c.effort)}</p>
-${taps(c)}
-${swap || how ? `<amp-accordion class="more" animate>
+<div class="taps">${toggle(c, "k", "skip", "skipped")}</div>
 ${swap}
-${how}
-</amp-accordion>` : ""}
 </div>`;
+}
+
+/**
+ * The draft: the whole email's state, posted on every tap (draft.ts). Outside
+ * the Save form, since forms cannot nest. `cur` says which card was touched
+ * and whether the email shows the draft (`b`, set by picking up).
+ */
+function draftForm(mail: Mail): string {
+  const h = (name: string, value: string | number, bind: string) => `<input type="hidden" name="${name}" value="${value}" [value]="${bind}">`;
+  const cards = mail.cards.map((c) => {
+    const n = c.main;
+    return `${h(`${c.id}w`, indexOf(n.weight, n.steps), `${c.id}.w`)}${h(`${c.id}r`, n.reps, `${c.id}.r`)}${h(`${c.id}k`, 0, `${c.id}.k ? 1 : 0`)}${h(`${c.id}s`, 0, `${c.id}.s ? 1 : 0`)}${
+      c.swap ? `${h(`${c.id}sw`, indexOf(c.swap.weight, c.swap.steps), `${c.id}s.w`)}${h(`${c.id}sr`, c.swap.reps, `${c.id}s.r`)}` : ""
+    }`;
+  });
+  return `<amp-state id="cur"><script type="application/json">{"c":"","b":false}</script></amp-state>
+<form id="draft" method="post" action-xhr="${esc(mail.logUrl!)}">
+<input type="hidden" name="kind" value="draft">${h("card", "", "cur.c")}${h("back", 0, "cur.b ? 1 : 0")}
+${cards.join("\n")}
+</form>`;
+}
+
+/**
+ * The top line: what is saved, and, once she has set anything, the button
+ * that brings it back. Its answer is the whole email's state (draft.ts).
+ */
+function resume(mail: Mail): string {
+  const keys = mail.cards.flatMap((c) => [c.id, ...(c.swap ? [`${c.id}s`] : [])]);
+  const set = [...keys.map((k) => `${k}: event.response.${k}`), "nt: event.response.nt", "nr: event.response.nt", "cur: event.response.cur"].join(", ");
+  return `<form id="restore" method="post" action-xhr="${esc(mail.logUrl!)}" on="submit-success:AMP.setState({${set}})">
+<input type="hidden" name="kind" value="restore">
+<amp-list id="logged" layout="fixed-height" height="44" src="${esc(mail.logUrl!)}" single-item items="." binding="no">
+<template type="amp-mustache">{{#draft}}<button class="resume" type="submit">&#8634; Pick up where you left off</button>{{/draft}}<p class="logged">{{summary}}</p></template>
+</amp-list>
+<div submit-success><template type="amp-mustache"><p class="saved">{{saved}} &#10003;</p></template></div>
+<div submit-error><template type="amp-mustache"><p class="failed">Couldn't load it, tap again</p></template></div>
+</form>`;
 }
 
 function changes(mail: Mail): string {
@@ -264,9 +317,7 @@ export function composeAmp(mail: Mail): string {
 <div class="top">
 <p class="title">${esc(mail.title)}</p>
 <p class="sub">${esc(mail.sub)}</p>
-<amp-list id="logged" layout="fixed-height" height="22" src="${esc(mail.logUrl)}" single-item items="." binding="no">
-<template type="amp-mustache"><p class="logged">{{summary}}</p></template>
-</amp-list>
+${resume(mail)}
 </div>
 ${changes(mail)}
 <p class="sec">WARM-UP · ${mail.warmupMinutes} MIN</p>
@@ -278,12 +329,16 @@ ${work.map((c) => card(mail, c)).join("\n")}
 ${abs.length ? `<p class="sec">ABS</p>\n${abs.map((c) => card(mail, c)).join("\n")}` : ""}
 <div class="end">
 <p class="label">Anything about today?</p>
-<textarea class="box" name="note" rows="3" maxlength="1000" placeholder="e.g. didn't feel the hip thrust in my glutes"></textarea>
-<p class="hint">Only exercises with easy, done, hard or skip picked are saved. Saving again replaces them.</p>
+<amp-state id="nt"><script type="application/json">{"t":""}</script></amp-state>
+<amp-state id="nr"><script type="application/json">{"t":""}</script></amp-state>
+<textarea class="box" name="note" rows="3" maxlength="1000" placeholder="e.g. didn't feel the hip thrust in my glutes" [text]="nr.t" on="input-debounced:AMP.setState({nt: {t: event.value}}), dnote.submit"></textarea>
+<p class="hint">Everything you set is kept as you go, even if Gmail closes. Save when you finish: it logs every exercise as it shows, except the ones you skipped. Saving again replaces it.</p>
 <button class="all" type="submit">Save</button>
 ${RESULT}
 </div>
 </form>
+${draftForm(mail)}
+<form id="dnote" method="post" action-xhr="${esc(mail.logUrl)}"><input type="hidden" name="kind" value="note"><input type="hidden" name="note" value="" [value]="nt.t"></form>
 ${week(mail)}
 ${pictured ? `<p class="credit">Drawings: Everkinetic (everkinetic.com), CC BY-SA 4.0.</p>` : ""}
 </body>

@@ -5,9 +5,15 @@ import { DEFAULT_EQUIPMENT as EQ, label, loadable, nearest, neighbours, readEqui
 test("a barbell's weights are the bar plus pairs of plates", () => {
   const steps = loadable("barbell", EQ);
   assert.equal(steps[0], 20);
-  assert.ok(steps.includes(22.5) && steps.includes(25) && steps.includes(60));
-  assert.ok(!steps.includes(21.25), "one plate on one side only is not a weight");
-  for (const w of steps) assert.equal(Math.round(((w - 20) / 2) * 100) % 125, 0, `${w} is not symmetric`);
+  assert.ok(steps.includes(22.5) === false, "no 1.25 kg plates");
+  assert.ok(steps.includes(30) && steps.includes(35) && steps.includes(60));
+  assert.ok(!steps.includes(25), "one 5 kg plate on one side only is not a weight");
+  for (const w of steps) assert.equal(Math.round(((w - 20) / 2) * 100) % 250, 0, `${w} is not symmetric`);
+});
+
+test("her plates: 10, 7.5 and 5 kg, so the bar starts 20, 30, 35, 40, 45", () => {
+  assert.deepEqual(EQ.plates, [5, 7.5, 10]);
+  assert.deepEqual(loadable("barbell", EQ).slice(0, 5), [20, 30, 35, 40, 45]);
 });
 
 test("every function returns only weights that exist", () => {
