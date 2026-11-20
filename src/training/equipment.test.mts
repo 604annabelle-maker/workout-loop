@@ -11,6 +11,10 @@ test("a barbell's weights are the bar plus pairs of plates", () => {
   for (const w of steps) assert.equal(Math.round(((w - 20) / 2) * 100) % 250, 0, `${w} is not symmetric`);
 });
 
+test("her dumbbells: every kilo to 10, then 2.5s", () => {
+  assert.deepEqual(loadable("dumbbell", EQ), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12.5, 15, 17.5, 20, 22.5, 25, 27.5, 30]);
+});
+
 test("her plates: 10, 7.5 and 5 kg, so the bar starts 20, 30, 35, 40, 45", () => {
   assert.deepEqual(EQ.plates, [5, 7.5, 10]);
   assert.deepEqual(loadable("barbell", EQ).slice(0, 5), [20, 30, 35, 40, 45]);
@@ -31,15 +35,16 @@ test("every function returns only weights that exist", () => {
 
 test("the tap-a-weight row is about three either side, clipped at the ends", () => {
   const steps = loadable("dumbbell", EQ);
-  assert.deepEqual(neighbours(10, steps), [7, 8, 9, 10, 12, 14, 16]);
+  assert.deepEqual(neighbours(10, steps), [7, 8, 9, 10, 12.5, 15, 17.5]);
   assert.deepEqual(neighbours(1, steps), [1, 2, 3, 4]);
-  assert.deepEqual(neighbours(30, steps), [24, 26, 28, 30]);
+  assert.deepEqual(neighbours(30, steps), [22.5, 25, 27.5, 30]);
 });
 
 test("a step more than 10% heavier is too big", () => {
   const db = loadable("dumbbell", EQ);
   assert.equal(stepTooBig(4, db), true, "4 to 5 kg is 25%");
-  assert.equal(stepTooBig(20, db), false, "20 to 22 kg is 10%");
+  assert.equal(stepTooBig(25, db), false, "25 to 27.5 kg is 10%");
+  assert.equal(stepTooBig(20, db), true, "20 to 22.5 kg is 12.5%");
   assert.equal(stepTooBig(60, loadable("barbell", EQ)), false);
 });
 

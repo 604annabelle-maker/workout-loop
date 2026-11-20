@@ -69,7 +69,11 @@ test("each card has − / +, the weights row and skip; no easy, done or hard; on
   for (const c of m.cards) {
     assert.ok(amp.includes(`name="slot_${c.id}" value="${c.slot}"`));
     assert.ok(amp.includes(`name="k_${c.id}" value="" [value]="${c.id}.k ? '1' : ''"`), `${c.id} skip`);
-    assert.ok(amp.includes(`[text]="${c.id}.k ? 'skipped' : 'skip'"`));
+    // Skip folds the card to one line that brings it back.
+    assert.ok(amp.includes(`<p class="gone" [class]="${c.id}.k ? 'skipline' : 'gone'">Skipped ${c.main.name.replace(/&/g, "&amp;")} · <button`), `${c.id} skipped line`);
+    assert.ok(amp.includes(`on="tap:AMP.setState({${c.id}: {k: false}, cur: {c: '${c.id}'}}), draft.submit">bring back</button>`));
+    assert.ok(amp.includes(`<div [class]="${c.id}.k ? 'gone' : ''">`));
+    assert.ok(amp.includes(`on="tap:AMP.setState({${c.id}: {k: true}, cur: {c: '${c.id}'}}), draft.submit">skip</button>`));
     if (c.main.weight !== null) {
       assert.ok(amp.includes(`<amp-state id="${c.id}w">`));
       assert.ok(amp.includes(`[class]="${c.id}.o ? 'row open' : 'row'"`));

@@ -5,7 +5,8 @@
  * targets. Nothing is ever typed except the comment: weight and reps sit on
  * the card already, − / + move them through weights that exist, and tapping
  * the weight opens a row of nearby weights so a big change is one tap. She
- * sets the numbers to what she did and skips what she did not do; one Save
+ * sets the numbers to what she did and skips what she did not do (the card
+ * folds to one line, with a way to bring it back); one Save
  * at the end logs every card that is not skipped (her reply, 19 Nov 2026: no
  * easy, done or hard).
  *
@@ -79,6 +80,9 @@ body{margin:0;padding:0 4px;background-color:${C.paper};color:${C.ink};font-fami
 .effort{margin:8px 0 0;font-size:13px;color:${C.muted};font-style:italic}
 .find{margin:8px 0 0;font-size:13px;color:${C.warn}}
 .taps{margin:10px 0 0}
+.gone{display:none}
+.skipline{margin:0;font-size:14px;color:${C.muted}}
+.skipline .ghost{margin:0;font-size:14px}
 .tap{display:inline-block;margin:0 6px 6px 0;padding:9px 18px;border:0;border-radius:999px;background-color:${C.chip};color:${C.ink};font-size:15px}
 .tap.on{background-color:${C.accent};color:${C.paper};font-weight:700}
 .resume{margin:6px 8px 0 0;padding:7px 14px;border:1px solid ${C.accent};border-radius:999px;background-color:${C.paper};color:${C.accent};font-size:14px;font-weight:700}
@@ -167,7 +171,7 @@ ${bound}`;
 const keep = (c: Card, state: string) => `AMP.setState({${state}, cur: {c: '${c.id}'}}), draft.submit`;
 
 /** A chip that toggles one of the card's flags, sent with the Save as 1 or nothing. */
-function toggle(c: Card, key: "k" | "s", off: string, on: string): string {
+function toggle(c: Card, key: "s", off: string, on: string): string {
   const f = `${c.id}.${key}`;
   return `<button type="button" class="tap" [class]="${f} ? 'tap on' : 'tap'" on="tap:${keep(c, `${c.id}: {${key}: !${f}}`)}"><span [text]="${f} ? '${on}' : '${off}'">${off}</span></button>
 <input type="hidden" name="${key}_${c.id}" value="" [value]="${f} ? '1' : ''">`;
@@ -220,14 +224,19 @@ ${numbersBlock(c, c.swap, `${c.id}s`)}
 </section>
 </amp-accordion>`
     : "";
+  const k = `${c.id}.k`;
   return `<div class="card">
 <input type="hidden" name="slot_${c.id}" value="${esc(c.slot)}">
+<input type="hidden" name="k_${c.id}" value="" [value]="${k} ? '1' : ''">
+<p class="gone" [class]="${k} ? 'skipline' : 'gone'">Skipped ${esc(c.main.name)} · <button type="button" class="ghost" on="tap:${keep(c, `${c.id}: {k: false}`)}">bring back</button></p>
+<div [class]="${k} ? 'gone' : ''">
 ${named(mail, c.main)}
 <p class="meta">${esc(`${c.muscle} · ${dose(c.sets, c.main.reps)} · rest ${c.rest}`)}</p>
 ${numbersBlock(c, c.main, c.id)}
 <p class="effort">${esc(c.effort)}</p>
-<div class="taps">${toggle(c, "k", "skip", "skipped")}</div>
+<div class="taps"><button type="button" class="tap" on="tap:${keep(c, `${c.id}: {k: true}`)}">skip</button></div>
 ${swap}
+</div>
 </div>`;
 }
 

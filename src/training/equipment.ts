@@ -44,7 +44,8 @@ const range = (from: number, to: number, step: number) => {
 const round = (v: number) => Math.round(v * 100) / 100;
 
 export const DEFAULT_EQUIPMENT: Equipment = {
-  dumbbells: [...range(1, 10, 1), ...range(12, 30, 2)],
+  /** Her gym's dumbbells (her reply, 20 Nov 2026): every kilo to 10, then 2.5s. */
+  dumbbells: [...range(1, 10, 1), ...range(12.5, 30, 2.5)],
   barbell: 20,
   ezbar: 10,
   /** Her gym's plates (her reply, 19 Nov 2026): 10, 7.5 and 5 kg. */
