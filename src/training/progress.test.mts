@@ -35,10 +35,16 @@ test("first time: no weight is prescribed, she finds it, starting light", () => 
 
 test("every set at the top, done or easy: a step heavier, back to the bottom", () => {
   for (const tap of ["done", "easy"] as Tap[]) {
-    const n = bench([[40, [8, 8, 8], tap]]);
-    assert.equal(n.weight, 42.5);
+    const n = bench([[50, [8, 8, 8], tap]]);
+    assert.equal(n.weight, 55);
     assert.equal(n.reps, 5);
   }
+});
+
+test("with her plates 40 to 45 is too big a jump: more reps first, then heavier", () => {
+  const n = bench([[40, [8, 8, 8], "done"]]);
+  assert.equal(n.weight, 40);
+  assert.ok(n.range[1] > 8 && n.reps === 9, `${n.reps} reps, range ${n.range}`);
 });
 
 test("every set at the top but hard: same weight, repeat", () => {
@@ -96,7 +102,7 @@ test("too easy, said in a note: heavier now", () => {
     exerciseId: "Barbell_Bench_Press_-_Medium_Grip", load: "barbell", range: [5, 8], history: h, equipment: EQ,
     notes: [{ id: "n1", reason: "too_easy", exerciseId: "Barbell_Bench_Press_-_Medium_Grip", text: "way too light", createdAt: new Date(t0.getTime() + DAY), undoneAt: null }],
   });
-  assert.equal(n.weight, 42.5);
+  assert.equal(n.weight, 45);
 });
 
 test("an exercise she did not tap does not move", () => {

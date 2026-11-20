@@ -1,8 +1,9 @@
 # Workout Loop
 
 Booking a gym slot produces a workout by email. She sets the numbers on each
-exercise, picks easy, done, hard or skip, and presses Save inside the email.
-That sets the next workout.
+exercise to what she did, skips what she didn't, and presses Save inside the
+email. Every tap is kept as she goes, so closing Gmail loses nothing. That
+sets the next workout.
 
 ```mermaid
 flowchart TD
@@ -14,7 +15,7 @@ flowchart TD
     F --> G([Gmail on her phone])
     G -->|"one Save: numbers and picks"| T["/api/log<br/>(through Gmail's servers)"]
     T --> M[(Exercise log)]
-    G -.->|"backup, a reply: done, RDL 42.5 8 8 7 hard"| H[Mailbox]
+    G -.->|"backup, a reply: done, RDL 45 8 8 7"| H[Mailbox]
     I[["cron, every 15 min"]] --> H
     I --> J[Retry anything stuck]
     H --> K[Match the reply to its workout]
@@ -64,14 +65,16 @@ Every other week, full body replaces the quads + glutes day. Each muscle gets
 about 10 hard sets a week (arms 12 to 13), all on its day.
 
 **Progression.** Double progression. Reps go up to the top of the range, then
-the weight goes up a step that exists at her gym. Easy, done and hard check
-the effort. A stall drops the weight and rebuilds it; a second stall swaps the
+the weight goes up a step that exists at her gym (her plates are 10, 7.5 and
+5 kg, so a jump of more than 10% earns more reps first; RDLs and rows can
+also take her 15 kg bar, which makes 15 and 25 kg, and the card says when). The numbers she sets
+are the effort check: she sets them to what was just right. A stall drops the weight and rebuilds it; a second stall swaps the
 exercise. A first-time exercise starts light and she finds the weight.
 Lighter weeks happen only when she is struggling, never on a schedule.
 
 **Exercises.** 135 exercises reviewed by hand (`assets/exercises/overrides.json`).
 The 78 with an exact Everkinetic drawing are the ones that can be chosen,
-because How to is the drawing alone. Big lifts stay for a long time; small
+because the drawing, behind a small arrow by the name, is the only how-to. Big lifts stay for a long time; small
 exercises rotate every five weeks, or straight away when she complains.
 
 **Her words.** Comments and replies become notes (`src/memory`): wrong muscle,
@@ -119,6 +122,14 @@ A few decisions worth knowing:
 **Filing a reply and reading it are two steps.** Filing is a database write;
 reading may call a model. A reply is filed first, and the cron retries reading
 it.
+
+**What she taps is kept as she goes.** Gmail forgets a dynamic email's state
+when the app closes, and an email cannot load state by itself (`amp-state` is
+inline only). So every tap also posts the whole email's state to the
+workout's draft, and when she comes back, "Pick up where you left off" at the
+top asks for it and sets it in one go (`email/draft.ts`). Save logs it and
+sends her note straight away; a workout she tapped in but never saved is
+logged from its draft before the next one is planned (`logForgotten`).
 
 **The Save is checked twice.** Each email's form carries a random secret for
 that workout, and Gmail names the sender of the email, which must be the

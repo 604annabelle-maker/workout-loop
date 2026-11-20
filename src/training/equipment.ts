@@ -2,13 +2,15 @@
  * Weights that exist (spec §Weights that exist).
  *
  * Pure. She enters her gym's equipment once on the gym page; until
- * then a typical commercial gym stands in. Every weight the app suggests is a
+ * then a typical commercial gym stands in, with her own plates. Every weight the app suggests is a
  * member of `loadable(load)`, and − / + move between those and nothing else.
  */
 
 /** How an exercise is loaded: "machine:<key>" names one machine's stack. */
 export type Load =
   | "barbell"
+  /** A bar picked up off the floor or held, never racked: the barbell or the lighter bar. */
+  | "freebar"
   | "ezbar"
   | "dumbbell"
   | "cable"
@@ -21,6 +23,8 @@ export interface Equipment {
   dumbbells: number[];
   /** The bar, kg. */
   barbell: number;
+  /** A lighter straight bar, kg, for lifts that never go on the rack (it does not fit her Smith machine's). Null: none. */
+  lightBar: number | null;
   /** The EZ bar, kg. */
   ezbar: number;
   /** Plate sizes, kg. Plates are loaded in pairs, one each side. */
@@ -44,10 +48,14 @@ const range = (from: number, to: number, step: number) => {
 const round = (v: number) => Math.round(v * 100) / 100;
 
 export const DEFAULT_EQUIPMENT: Equipment = {
-  dumbbells: [...range(1, 10, 1), ...range(12, 30, 2)],
+  /** Her gym's dumbbells (her reply, 20 Nov 2026): every kilo to 10, then 2.5s. */
+  dumbbells: [...range(1, 10, 1), ...range(12.5, 30, 2.5)],
   barbell: 20,
+  /** Her 15 kg bar (her reply, 20 Nov 2026): for RDLs and rows. */
+  lightBar: 15,
   ezbar: 10,
-  plates: [1.25, 2.5, 5, 10, 15, 20],
+  /** Her gym's plates (her reply, 19 Nov 2026): 10, 7.5 and 5 kg. */
+  plates: [5, 7.5, 10],
   cable: range(2.5, 60, 2.5),
   machines: {},
   machine: range(5, 120, 5),
@@ -84,6 +92,8 @@ export function loadable(load: Load, eq: Equipment): number[] {
   const sorted = (xs: number[]) => [...new Set(xs.map(round))].filter((x) => x > 0).sort((a, b) => a - b);
   if (load === "dumbbell") return sorted(eq.dumbbells);
   if (load === "barbell") return barTotals(eq.barbell, eq.plates);
+  if (load === "freebar")
+    return sorted([...barTotals(eq.barbell, eq.plates), ...(eq.lightBar ? barTotals(eq.lightBar, eq.plates) : [])]);
   if (load === "ezbar") return barTotals(eq.ezbar, eq.plates, 80);
   if (load === "cable") return sorted(eq.cable);
   if (load.startsWith("machine:")) {
@@ -138,10 +148,26 @@ export function stepTooBig(weight: number, steps: number[], limit = 0.1): boolea
 /** What a weight means, said on every card. */
 export function label(load: Load): string {
   if (load === "dumbbell") return "each hand";
-  if (load === "barbell" || load === "ezbar") return "total with bar";
+  if (load === "barbell" || load === "freebar" || load === "ezbar") return "total with bar";
   if (load === "bodyweight") return "bodyweight";
   if (load === "band") return "band";
   return "on the stack";
+}
+
+/**
+ * Which bar makes a weight on a free bar: the usual one whenever it can, the
+ * lighter one only for weights only it makes (with her plates, 15 and 25).
+ * Null for anything that is not a free bar.
+ */
+export function lightBarFor(load: Load, weight: number, eq: Equipment): number | null {
+  if (load !== "freebar" || !eq.lightBar) return null;
+  return barTotals(eq.barbell, eq.plates).some((w) => Math.abs(w - weight) < 1e-9) ? null : eq.lightBar;
+}
+
+/** What a weight means at this weight: says so when it is the lighter bar. */
+export function labelAt(load: Load, weight: number | null, eq: Equipment): string {
+  const light = weight === null ? null : lightBarFor(load, weight, eq);
+  return light ? `total with the ${kg(light)} kg bar` : label(load);
 }
 
 /** "40", "42.5", "1.25". */
@@ -173,6 +199,7 @@ export function readEquipment(raw: unknown): Equipment {
   return {
     dumbbells: nums(r.dumbbells, DEFAULT_EQUIPMENT.dumbbells),
     barbell: one(r.barbell, DEFAULT_EQUIPMENT.barbell),
+    lightBar: r.lightBar === null || r.lightBar === "0" || r.lightBar === 0 ? null : one(r.lightBar, DEFAULT_EQUIPMENT.lightBar ?? 15),
     ezbar: one(r.ezbar, DEFAULT_EQUIPMENT.ezbar),
     plates: nums(r.plates, DEFAULT_EQUIPMENT.plates),
     cable: nums(r.cable, DEFAULT_EQUIPMENT.cable),

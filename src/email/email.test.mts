@@ -57,18 +57,23 @@ test("every weight − / + can reach exists, and is labelled", async () => {
       for (const n of [c.main, c.swap]) {
         if (!n || n.weight === null) continue;
         assert.ok(n.steps.includes(n.weight));
-        const all = new Set([...loadable("barbell", EQ), ...loadable("dumbbell", EQ), ...loadable("cable", EQ), ...loadable("machine:x", EQ), ...loadable("ezbar", EQ)]);
+        const all = new Set([...loadable("barbell", EQ), ...loadable("dumbbell", EQ), ...loadable("cable", EQ), ...loadable("machine:x", EQ), ...loadable("ezbar", EQ), ...loadable("freebar", EQ)]);
         for (const s of n.steps) assert.ok(all.has(s), `${s}`);
         assert.ok(["each hand", "total with bar", "on the stack"].includes(n.weightLabel));
       }
 });
 
-test("each card has − / +, the weights row, easy / done / hard / skip with nothing picked, and one Save for all", async () => {
+test("each card has − / +, the weights row and skip; no easy, done or hard; one Save for all", async () => {
   const [m] = await mails(1);
   const amp = composeAmp(m);
   for (const c of m.cards) {
     assert.ok(amp.includes(`name="slot_${c.id}" value="${c.slot}"`));
-    for (const t of ["easy", "done", "hard", "skip"]) assert.ok(amp.includes(`id="${c.id}-${t}" name="t_${c.id}" value="${t}">`), `${c.id} ${t}`);
+    assert.ok(amp.includes(`name="k_${c.id}" value="" [value]="${c.id}.k ? '1' : ''"`), `${c.id} skip`);
+    // Skip folds the card to one line that brings it back.
+    assert.ok(amp.includes(`<p class="gone" [class]="${c.id}.k ? 'skipline' : 'gone'">Skipped ${c.main.name.replace(/&/g, "&amp;")} · <button`), `${c.id} skipped line`);
+    assert.ok(amp.includes(`on="tap:AMP.setState({${c.id}: {k: false}, cur: {c: '${c.id}'}}), draft.submit">bring back</button>`));
+    assert.ok(amp.includes(`<div [class]="${c.id}.k ? 'gone' : ''">`));
+    assert.ok(amp.includes(`on="tap:AMP.setState({${c.id}: {k: true}, cur: {c: '${c.id}'}}), draft.submit">skip</button>`));
     if (c.main.weight !== null) {
       assert.ok(amp.includes(`<amp-state id="${c.id}w">`));
       assert.ok(amp.includes(`[class]="${c.id}.o ? 'row open' : 'row'"`));
@@ -76,28 +81,63 @@ test("each card has − / +, the weights row, easy / done / hard / skip with not
     }
     assert.ok(amp.includes(`name="r_${c.id}"`));
   }
+  for (const t of ["easy", "hard"]) assert.ok(!new RegExp(`>${t}<`).test(amp), `no ${t}`);
+  assert.ok(!/name="t_c/.test(amp), "no picks");
   assert.ok(!/\schecked/.test(amp), "nothing is picked for her");
-  assert.ok(!/All done/.test(amp), "no All done button");
   assert.equal((amp.match(/name="kind" value="save"/g) ?? []).length, 1, "one Save");
   assert.equal((amp.match(/type="submit">Save</g) ?? []).length, 1);
-  assert.ok(!/on="change:/.test(amp), "nothing saves on its own");
   const save = amp.slice(amp.indexOf('<form id="save"'), amp.indexOf("</form>", amp.indexOf('<form id="save"')));
   assert.ok(save.includes('name="note"'), "the note goes with the Save");
-  for (const c of m.cards) assert.ok(save.includes(`name="t_${c.id}"`), "every card is inside the one form");
+  for (const c of m.cards) assert.ok(save.includes(`name="k_${c.id}"`), "every card is inside the one form");
 });
 
-test("How to is the drawing alone, two frames side by side; the warm-up opens on drawings too; no words under the bars", async () => {
+test("every tap is kept as she goes, and one tap picks it back up", async () => {
+  const [m] = await mails(1);
+  const amp = composeAmp(m);
+  const draft = amp.slice(amp.indexOf('<form id="draft"'), amp.indexOf("</form>", amp.indexOf('<form id="draft"')));
+  assert.ok(draft.includes('name="kind" value="draft"'));
+  for (const c of m.cards) {
+    for (const k of ["w", "r", "k", "s"]) assert.ok(draft.includes(`name="${c.id}${k}"`), `${c.id}${k} in the draft`);
+    if (c.swap) assert.ok(draft.includes(`name="${c.id}sw"`) && draft.includes(`name="${c.id}sr"`));
+    // Every − / +, weight chip and toggle on the card posts the draft, saying it was this card.
+    const card = amp.slice(amp.indexOf(`name="slot_${c.id}"`), amp.indexOf("</form>", amp.indexOf(`name="slot_${c.id}"`)));
+    assert.ok(card.includes(`cur: {c: '${c.id}'}}), draft.submit`), c.id);
+  }
+  for (const tap of amp.match(/on="tap:AMP\.setState\(\{c\d+s?: \{[^"]*"/g) ?? [])
+    if (!/: \{o: !/.test(tap)) assert.match(tap, /draft\.submit"$/, tap);
+  assert.match(amp, /on="input-debounced:AMP\.setState\(\{nt: \{t: event\.value\}\}\), dnote\.submit"/);
+  const restore = amp.slice(amp.indexOf('<form id="restore"'), amp.indexOf("</form>", amp.indexOf('<form id="restore"')));
+  assert.ok(restore.includes('name="kind" value="restore"'));
+  assert.ok(restore.includes("{{#draft}}") && restore.includes("Pick up where you left off"));
+  for (const c of m.cards) assert.ok(restore.includes(`${c.id}: event.response.${c.id}`));
+  assert.ok(restore.includes("cur: event.response.cur"));
+});
+
+test("the drawing drops down from a small arrow by the name, the swap's too; no separate How to", async () => {
   const [m] = await mails(1);
   const frames = [{ file: "0001-0.png", width: 400, height: 315 }, { file: "0001-1.png", width: 400, height: 315 }];
-  const c = { ...m.cards[0], main: { ...m.cards[0].main, frames } };
+  const withSwap = m.cards.find((c) => c.swap)!;
+  const c = { ...withSwap, main: { ...withSwap.main, frames }, swap: { ...withSwap.swap!, frames: [{ file: "0002-0.png", width: 400, height: 315 }] } };
   const amp = composeAmp({ ...m, cards: [c], warmup: [{ name: "Band squat", text: "Band squat × 10", practice: false, frames }] });
   assert.ok(amp.includes("/pictures/d/0001-0.png") && amp.includes("/pictures/d/0001-1.png"));
   assert.match(amp, /<table class="pics" role="presentation"><tr><td>/);
-  assert.ok(!amp.includes(c.main.form), "no form line under How to");
+  assert.ok(!/How to/.test(amp), "no How to");
+  assert.ok(!amp.includes(c.main.form), "no form line under the drawing");
+  const arrow = (name: string) => `<h4>${name.replace(/&/g, "&amp;")} <span class="arrow">&#9662;</span></h4>`;
+  assert.ok(amp.includes(`<amp-accordion class="look" animate>\n<section>\n${arrow(c.main.name)}`), "the name opens the drawing");
+  const swap = amp.slice(amp.indexOf("<h4>Swap &#9662;</h4>"));
+  assert.ok(swap.indexOf(arrow(c.swap.name)) > 0, "the swap's name opens its drawing");
+  assert.ok(swap.indexOf("/pictures/d/0002-0.png") > 0);
   assert.match(amp, /<h4 class="warm">Band squat × 10 &#9662;<\/h4>/);
-  assert.ok(!/Dark is done/.test(amp));
   assert.match(amp, /Everkinetic/);
   assert.ok(!amp.includes("/pictures/p/"), "no photos");
+});
+
+test("no drawing: the name alone, no arrow", async () => {
+  const [m] = await mails(1);
+  const c = { ...m.cards[0], main: { ...m.cards[0].main, frames: [] } };
+  const amp = composeAmp({ ...m, cards: [c] });
+  assert.ok(amp.includes(`<p class="name">${c.main.name.replace(/&/g, "&amp;")}</p>`));
 });
 
 test("the same exercises and numbers in all three versions", async () => {

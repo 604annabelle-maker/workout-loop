@@ -8,11 +8,12 @@
 import { restText } from "../lib/text";
 import { dateOnly } from "../lib/when";
 import { exercise } from "../training/catalogue";
-import { kg, label as weightLabel } from "../training/equipment";
+import { DEFAULT_EQUIPMENT, kg, labelAt, lightBarFor, type Equipment } from "../training/equipment";
 import { LABEL } from "../training/rules";
 import { SESSION_NAME } from "../training/skeleton";
 import type { SummaryRow } from "../training/summary";
 import type { PlannedExercise, PlanV2, Prescription } from "../training/types";
+import { stepsOf } from "./draft";
 
 export interface Frame {
   file: string;
@@ -25,8 +26,10 @@ export interface Numbers {
   name: string;
   /** Null for bodyweight and bands. */
   weight: number | null;
-  /** "each hand", "total with bar", "on the stack", "bodyweight". */
+  /** "each hand", "total with bar", "on the stack", "bodyweight": at the planned weight. */
   weightLabel: string;
+  /** The label at each step, when it changes with the weight (the 15 kg bar). Else empty. */
+  stepLabels: string[];
   /** The weights − / + and the tap-a-weight row move between. */
   steps: number[];
   reps: number;
@@ -56,7 +59,7 @@ export interface WarmLine {
   name: string;
   text: string;
   practice: boolean;
-  /** Its drawing, under a tap like How to. */
+  /** Its drawing, under the small arrow by its name. */
   frames: Frame[];
 }
 
@@ -81,15 +84,18 @@ export interface Mail {
 
 export type Pictures = (exerciseId: string) => { frames: Frame[]; note: string };
 
-function numbers(p: Prescription, pictures: Pictures): Numbers {
+function numbers(p: Prescription, pictures: Pictures, eq: Equipment): Numbers {
   const e = exercise(p.exerciseId);
   const pic = pictures(p.exerciseId);
+  const steps = stepsOf(p);
+  const labels = steps.map((w) => labelAt(p.load, w, eq));
   return {
     exerciseId: p.exerciseId,
     name: e?.name ?? p.exerciseId,
     weight: p.weight,
-    weightLabel: weightLabel(p.load),
-    steps: p.steps.length ? p.steps : p.weight !== null ? [p.weight] : [],
+    weightLabel: labelAt(p.load, p.weight, eq),
+    stepLabels: new Set(labels).size > 1 ? labels : [],
+    steps,
     reps: p.reps,
     range: p.range,
     findIt: p.findIt,
@@ -117,8 +123,11 @@ export function compose(input: {
   base: string | null;
   pictures: Pictures;
   preview?: boolean;
+  /** Her gym, for which bar a weight needs. */
+  equipment?: Equipment;
 }): Mail {
   const { plan } = input;
+  const eq = input.equipment ?? DEFAULT_EQUIPMENT;
   const title = SESSION_NAME[plan.position.type];
   const work = plan.exercises.filter((x) => !x.finisher).length;
   const cards: Card[] = plan.exercises.map((x: PlannedExercise, i) => ({
@@ -128,8 +137,8 @@ export function compose(input: {
     sets: x.sets,
     rest: restText(x.rest),
     effort: x.effort,
-    main: numbers(x.main, input.pictures),
-    swap: x.swap ? numbers(x.swap, input.pictures) : null,
+    main: numbers(x.main, input.pictures, eq),
+    swap: x.swap ? numbers(x.swap, input.pictures, eq) : null,
     ...(x.why ? { why: x.why } : {}),
     finisher: !!x.finisher,
   }));
@@ -137,7 +146,7 @@ export function compose(input: {
     const name = exercise(w.exerciseId)?.name ?? w.exerciseId;
     const frames = input.pictures(w.exerciseId).frames;
     return w.practice
-      ? { name, text: `${name} × ${w.reps} at ${w.weight === null ? "a light weight" : `${kg(w.weight)} kg`}, light practice set`, practice: true, frames }
+      ? { name, text: `${name} × ${w.reps} at ${w.weight === null ? "a light weight" : `${kg(w.weight)} kg${lightBarFor(w.load, w.weight, eq) ? ` on the ${kg(lightBarFor(w.load, w.weight, eq)!)} kg bar` : ""}`}, light practice set`, practice: true, frames }
       : { name, text: `${name} × ${w.reps}`, practice: false, frames };
   });
   const day = dateOnly(input.date);
@@ -161,6 +170,6 @@ export function compose(input: {
 export const REPLY_HELP = [
   "To log, reply with: done",
   "Or only what was different, one per line:",
-  "RDL 42.5 8 8 7 hard",
+  "RDL 42.5 8 8 7",
   "Anything else, in your own words.",
 ];

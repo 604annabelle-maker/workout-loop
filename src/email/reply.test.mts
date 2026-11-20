@@ -18,20 +18,21 @@ test("done on its own logs everything as written", async () => {
   assert.equal(r.words, "");
 });
 
-test("RDL 42.5 8 8 7 hard: the Romanian deadlift, its weight, reps per set, and the tap", async () => {
+test("RDL 45 8 8 7 hard: the Romanian deadlift, its weight, reps per set, and the tap", async () => {
   const p = await plan();
-  const r = readShorthand("RDL 42.5 8 8 7 hard", p, EQ);
+  const r = readShorthand("RDL 45 8 8 7 hard", p, EQ);
   assert.equal(r.entries.length, 1);
   const e = r.entries[0];
   assert.equal(exercise(e.exerciseId)!.name, "Romanian deadlift");
-  assert.equal(e.weight, 42.5);
+  assert.equal(e.weight, 45);
   assert.deepEqual(e.reps, [8, 8, 7]);
   assert.equal(e.tap, "hard");
 });
 
 test("a weight that does not exist is read as the nearest that does", async () => {
+  // Her plates are 10, 7.5 and 5 kg: the bar goes 40, 45, 50.
   const r = readShorthand("rdl 43 8 8 8", await plan(), EQ);
-  assert.equal(r.entries[0].weight, 42.5);
+  assert.equal(r.entries[0].weight, 45);
   assert.equal(r.entries[0].tap, "done");
 });
 
