@@ -137,7 +137,8 @@ function numbersBlock(card: Card, n: Numbers, sid: string): string {
   const last = n.steps.length - 1;
   const main = sid === card.id;
   const state = `<amp-state id="${sid}"><script type="application/json">${JSON.stringify(main ? { w: wi, r: n.reps, o: false, k: false, s: false } : { w: wi, r: n.reps, o: false })}</script></amp-state>
-${weighted ? `<amp-state id="${ws}"><script type="application/json">${JSON.stringify(n.steps)}</script></amp-state>` : ""}`;
+${weighted ? `<amp-state id="${ws}"><script type="application/json">${JSON.stringify(n.steps)}</script></amp-state>` : ""}
+${weighted && n.stepLabels.length ? `<amp-state id="${sid}l"><script type="application/json">${JSON.stringify(n.stepLabels)}</script></amp-state>` : ""}`;
   const set = (expr: string) => keep(card, `${sid}: {${expr}}`);
 
   const weightCells = weighted
@@ -161,7 +162,7 @@ ${weighted ? `<amp-state id="${ws}"><script type="application/json">${JSON.strin
 
   return `${state}
 <table class="nums" role="presentation"><tr>${weightCells}${repsCells}</tr></table>
-<p class="what">${esc(n.weightLabel)}</p>
+<p class="what"${weighted && n.stepLabels.length ? ` [text]="${sid}l[${sid}.w]"` : ""}>${esc(n.weightLabel)}</p>
 ${row}
 ${n.findIt ? `<p class="find">First time: find a weight you could lift about 2 more times and set it above.</p>` : ""}
 ${bound}`;
@@ -341,7 +342,7 @@ ${abs.length ? `<p class="sec">ABS</p>\n${abs.map((c) => card(mail, c)).join("\n
 <amp-state id="nt"><script type="application/json">{"t":""}</script></amp-state>
 <amp-state id="nr"><script type="application/json">{"t":""}</script></amp-state>
 <textarea class="box" name="note" rows="3" maxlength="1000" placeholder="e.g. didn't feel the hip thrust in my glutes" [text]="nr.t" on="input-debounced:AMP.setState({nt: {t: event.value}}), dnote.submit"></textarea>
-<p class="hint">Everything you set is kept as you go, even if Gmail closes. Save when you finish: it logs every exercise as it shows, except the ones you skipped. Saving again replaces it.</p>
+<p class="hint">Everything you set is kept as you go, even if Gmail closes. Save when you finish: it logs every exercise as it shows, except the ones you skipped, and sends your note now. Forgot to save? What you set still counts when your next workout is planned.</p>
 <button class="all" type="submit">Save</button>
 ${RESULT}
 </div>

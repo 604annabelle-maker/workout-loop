@@ -8,13 +8,13 @@
  */
 
 import { after } from "next/server";
-import { and, eq, isNull, sql } from "drizzle-orm";
+import { and, eq, isNotNull, isNull, lt, sql } from "drizzle-orm";
 import { db, schema } from "@/db";
 import { composeAmp } from "../email/amp";
 import { compose, type Mail } from "../email/cards";
 import { composeHtml } from "../email/html";
 import { drawings } from "../email/drawings";
-import { cardId, draftUpdate, indexOf, postedCards, readDraft, restoreState, stepsOf, type CardDraft } from "../email/draft";
+import { cardId, draftUpdate, hasDraft, indexOf, postedCards, readDraft, restoreState, stepsOf, type CardDraft } from "../email/draft";
 import { asLogged, readShorthand } from "../email/reply";
 import { composeText } from "../email/text";
 import { readComment } from "../memory/read";
@@ -42,7 +42,7 @@ import { budgetFromCheckins } from "./checkin";
 import { appUrl } from "./app-url";
 import { weekStart } from "./when";
 
-const { workouts, feedback } = schema;
+const { workouts, feedback, exerciseLog } = schema;
 
 
 /** "upper" means the next upper day in order, and so on; anything else, the next session. */
@@ -60,6 +60,7 @@ export function positionFor(last: Position | null, focus: string | null): Positi
 
 /** Plan the next session from everything logged so far. */
 export async function planNext(input: { now: Date; focus?: string | null }): Promise<Built> {
+  await logForgotten(input.now).catch((err) => console.error("logging a workout she did not save:", err));
   const [history, notes, equipment] = await Promise.all([loadHistory(undefined, input.now), loadNotes(), loadEquipment()]);
   const past = history.filter((s) => s.date < input.now);
   const last = past[past.length - 1]?.plan.position ?? null;
@@ -76,7 +77,8 @@ export async function planNext(input: { now: Date; focus?: string | null }): Pro
 
 /** All three versions of a v2 workout email. */
 export async function mailFor(plan: PlanV2, input: { date: Date; token: string; preview?: boolean }) {
-  const history = (await loadHistory(undefined, input.date)).filter((s) => s.date < input.date);
+  const [all, equipment] = await Promise.all([loadHistory(undefined, input.date), loadEquipment()]);
+  const history = all.filter((s) => s.date < input.date);
   const base = appUrl();
   const mail: Mail = compose({
     plan,
@@ -86,6 +88,7 @@ export async function mailFor(plan: PlanV2, input: { date: Date; token: string; 
     base,
     pictures: drawings,
     preview: input.preview,
+    equipment,
   });
   const amp = composeAmp(mail);
   return { subject: mail.subject, text: composeText(mail), html: composeHtml(mail), ...(amp ? { amp } : {}), inline: [] };
@@ -245,6 +248,57 @@ export async function handleLogV2(workoutId: string, plan: PlanV2, form: FormDat
   }
 
   return { status: 400, body: { error: "nothing to save" } };
+}
+
+/**
+ * A workout she tapped in but never saved still counts (her choice, 20 Nov
+ * 2026): before the next is planned, any sent workout with a draft and
+ * nothing logged is logged as if she had pressed Save, and its note is read.
+ * Nothing tapped, nothing logged, as before.
+ */
+export async function logForgotten(before: Date): Promise<number> {
+  const rows = await db
+    .select({ id: workouts.id, plan: workouts.planV2, draft: workouts.draft })
+    .from(workouts)
+    .where(
+      and(
+        eq(workouts.version, 2),
+        eq(workouts.status, "sent"),
+        isNotNull(workouts.draft),
+        lt(workouts.slotStartsAt, before),
+        sql`not exists (select 1 from ${exerciseLog} where ${exerciseLog.workoutId} = ${workouts.id})`,
+      ),
+    );
+  let logged = 0;
+  for (const row of rows) {
+    const plan = readPlanV2(row.plan);
+    if (!plan || !hasDraft(row.draft)) continue;
+    const draft = readDraft(row.draft, plan);
+    const touched = Object.keys(row.draft as object).some((k) => /^c\d+$/.test(k));
+    if (touched) {
+      const equipment = await loadEquipment();
+      for (const [i, x] of plan.exercises.entries()) {
+        const c = draft.cards[cardId(i)];
+        if (!c || c.k) continue;
+        const swap = c.s && !!x.swap;
+        const p = swap ? x.swap! : x.main;
+        const w = stepsOf(p)[swap ? c.sw : c.w];
+        await saveLog(row.id, entryFrom(x, swap, w === undefined ? null : String(w), String(swap ? c.sr : c.r), "done", equipment));
+        logged++;
+      }
+    }
+    const note = draft.note.trim();
+    if (note && note !== draft.filed) {
+      const [fb] = await db
+        .insert(feedback)
+        .values({ workoutId: row.id, sourceMessageId: `draft:${row.id}`, body: note })
+        .onConflictDoNothing()
+        .returning({ id: feedback.id });
+      await mergeDraft(row.id, { filed: note });
+      if (fb) await readFeedbackV2(fb.id).catch((err) => console.error(`reading note ${fb.id}:`, err));
+    }
+  }
+  return logged;
 }
 
 // ---------------------------------------------------------------- replies and comments

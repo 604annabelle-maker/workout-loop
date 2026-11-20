@@ -63,3 +63,18 @@ test("her own equipment replaces the defaults, and blanks keep them", () => {
   assert.deepEqual(eq.plates, EQ.plates);
   assert.deepEqual(eq.missing, ["machine:hack_squat"]);
 });
+
+test("RDLs and rows can take the 15 kg bar: 15 and 25 kg become weights, said on the card", async () => {
+  const { labelAt, lightBarFor } = await import("./equipment.ts");
+  assert.deepEqual(loadable("freebar", EQ).slice(0, 6), [15, 20, 25, 30, 35, 40]);
+  assert.equal(lightBarFor("freebar", 25, EQ), 15);
+  assert.equal(lightBarFor("freebar", 15, EQ), 15);
+  assert.equal(lightBarFor("freebar", 30, EQ), null, "the 20 kg bar whenever it can");
+  assert.equal(lightBarFor("barbell", 25, EQ), null);
+  assert.equal(labelAt("freebar", 25, EQ), "total with the 15 kg bar");
+  assert.equal(labelAt("freebar", 40, EQ), "total with bar");
+  assert.ok(!loadable("barbell", EQ).includes(25), "racked lifts keep the 20 kg bar");
+  const { exercise } = await import("./catalogue.ts");
+  for (const id of ["Romanian_Deadlift", "Reverse_Grip_Bent-Over_Rows"]) assert.equal(exercise(id)?.load, "freebar", id);
+  assert.equal(exercise("Barbell_Squat")?.load, "barbell");
+});

@@ -52,7 +52,7 @@ export function exposures(exerciseId: string, history: SessionRecord[]): Exposur
 export function startWeight(load: Load, eq: Equipment): number | null {
   const steps = loadable(load, eq);
   if (!steps.length) return null;
-  const guess: Record<string, number> = { dumbbell: 4, barbell: eq.barbell, ezbar: eq.ezbar, cable: 10 };
+  const guess: Record<string, number> = { dumbbell: 4, barbell: eq.barbell, freebar: eq.barbell, ezbar: eq.ezbar, cable: 10 };
   return nearest(guess[load] ?? 20, steps);
 }
 

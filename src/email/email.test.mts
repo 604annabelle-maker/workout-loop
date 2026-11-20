@@ -57,7 +57,7 @@ test("every weight − / + can reach exists, and is labelled", async () => {
       for (const n of [c.main, c.swap]) {
         if (!n || n.weight === null) continue;
         assert.ok(n.steps.includes(n.weight));
-        const all = new Set([...loadable("barbell", EQ), ...loadable("dumbbell", EQ), ...loadable("cable", EQ), ...loadable("machine:x", EQ), ...loadable("ezbar", EQ)]);
+        const all = new Set([...loadable("barbell", EQ), ...loadable("dumbbell", EQ), ...loadable("cable", EQ), ...loadable("machine:x", EQ), ...loadable("ezbar", EQ), ...loadable("freebar", EQ)]);
         for (const s of n.steps) assert.ok(all.has(s), `${s}`);
         assert.ok(["each hand", "total with bar", "on the stack"].includes(n.weightLabel));
       }

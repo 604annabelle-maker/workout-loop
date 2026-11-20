@@ -8,7 +8,7 @@
 import { eq } from "drizzle-orm";
 import { db, schema } from "../db/index.ts";
 import { deliverWorkout, recordBooking } from "../lib/delivery.ts";
-import { handleLogV2, readFeedbackV2, loggedLine } from "../lib/v2.ts";
+import { handleLogV2, logForgotten, readFeedbackV2, loggedLine } from "../lib/v2.ts";
 import { loadHistory, loadNotes, logsFor, readPlanV2 } from "../training/history.ts";
 import { exercise } from "../training/catalogue.ts";
 
@@ -55,6 +55,14 @@ for (let i = 0; i < 2; i++) {
     const [fb] = await db.insert(feedback).values({ workoutId: id, sourceMessageId: `e2e-${base}`, body: `${name} 10 10 9 hard\ndidn't feel the ${name.toLowerCase()} in my biceps` }).returning({ id: feedback.id });
     console.log(" reply read:", await readFeedbackV2(fb.id), (await loadNotes()).map((n) => `${n.reason}:${n.exerciseId}`));
   }
+}
+{
+  // The second workout: tapped in, never saved. It counts when the next is planned.
+  const [row] = await db.select().from(workouts).where(eq(workouts.id, ids[1]));
+  const plan = readPlanV2(row.planV2)!;
+  await handleLogV2(ids[1], plan, fd({ kind: "draft", card: "c1", back: "0", c1w: "0", c1r: String(plan.exercises[0].main.reps + 1), c1k: "0", c1s: "0", c2r: "8", c2k: "1" }));
+  await handleLogV2(ids[1], plan, fd({ kind: "note", note: "forgot to save" }));
+  console.log(" forgot to save, logged before the next plan:", await logForgotten(new Date(base + 10 * 864e5)), "of", plan.exercises.length, "| again:", await logForgotten(new Date(base + 10 * 864e5)));
 }
 const h = await loadHistory();
 console.log("history", h.length, h.map((s) => `${s.plan.position.type}:${s.logs.length}`));
