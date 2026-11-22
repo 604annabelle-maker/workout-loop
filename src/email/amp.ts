@@ -86,6 +86,7 @@ body{margin:0;padding:0 4px;background-color:${C.paper};color:${C.ink};font-fami
 .doneline{color:${C.accent};font-weight:700}
 .skipline .ghost,.doneline .ghost{margin:0;font-size:14px}
 .tap{display:inline-block;margin:0 6px 6px 0;padding:9px 18px;border:0;border-radius:999px;background-color:${C.chip};color:${C.ink};font-size:15px}
+.tap.mark{min-width:56px;padding:8px 16px;font-size:20px;line-height:1}
 .tap.on{background-color:${C.accent};color:${C.paper};font-weight:700}
 .resume{margin:6px 8px 0 0;padding:7px 14px;border:1px solid ${C.accent};border-radius:999px;background-color:${C.paper};color:${C.accent};font-size:14px;font-weight:700}
 .saved{margin:6px 0 0;font-size:13px;color:${C.accent};font-weight:700}
@@ -258,7 +259,7 @@ ${named(mail, c.main)}
 <p class="meta">${esc(`${c.muscle} · ${dose(c.sets, c.main.reps)} · rest ${c.rest}`)}</p>
 ${numbersBlock(c, c.main, id)}
 <p class="effort">${esc(c.effort)}</p>
-<div class="taps"><button type="button" class="tap" [class]="${id}.d ? 'tap on' : 'tap'" on="tap:${mark(c, "d: true, k: false, e: false")}">done</button><button type="button" class="tap" on="tap:${mark(c, "k: true, d: false, e: false")}">skip</button></div>
+<div class="taps"><button type="button" class="tap mark" [class]="${id}.d ? 'tap mark on' : 'tap mark'" on="tap:${mark(c, "d: true, k: false, e: false")}" aria-label="done">&#10003;</button><button type="button" class="tap mark" on="tap:${mark(c, "k: true, d: false, e: false")}" aria-label="skip">&#10007;</button></div>
 ${swap}
 </div>
 </form>`;
@@ -363,7 +364,7 @@ ${abs.length ? `<p class="sec">ABS</p>\n${abs.map((c) => card(mail, c)).join("\n
 <amp-state id="nt"><script type="application/json">{"t":""}</script></amp-state>
 <amp-state id="nr"><script type="application/json">{"t":""}</script></amp-state>
 <textarea class="box" name="note" rows="3" maxlength="1000" placeholder="e.g. didn't feel the hip thrust in my glutes" [text]="nr.t" on="input-debounced:AMP.setState({nt: {t: event.value}}), dnote.submit"></textarea>
-<p class="hint">Tap done after each exercise: that saves it, with the numbers on it. What you write here is kept as you type and read before your next workout is planned.</p>
+<p class="hint">Tap &#10003; after each exercise: that saves it, with the numbers on it. &#10007; skips it. What you write here is kept as you type and read before your next workout is planned.</p>
 </div>
 ${draftForm(mail)}
 <form id="dnote" method="post" action-xhr="${esc(mail.logUrl)}"><input type="hidden" name="kind" value="note"><input type="hidden" name="note" value="" [value]="nt.t"></form>

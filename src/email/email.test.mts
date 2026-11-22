@@ -63,15 +63,15 @@ test("every weight − / + can reach exists, and is labelled", async () => {
       }
 });
 
-test("each card has − / +, the weights row, done and skip; no Save, nothing picked", async () => {
+test("each card has − / +, the weights row, ✓ and ✗; no Save, nothing picked", async () => {
   const [m] = await mails(1);
   const amp = composeAmp(m);
   for (const c of m.cards) {
     const form = amp.slice(amp.indexOf(`<form id="f${c.id}"`), amp.indexOf("</form>", amp.indexOf(`<form id="f${c.id}"`)));
     assert.ok(form.includes('name="kind" value="card"') && form.includes(`name="card" value="${c.id}"`), c.id);
     for (const k of ["w", "r", "s", "d", "k"]) assert.ok(form.includes(`name="${c.id}${k}"`), `${c.id}${k}`);
-    assert.ok(form.includes(`on="tap:AMP.setState({${c.id}: {d: true, k: false, e: false}}), f${c.id}.submit">done</button>`), `${c.id} done`);
-    assert.ok(form.includes(`on="tap:AMP.setState({${c.id}: {k: true, d: false, e: false}}), f${c.id}.submit">skip</button>`), `${c.id} skip`);
+    assert.ok(form.includes(`on="tap:AMP.setState({${c.id}: {d: true, k: false, e: false}}), f${c.id}.submit" aria-label="done">&#10003;</button>`), `${c.id} done`);
+    assert.ok(form.includes(`on="tap:AMP.setState({${c.id}: {k: true, d: false, e: false}}), f${c.id}.submit" aria-label="skip">&#10007;</button>`), `${c.id} skip`);
     // Done folds to a line with the numbers and change; skip to a line that brings it back.
     assert.ok(form.includes(`[class]="${c.id}.d &amp;&amp; !${c.id}.e ? 'doneline' : 'gone'">&#10003; <span [text]=`));
     assert.ok(form.includes(`on="tap:AMP.setState({${c.id}: {e: true}})">change</button>`));
