@@ -63,49 +63,48 @@ test("every weight − / + can reach exists, and is labelled", async () => {
       }
 });
 
-test("each card has − / +, the weights row and skip; no easy, done or hard; one Save for all", async () => {
+test("each card has − / +, the weights row, done and skip; no Save, nothing picked", async () => {
   const [m] = await mails(1);
   const amp = composeAmp(m);
   for (const c of m.cards) {
-    assert.ok(amp.includes(`name="slot_${c.id}" value="${c.slot}"`));
-    assert.ok(amp.includes(`name="k_${c.id}" value="" [value]="${c.id}.k ? '1' : ''"`), `${c.id} skip`);
-    // Skip folds the card to one line that brings it back.
-    assert.ok(amp.includes(`<p class="gone" [class]="${c.id}.k ? 'skipline' : 'gone'">Skipped ${c.main.name.replace(/&/g, "&amp;")} · <button`), `${c.id} skipped line`);
-    assert.ok(amp.includes(`on="tap:AMP.setState({${c.id}: {k: false}, cur: {c: '${c.id}'}}), draft.submit">bring back</button>`));
-    assert.ok(amp.includes(`<div [class]="${c.id}.k ? 'gone' : ''">`));
-    assert.ok(amp.includes(`on="tap:AMP.setState({${c.id}: {k: true}, cur: {c: '${c.id}'}}), draft.submit">skip</button>`));
+    const form = amp.slice(amp.indexOf(`<form id="f${c.id}"`), amp.indexOf("</form>", amp.indexOf(`<form id="f${c.id}"`)));
+    assert.ok(form.includes('name="kind" value="card"') && form.includes(`name="card" value="${c.id}"`), c.id);
+    for (const k of ["w", "r", "s", "d", "k"]) assert.ok(form.includes(`name="${c.id}${k}"`), `${c.id}${k}`);
+    assert.ok(form.includes(`on="tap:AMP.setState({${c.id}: {d: true, k: false, e: false}}), f${c.id}.submit">done</button>`), `${c.id} done`);
+    assert.ok(form.includes(`on="tap:AMP.setState({${c.id}: {k: true, d: false, e: false}}), f${c.id}.submit">skip</button>`), `${c.id} skip`);
+    // Done folds to a line with the numbers and change; skip to a line that brings it back.
+    assert.ok(form.includes(`[class]="${c.id}.d &amp;&amp; !${c.id}.e ? 'doneline' : 'gone'">&#10003; <span [text]=`));
+    assert.ok(form.includes(`on="tap:AMP.setState({${c.id}: {e: true}})">change</button>`));
+    assert.ok(form.includes(`<p class="gone" [class]="${c.id}.k ? 'skipline' : 'gone'">Skipped ${c.main.name.replace(/&/g, "&amp;")} · <button`));
+    assert.ok(form.includes(`on="tap:AMP.setState({${c.id}: {k: false}}), f${c.id}.submit">bring back</button>`));
+    assert.ok(form.includes(`<div [class]="${c.id}.k || (${c.id}.d &amp;&amp; !${c.id}.e) ? 'gone' : ''">`));
     if (c.main.weight !== null) {
       assert.ok(amp.includes(`<amp-state id="${c.id}w">`));
       assert.ok(amp.includes(`[class]="${c.id}.o ? 'row open' : 'row'"`));
-      assert.ok(amp.includes(`name="w_${c.id}"`));
     }
-    assert.ok(amp.includes(`name="r_${c.id}"`));
   }
   for (const t of ["easy", "hard"]) assert.ok(!new RegExp(`>${t}<`).test(amp), `no ${t}`);
-  assert.ok(!/name="t_c/.test(amp), "no picks");
+  assert.ok(!/type="submit">Save</.test(amp), "no Save");
+  assert.ok(!/name="kind" value="save"/.test(amp));
   assert.ok(!/\schecked/.test(amp), "nothing is picked for her");
-  assert.equal((amp.match(/name="kind" value="save"/g) ?? []).length, 1, "one Save");
-  assert.equal((amp.match(/type="submit">Save</g) ?? []).length, 1);
-  const save = amp.slice(amp.indexOf('<form id="save"'), amp.indexOf("</form>", amp.indexOf('<form id="save"')));
-  assert.ok(save.includes('name="note"'), "the note goes with the Save");
-  for (const c of m.cards) assert.ok(save.includes(`name="k_${c.id}"`), "every card is inside the one form");
 });
 
-test("every tap is kept as she goes, and one tap picks it back up", async () => {
+test("numbers are kept as she taps, the note as she types, and one tap picks it back up", async () => {
   const [m] = await mails(1);
   const amp = composeAmp(m);
   const draft = amp.slice(amp.indexOf('<form id="draft"'), amp.indexOf("</form>", amp.indexOf('<form id="draft"')));
   assert.ok(draft.includes('name="kind" value="draft"'));
   for (const c of m.cards) {
-    for (const k of ["w", "r", "k", "s"]) assert.ok(draft.includes(`name="${c.id}${k}"`), `${c.id}${k} in the draft`);
+    for (const k of ["w", "r", "s"]) assert.ok(draft.includes(`name="${c.id}${k}"`), `${c.id}${k} in the draft`);
+    assert.ok(!draft.includes(`name="${c.id}d"`) && !draft.includes(`name="${c.id}k"`), "a numbers post never carries done or skip");
     if (c.swap) assert.ok(draft.includes(`name="${c.id}sw"`) && draft.includes(`name="${c.id}sr"`));
-    // Every − / +, weight chip and toggle on the card posts the draft, saying it was this card.
-    const card = amp.slice(amp.indexOf(`name="slot_${c.id}"`), amp.indexOf("</form>", amp.indexOf(`name="slot_${c.id}"`)));
-    assert.ok(card.includes(`cur: {c: '${c.id}'}}), draft.submit`), c.id);
   }
-  for (const tap of amp.match(/on="tap:AMP\.setState\(\{c\d+s?: \{[^"]*"/g) ?? [])
-    if (!/: \{o: !/.test(tap)) assert.match(tap, /draft\.submit"$/, tap);
+  // Every − / + and weight chip posts the numbers, saying which card.
+  const steps = amp.match(/on="tap:AMP\.setState\(\{c\d+s?: \{[wr]: [^"]*"/g) ?? [];
+  assert.ok(steps.length > m.cards.length);
+  for (const tap of steps) assert.match(tap, /, cur: \{c: 'c\d+'\}\}\), draft\.submit"$/, tap);
   assert.match(amp, /on="input-debounced:AMP\.setState\(\{nt: \{t: event\.value\}\}\), dnote\.submit"/);
+  assert.match(amp, /read before your next workout is planned/);
   const restore = amp.slice(amp.indexOf('<form id="restore"'), amp.indexOf("</form>", amp.indexOf('<form id="restore"')));
   assert.ok(restore.includes('name="kind" value="restore"'));
   assert.ok(restore.includes("{{#draft}}") && restore.includes("Pick up where you left off"));

@@ -14,7 +14,7 @@ import { composeAmp } from "../email/amp";
 import { compose, type Mail } from "../email/cards";
 import { composeHtml } from "../email/html";
 import { drawings } from "../email/drawings";
-import { cardId, draftUpdate, hasDraft, indexOf, postedCards, readDraft, restoreState, stepsOf, type CardDraft } from "../email/draft";
+import { cardId, draftUpdate, numbersOf, plannedFor, postedCards, readDraft, restoreState, stepsOf, type CardDraft } from "../email/draft";
 import { asLogged, readShorthand } from "../email/reply";
 import { composeText } from "../email/text";
 import { readComment } from "../memory/read";
@@ -60,7 +60,7 @@ export function positionFor(last: Position | null, focus: string | null): Positi
 
 /** Plan the next session from everything logged so far. */
 export async function planNext(input: { now: Date; focus?: string | null }): Promise<Built> {
-  await logForgotten(input.now).catch((err) => console.error("logging a workout she did not save:", err));
+  await fileNotes(input.now).catch((err) => console.error("reading notes kept in the email:", err));
   const [history, notes, equipment] = await Promise.all([loadHistory(undefined, input.now), loadNotes(), loadEquipment()]);
   const past = history.filter((s) => s.date < input.now);
   const last = past[past.length - 1]?.plan.position ?? null;
@@ -165,27 +165,71 @@ async function mergeDraft(workoutId: string, keys: Record<string, unknown>): Pro
     .where(eq(workouts.id, workoutId));
 }
 
-/** The line under the title: saved, or nothing while she is part way through and has not saved yet. */
-export function topLine(logs: LogEntry[], draft: boolean): string {
-  if (logs.length) return "Saved \u2713";
-  return draft ? "" : "Nothing saved yet";
+/** Merge fields into each card in one statement: a numbers post keeps the card's done and skip as they are. */
+async function mergeCards(workoutId: string, cards: Record<string, object>): Promise<void> {
+  const ids = Object.keys(cards).filter((k) => /^c\d+$/.test(k));
+  if (!ids.length) return;
+  const pairs = sql.join(
+    ids.map((id) => sql`${id}::text, coalesce(${workouts.draft} -> ${id}::text, '{}'::jsonb) || ${JSON.stringify(cards[id])}::jsonb`),
+    sql`, `,
+  );
+  await db
+    .update(workouts)
+    .set({ draft: sql`coalesce(${workouts.draft}, '{}'::jsonb) || jsonb_build_object(${pairs})` })
+    .where(eq(workouts.id, workoutId));
+}
+
+/** Log a card as it is stored if it is done, else clear its log. */
+async function logCard(workoutId: string, plan: PlanV2, id: string, c: CardDraft, equipment: Awaited<ReturnType<typeof loadEquipment>>): Promise<void> {
+  const x = plannedFor(plan, id);
+  if (!x) return;
+  if (!c.d || c.k) {
+    await deleteLog(workoutId, x.slot);
+    return;
+  }
+  const swap = c.s && !!x.swap;
+  const p = swap ? x.swap! : x.main;
+  const w = stepsOf(p)[swap ? c.sw : c.w];
+  await saveLog(workoutId, entryFrom(x, swap, w === undefined ? null : String(w), String(swap ? c.sr : c.r), "done", equipment));
+}
+
+/** The line under the title: how many are done, or nothing yet. */
+export function topLine(plan: PlanV2, logs: LogEntry[]): string {
+  const n = new Set(logs.map((l) => l.slot)).size;
+  return n ? `${n} of ${plan.exercises.length} done` : "";
 }
 
 /**
- * The one Save, the draft kept as she goes, picking it back up, and an undo,
- * from the dynamic email.
- *
- * Save logs every card as it shows except the skipped ones (her reply, 19 Nov
- * 2026: she sets the numbers to what she did and only needs skip). Saving
- * again replaces it. Her note is filed once, however many times she saves.
+ * Taps from the dynamic email: a card (done, skip, bring back, the swap),
+ * the numbers as she sets them, her note as she types, picking it all back
+ * up, and an undo. Only a card she marked done is logged (her reply, 22 Nov
+ * 2026: no Save, no guessing).
  */
 export async function handleLogV2(workoutId: string, plan: PlanV2, form: FormData): Promise<LogAnswer> {
   const kind = String(form.get("kind") ?? "");
 
+  if (kind === "card") {
+    const id = String(form.get("card") ?? "");
+    const posted = postedCards((name) => form.get(name), plan)[id];
+    if (!posted || !plannedFor(plan, id)) return { status: 400, body: { error: "no such exercise" } };
+    await mergeCards(workoutId, { [id]: posted });
+    const c = readDraft(await loadDraft(workoutId), plan).cards[id];
+    await logCard(workoutId, plan, id, c, await loadEquipment());
+    return { status: 200, body: { saved: c.d ? "Saved ✓" : c.k ? "Skipped" : "" } };
+  }
+
   if (kind === "draft") {
     const posted = postedCards((name) => form.get(name), plan);
-    const keys = draftUpdate({ stored: await loadDraft(workoutId), posted, touched: String(form.get("card") ?? ""), back: form.get("back") === "1" });
-    await mergeDraft(workoutId, keys);
+    const numbers = Object.fromEntries(Object.entries(posted).map(([k, c]) => [k, numbersOf(c)]));
+    const keys = draftUpdate({ stored: await loadDraft(workoutId), posted: numbers, touched: String(form.get("card") ?? ""), back: form.get("back") === "1" });
+    await mergeCards(workoutId, keys);
+    // A card already done is logged again with its new numbers.
+    const stored = readDraft(await loadDraft(workoutId), plan);
+    const done = Object.keys(keys).filter((id) => stored.cards[id]?.d && !stored.cards[id]?.k);
+    if (done.length) {
+      const equipment = await loadEquipment();
+      for (const id of done) await logCard(workoutId, plan, id, stored.cards[id], equipment);
+    }
     return { status: 200, body: { saved: "Kept" } };
   }
 
@@ -199,45 +243,28 @@ export async function handleLogV2(workoutId: string, plan: PlanV2, form: FormDat
   }
 
   if (kind === "save") {
+    // Emails sent before 22 Nov 2026 still have one Save: every card not skipped, as it shows.
     const equipment = await loadEquipment();
-    const stored = readDraft(await loadDraft(workoutId), plan);
-    const cards: Record<string, CardDraft> = {};
     let saved = 0;
-    let skipped = 0;
     for (let i = 0; i < plan.exercises.length; i++) {
       const id = cardId(i);
-      const slot = String(form.get(`slot_${id}`) ?? plan.exercises[i].slot);
-      const planned = plan.exercises.find((x) => x.slot === slot) ?? plan.exercises[i];
-      const skip = form.get(`k_${id}`) === "1";
-      const usedSwap = form.get(`s_${id}`) === "1" && !!planned.swap;
-      const main = entryFrom(planned, false, form.get(`w_${id}`), form.get(`r_${id}`), "done", equipment);
-      const alt = planned.swap ? entryFrom(planned, true, form.get(`w_${id}s`), form.get(`r_${id}s`), "done", equipment) : null;
-      cards[id] = {
-        w: indexOf(main.weight, stepsOf(planned.main)),
-        r: main.reps[0],
-        k: skip,
-        s: usedSwap,
-        sw: alt && planned.swap ? indexOf(alt.weight, stepsOf(planned.swap)) : 0,
-        sr: alt ? alt.reps[0] : 0,
-      };
-      if (skip) {
+      const planned = plan.exercises.find((x) => x.slot === String(form.get(`slot_${id}`) ?? "")) ?? plan.exercises[i];
+      if (form.get(`k_${id}`) === "1" || form.get(`t_${id}`) === "skip") {
         await deleteLog(workoutId, planned.slot);
-        skipped++;
         continue;
       }
-      await saveLog(workoutId, usedSwap && alt ? alt : main);
+      const usedSwap = form.get(`s_${id}`) === "1" && !!planned.swap;
+      const sid = usedSwap ? `${id}s` : id;
+      await saveLog(workoutId, entryFrom(planned, usedSwap, form.get(`w_${sid}`), form.get(`r_${sid}`), "done", equipment));
       saved++;
     }
     const note = String(form.get("note") ?? "").trim().slice(0, 1000);
-    const fresh = !!note && note !== stored.filed;
-    if (fresh) await fileComment(workoutId, note);
-    await mergeDraft(workoutId, { ...cards, note, filed: fresh ? note : stored.filed });
-    const parts = [
-      saved ? `${saved} exercise${saved === 1 ? "" : "s"}` : "",
-      skipped ? `${skipped} skipped` : "",
-      fresh ? "your note" : "",
-    ].filter(Boolean);
-    return { status: 200, body: { saved: parts.length ? `Saved ${parts.join(", ")}` : "Saved" } };
+    const stored = readDraft(await loadDraft(workoutId), plan);
+    if (note && note !== stored.filed) {
+      await fileComment(workoutId, note);
+      await mergeDraft(workoutId, { note, filed: note });
+    }
+    return { status: 200, body: { saved: `Saved ${saved} exercise${saved === 1 ? "" : "s"}` } };
   }
 
   if (kind === "undo") {
@@ -251,14 +278,12 @@ export async function handleLogV2(workoutId: string, plan: PlanV2, form: FormDat
 }
 
 /**
- * A workout she tapped in but never saved still counts (her choice, 20 Nov
- * 2026): before the next is planned, any sent workout with a draft and
- * nothing logged is logged as if she had pressed Save, and its note is read.
- * Nothing tapped, nothing logged, as before.
+ * Her note, kept as she typed, is read before the next workout is planned:
+ * that is the first plan it can change. Filed once; nothing else is guessed.
  */
-export async function logForgotten(before: Date): Promise<number> {
+export async function fileNotes(before: Date): Promise<number> {
   const rows = await db
-    .select({ id: workouts.id, plan: workouts.planV2, draft: workouts.draft })
+    .select({ id: workouts.id, draft: workouts.draft })
     .from(workouts)
     .where(
       and(
@@ -266,39 +291,23 @@ export async function logForgotten(before: Date): Promise<number> {
         eq(workouts.status, "sent"),
         isNotNull(workouts.draft),
         lt(workouts.slotStartsAt, before),
-        sql`not exists (select 1 from ${exerciseLog} where ${exerciseLog.workoutId} = ${workouts.id})`,
+        sql`coalesce(${workouts.draft} ->> 'note', '') <> '' and coalesce(${workouts.draft} ->> 'note', '') <> coalesce(${workouts.draft} ->> 'filed', '')`,
       ),
     );
-  let logged = 0;
+  let filed = 0;
   for (const row of rows) {
-    const plan = readPlanV2(row.plan);
-    if (!plan || !hasDraft(row.draft)) continue;
-    const draft = readDraft(row.draft, plan);
-    const touched = Object.keys(row.draft as object).some((k) => /^c\d+$/.test(k));
-    if (touched) {
-      const equipment = await loadEquipment();
-      for (const [i, x] of plan.exercises.entries()) {
-        const c = draft.cards[cardId(i)];
-        if (!c || c.k) continue;
-        const swap = c.s && !!x.swap;
-        const p = swap ? x.swap! : x.main;
-        const w = stepsOf(p)[swap ? c.sw : c.w];
-        await saveLog(row.id, entryFrom(x, swap, w === undefined ? null : String(w), String(swap ? c.sr : c.r), "done", equipment));
-        logged++;
-      }
-    }
-    const note = draft.note.trim();
-    if (note && note !== draft.filed) {
-      const [fb] = await db
-        .insert(feedback)
-        .values({ workoutId: row.id, sourceMessageId: `draft:${row.id}`, body: note })
-        .onConflictDoNothing()
-        .returning({ id: feedback.id });
-      await mergeDraft(row.id, { filed: note });
-      if (fb) await readFeedbackV2(fb.id).catch((err) => console.error(`reading note ${fb.id}:`, err));
-    }
+    const r = row.draft as Record<string, unknown>;
+    const note = String(r.note ?? "").trim().slice(0, 1000);
+    if (!note) continue;
+    const [fb] = await db
+      .insert(feedback)
+      .values({ workoutId: row.id, sourceMessageId: `note:${row.id}:${note.length}:${Date.now()}`, body: note })
+      .returning({ id: feedback.id });
+    await mergeDraft(row.id, { filed: r.note });
+    await readFeedbackV2(fb.id).catch((err) => console.error(`reading note ${fb.id}:`, err));
+    filed++;
   }
-  return logged;
+  return filed;
 }
 
 // ---------------------------------------------------------------- replies and comments

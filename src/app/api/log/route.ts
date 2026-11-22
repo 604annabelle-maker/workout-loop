@@ -58,6 +58,6 @@ export async function GET(request: Request) {
   const found = await workoutFor(request);
   if (!found) return answer({ error: "no such workout" }, 404, sender.headers);
 
-  const summary = topLine(await logsFor(found.id), found.draft);
+  const summary = topLine(found.plan, await logsFor(found.id));
   return answer({ summary, draft: found.draft }, 200, { ...sender.headers, "cache-control": "no-store" });
 }

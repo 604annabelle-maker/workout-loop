@@ -1,9 +1,10 @@
 # Workout Loop
 
 Booking a gym slot produces a workout by email. She sets the numbers on each
-exercise to what she did, skips what she didn't, and presses Save inside the
-email. Every tap is kept as she goes, so closing Gmail loses nothing. That
-sets the next workout.
+exercise to what she did and taps done, or skip, inside the email. Done logs
+that exercise there and then; nothing she hasn't marked done is logged, so
+nothing is guessed. Every tap is kept as she goes, so closing Gmail loses
+nothing. That sets the next workout.
 
 ```mermaid
 flowchart TD
@@ -13,7 +14,7 @@ flowchart TD
     D --> E["Plan checker<br/>(wrong muscle or off-target<br/>warm-up: never sent)"]
     E --> F[Email the workout]
     F --> G([Gmail on her phone])
-    G -->|"one Save: numbers and picks"| T["/api/log<br/>(through Gmail's servers)"]
+    G -->|"done or skip, per exercise"| T["/api/log<br/>(through Gmail's servers)"]
     T --> M[(Exercise log)]
     G -.->|"backup, a reply: done, RDL 45 8 8 7"| H[Mailbox]
     I[["cron, every 15 min"]] --> H
@@ -127,11 +128,12 @@ it.
 when the app closes, and an email cannot load state by itself (`amp-state` is
 inline only). So every tap also posts the whole email's state to the
 workout's draft, and when she comes back, "Pick up where you left off" at the
-top asks for it and sets it in one go (`email/draft.ts`). Save logs it and
-sends her note straight away; a workout she tapped in but never saved is
-logged from its draft before the next one is planned (`logForgotten`).
+top asks for it and sets it in one go (`email/draft.ts`). Done and skip post
+their card, which logs it or clears it; − / + post only numbers, so a late
+one can never undo a done. Her note is kept as she types and read before the
+next workout is planned (`fileNotes`).
 
-**The Save is checked twice.** Each email's form carries a random secret for
+**Every tap is checked twice.** Each email's forms carry a random secret for
 that workout, and Gmail names the sender of the email, which must be the
 workout address. The dynamic email is tested against the AMP for Email rules,
 because Gmail silently shows the plain version instead of one that breaks any.
@@ -164,7 +166,7 @@ sends a sample marked Preview, which never counts as training.
 
 ```bash
 npm run preview:email      # render sample emails to files, no database
-npm run e2e:v2             # booking to Save to reply, against a scratch database
+npm run e2e:v2             # booking to done to reply, against a scratch database
 npm run workout            # record a session and send it, for real
 npm run tick               # one turn of the cron by hand
 npm run db:migrate         # apply migrations

@@ -61,9 +61,11 @@ test("a post replaces the draft when the email shows it, else takes only the car
 
 test("picking up gives every card's state in the email's shape, and says the email now shows the draft", async () => {
   const p = await plan();
-  const d = readDraft({ c1: { w: 0, r: 7, k: true, s: false, sw: 0, sr: 0 }, note: "knee was fine" }, p);
+  const d = readDraft({ c1: { w: 0, r: 7, d: true, s: false, sw: 0, sr: 0 }, c2: { k: true }, note: "knee was fine" }, p);
   const st = restoreState(p, d) as Record<string, Record<string, unknown>>;
-  assert.deepEqual(st.c1, { w: 0, r: 7, o: false, k: true, s: false });
+  assert.deepEqual(st.c1, { w: 0, r: 7, o: false, s: false, d: true, k: false, e: false });
+  assert.equal(st.c2.k, true);
+  assert.equal(st.c3.d, false, "untouched: not done");
   p.exercises.forEach((x, i) => {
     assert.ok(st[`c${i + 1}`], `c${i + 1}`);
     assert.equal(!!st[`c${i + 1}s`], !!x.swap);
@@ -77,4 +79,13 @@ test("a weight's index is its nearest step", () => {
   assert.equal(indexOf(42, [20, 30, 35, 40, 45]), 3);
   assert.equal(indexOf(null, [20, 30]), 0);
   assert.equal(indexOf(10, []), 0);
+});
+
+test("done and skip are one or the other; a numbers post carries no flags", async () => {
+  const p = await plan();
+  const got = postedCards((n) => ({ c1r: "8", c1d: "1", c1k: "1" })[n] ?? null, p);
+  assert.equal(got.c1.d, true);
+  assert.equal(got.c1.k, false, "done wins");
+  const { numbersOf } = await import("./draft.ts");
+  assert.deepEqual(Object.keys(numbersOf(got.c1)).sort(), ["r", "s", "sr", "sw", "w"]);
 });
