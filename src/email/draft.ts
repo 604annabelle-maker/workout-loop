@@ -1,33 +1,36 @@
 /**
- * What she has set in the dynamic email so far (her reply, 19 Nov 2026: "if
- * I close the Gmail app and I didn't press save it forgets").
+ * What she has set in the dynamic email so far, and what she has marked done.
  *
- * Pure. Every tap in the email posts the email's state here as it happens,
- * so the server holds it. A dynamic email cannot read anything on open by
- * itself (amp-state is inline only), so when she comes back a button asks
- * for it, and the answer is the whole email's state in the shape amp.ts
+ * Pure. There is no Save (her reply, 22 Nov 2026: "skip the save button and
+ * add 'done' after each so there's no guessing"). Each card has done and
+ * skip; done logs that exercise there and then, with the numbers on the card,
+ * and nothing she has not marked done is ever logged.
+ *
+ * Two kinds of post keep the server up to date:
+ *
+ * - a card post, from done, skip, bring back and the swap toggle: that one
+ *   card, numbers and flags, and it alone sets or clears the log;
+ * - a numbers post, from − / + and the weight row: the numbers only, so a
+ *   late one can never undo a done. It carries every card, so a tap Gmail
+ *   dropped while the one before was still sending is caught up by the next,
+ *   but takes them all only when the email shows the draft (she picked up
+ *   where she left off, or there was nothing to pick up); otherwise only the
+ *   card she touched, so reopening and tapping first never wipes the rest.
+ *
+ * Gmail forgets an email's state when it closes, and an email cannot load
+ * state by itself (amp-state is inline only), so "pick up where you left off"
+ * asks for it, and the answer is the whole email's state in the shape amp.ts
  * keeps it, ready for one AMP.setState.
- *
- * Each post carries every card, so a tap Gmail dropped while the one before
- * was still sending is caught up by the next. It replaces the draft only when
- * the email already shows the draft (she picked up where she left off, or
- * there was nothing to pick up); otherwise only the card she touched is
- * taken, so reopening and tapping before picking up never wipes the rest.
- *
- * Not training: only the Save logs. The draft is kept after a Save too, so
- * reopening shows what was saved.
  */
 
 import { nearest } from "../training/equipment";
 import type { PlanV2, Prescription } from "../training/types";
 
-/** One card as she left it. Weights are indices into the card's steps. */
-export interface CardDraft {
+/** A card's numbers. Weights are indices into the card's steps. */
+export interface CardNumbers {
   /** Main exercise: weight index and reps. */
   w: number;
   r: number;
-  /** Skipped. */
-  k: boolean;
   /** Did the swap instead. */
   s: boolean;
   /** The swap's weight index and reps. */
@@ -35,10 +38,18 @@ export interface CardDraft {
   sr: number;
 }
 
+/** One card as she left it. */
+export interface CardDraft extends CardNumbers {
+  /** Marked done: logged. */
+  d: boolean;
+  /** Skipped. */
+  k: boolean;
+}
+
 export interface Draft {
   cards: Record<string, CardDraft>;
   note: string;
-  /** The note last filed as a comment, so saving twice does not file it twice. */
+  /** The note last filed as a comment, so it is never filed twice. */
   filed: string;
 }
 
@@ -54,19 +65,21 @@ export function indexOf(weight: number | null, steps: number[]): number {
   return Math.max(0, steps.findIndex((s) => Math.abs(s - (at ?? weight)) < 1e-9));
 }
 
-/** The card as the email starts it: the planned numbers, nothing skipped. */
+/** The card as the email starts it: the planned numbers, nothing done or skipped. */
 export function plannedCard(x: Planned): CardDraft {
   return {
     w: indexOf(x.main.weight, stepsOf(x.main)),
     r: x.main.reps,
-    k: false,
     s: false,
     sw: x.swap ? indexOf(x.swap.weight, stepsOf(x.swap)) : 0,
     sr: x.swap ? x.swap.reps : 0,
+    d: false,
+    k: false,
   };
 }
 
 const int = (raw: unknown): number | null => {
+  if (raw === null || raw === undefined || raw === "") return null;
   const n = Number(raw);
   return Number.isInteger(n) ? n : null;
 };
@@ -86,18 +99,29 @@ const flag = (raw: unknown) => raw === true || raw === "1" || raw === 1 || raw =
 /** One card's state from what was posted or stored, anything out of range replaced by the plan. */
 export function readCard(raw: Record<string, unknown>, x: Planned): CardDraft {
   const p = plannedCard(x);
+  const d = flag(raw.d);
   return {
     w: index(raw.w, stepsOf(x.main), p.w),
     r: reps(raw.r, p.r),
-    k: flag(raw.k),
     s: !!x.swap && flag(raw.s),
     sw: x.swap ? index(raw.sw, stepsOf(x.swap), p.sw) : 0,
     sr: x.swap ? reps(raw.sr, p.sr) : 0,
+    d,
+    k: !d && flag(raw.k),
   };
 }
 
+/** Just the numbers, for a numbers post. */
+export const numbersOf = (c: CardDraft): CardNumbers => ({ w: c.w, r: c.r, s: c.s, sw: c.sw, sr: c.sr });
+
 /** Card ids are c1, c2, ... in plan order, as in cards.ts. */
 export const cardId = (i: number) => `c${i + 1}`;
+
+/** c3 to its exercise, or null. */
+export function plannedFor(plan: PlanV2, id: string): Planned | null {
+  const m = /^c(\d+)$/.exec(id);
+  return m ? (plan.exercises[Number(m[1]) - 1] ?? null) : null;
+}
 
 /** A stored draft, every card filled in: what she set, or the plan where she set nothing. */
 export function readDraft(raw: unknown, plan: PlanV2): Draft {
@@ -114,10 +138,12 @@ export function readDraft(raw: unknown, plan: PlanV2): Draft {
   };
 }
 
-/** She has set something: a card or a note was saved as she went. */
+const hasCards = (raw: unknown) => !!raw && typeof raw === "object" && Object.keys(raw).some((k) => /^c\d+$/.test(k));
+
+/** She has set something: a card or a note was kept as she went. */
 export function hasDraft(raw: unknown): boolean {
   if (!raw || typeof raw !== "object") return false;
-  return Object.keys(raw).some((k) => /^c\d+$/.test(k) || (k === "note" && !!(raw as Record<string, unknown>).note));
+  return hasCards(raw) || !!(raw as Record<string, unknown>).note;
 }
 
 /** The answer to "pick up where I left off": the email's state, keyed as amp.ts keys it. */
@@ -126,7 +152,7 @@ export function restoreState(plan: PlanV2, draft: Draft): Record<string, unknown
   plan.exercises.forEach((x, i) => {
     const id = cardId(i);
     const c = draft.cards[id] ?? plannedCard(x);
-    out[id] = { w: c.w, r: c.r, o: false, k: c.k, s: c.s };
+    out[id] = { w: c.w, r: c.r, o: false, s: c.s, d: c.d, k: c.k, e: false };
     if (x.swap) out[`${id}s`] = { w: c.sw, r: c.sr, o: false };
   });
   out.nt = { t: draft.note };
@@ -134,30 +160,28 @@ export function restoreState(plan: PlanV2, draft: Draft): Record<string, unknown
   return out;
 }
 
-/** The cards one draft post carries: c1w, c1r, c1k, c1s, c1sw, c1sr for each card. */
+/** The cards one post carries: c1w, c1r, c1s, c1sw, c1sr (and c1d, c1k on a card post) for each card posted. */
 export function postedCards(get: (name: string) => unknown, plan: PlanV2): Record<string, CardDraft> {
   const out: Record<string, CardDraft> = {};
   plan.exercises.forEach((x, i) => {
     const id = cardId(i);
     if (get(`${id}r`) === null || get(`${id}r`) === undefined) return;
-    out[id] = readCard({ w: get(`${id}w`), r: get(`${id}r`), k: get(`${id}k`), s: get(`${id}s`), sw: get(`${id}sw`), sr: get(`${id}sr`) }, x);
+    out[id] = readCard({ w: get(`${id}w`), r: get(`${id}r`), s: get(`${id}s`), sw: get(`${id}sw`), sr: get(`${id}sr`), d: get(`${id}d`), k: get(`${id}k`) }, x);
   });
   return out;
 }
 
 /**
- * What a draft post changes: every card when the email shows the draft
- * (`back`) or there is none yet, else only the card she touched.
+ * Which cards a numbers post changes: every card when the email shows the
+ * draft (`back`) or there is none yet, else only the card she touched.
  */
 export function draftUpdate(input: {
   stored: unknown;
-  posted: Record<string, CardDraft>;
+  posted: Record<string, CardNumbers>;
   touched: string;
   back: boolean;
-}): Record<string, CardDraft> {
+}): Record<string, CardNumbers> {
   if (input.back || !hasCards(input.stored)) return input.posted;
   const one = input.posted[input.touched];
   return one ? { [input.touched]: one } : {};
 }
-
-const hasCards = (raw: unknown) => !!raw && typeof raw === "object" && Object.keys(raw).some((k) => /^c\d+$/.test(k));

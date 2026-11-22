@@ -5,14 +5,15 @@
  * targets. Nothing is ever typed except the comment: weight and reps sit on
  * the card already, − / + move them through weights that exist, and tapping
  * the weight opens a row of nearby weights so a big change is one tap. She
- * sets the numbers to what she did and skips what she did not do (the card
- * folds to one line, with a way to bring it back); one Save
- * at the end logs every card that is not skipped (her reply, 19 Nov 2026: no
- * easy, done or hard).
+ * sets the numbers to what she did and taps done, which logs that exercise
+ * there and then, or skip; either folds the card to one line. There is no
+ * Save, and nothing is guessed: only what she marks done is logged (her
+ * replies, 19 to 22 Nov 2026).
  *
- * Every tap is also saved as she goes (draft.ts), because Gmail forgets the
+ * Every tap is also kept as she goes (draft.ts), because Gmail forgets the
  * email's state when it closes. Coming back, one tap at the top brings it
- * all back: an email cannot load state by itself.
+ * all back: an email cannot load state by itself. Her note is kept as she
+ * types and read before the next workout is planned.
  *
  * An exercise's drawing opens from a small arrow by its name, as the
  * warm-up's do, and the swap's from its own name inside Swap.
@@ -81,9 +82,11 @@ body{margin:0;padding:0 4px;background-color:${C.paper};color:${C.ink};font-fami
 .find{margin:8px 0 0;font-size:13px;color:${C.warn}}
 .taps{margin:10px 0 0}
 .gone{display:none}
-.skipline{margin:0;font-size:14px;color:${C.muted}}
-.skipline .ghost{margin:0;font-size:14px}
+.skipline,.doneline{margin:0;font-size:14px;color:${C.muted}}
+.doneline{color:${C.accent};font-weight:700}
+.skipline .ghost,.doneline .ghost{margin:0;font-size:14px}
 .tap{display:inline-block;margin:0 6px 6px 0;padding:9px 18px;border:0;border-radius:999px;background-color:${C.chip};color:${C.ink};font-size:15px}
+.tap.mark{min-width:56px;padding:8px 16px;font-size:20px;line-height:1}
 .tap.on{background-color:${C.accent};color:${C.paper};font-weight:700}
 .resume{margin:6px 8px 0 0;padding:7px 14px;border:1px solid ${C.accent};border-radius:999px;background-color:${C.paper};color:${C.accent};font-size:14px;font-weight:700}
 .saved{margin:6px 0 0;font-size:13px;color:${C.accent};font-weight:700}
@@ -126,9 +129,8 @@ ${RESULT}
 
 /**
  * The weight and reps with − / + and the row of nearby weights. `sid` names
- * its state; the bound hidden inputs carry the numbers into the one Save.
- * Every change also posts the draft (`draftForm`), so closing Gmail loses
- * nothing.
+ * its state. Every change posts the numbers (`draftForm`), so closing Gmail
+ * loses nothing, and a card already done is logged again with them.
  */
 function numbersBlock(card: Card, n: Numbers, sid: string): string {
   const weighted = n.weight !== null && n.steps.length > 0;
@@ -136,7 +138,7 @@ function numbersBlock(card: Card, n: Numbers, sid: string): string {
   const ws = `${sid}w`;
   const last = n.steps.length - 1;
   const main = sid === card.id;
-  const state = `<amp-state id="${sid}"><script type="application/json">${JSON.stringify(main ? { w: wi, r: n.reps, o: false, k: false, s: false } : { w: wi, r: n.reps, o: false })}</script></amp-state>
+  const state = `<amp-state id="${sid}"><script type="application/json">${JSON.stringify(main ? { w: wi, r: n.reps, o: false, s: false, d: false, k: false, e: false } : { w: wi, r: n.reps, o: false })}</script></amp-state>
 ${weighted ? `<amp-state id="${ws}"><script type="application/json">${JSON.stringify(n.steps)}</script></amp-state>` : ""}
 ${weighted && n.stepLabels.length ? `<amp-state id="${sid}l"><script type="application/json">${JSON.stringify(n.stepLabels)}</script></amp-state>` : ""}`;
   const set = (expr: string) => keep(card, `${sid}: {${expr}}`);
@@ -158,25 +160,19 @@ ${weighted && n.stepLabels.length ? `<amp-state id="${sid}l"><script type="appli
         )
         .join("")}</div>`
     : "";
-  const bound = `${weighted ? `<input type="hidden" name="w_${sid}" value="${kg(n.weight!)}" [value]="${ws}[${sid}.w]">` : ""}<input type="hidden" name="r_${sid}" value="${n.reps}" [value]="${sid}.r">`;
 
   return `${state}
 <table class="nums" role="presentation"><tr>${weightCells}${repsCells}</tr></table>
 <p class="what"${weighted && n.stepLabels.length ? ` [text]="${sid}l[${sid}.w]"` : ""}>${esc(n.weightLabel)}</p>
 ${row}
-${n.findIt ? `<p class="find">First time: find a weight you could lift about 2 more times and set it above.</p>` : ""}
-${bound}`;
+${n.findIt ? `<p class="find">First time: find a weight you could lift about 2 more times and set it above.</p>` : ""}`;
 }
 
-/** Set state, say which card she touched, then post the draft. */
+/** Set numbers, say which card she touched, then post the numbers. */
 const keep = (c: Card, state: string) => `AMP.setState({${state}, cur: {c: '${c.id}'}}), draft.submit`;
 
-/** A chip that toggles one of the card's flags, sent with the Save as 1 or nothing. */
-function toggle(c: Card, key: "s", off: string, on: string): string {
-  const f = `${c.id}.${key}`;
-  return `<button type="button" class="tap" [class]="${f} ? 'tap on' : 'tap'" on="tap:${keep(c, `${c.id}: {${key}: !${f}}`)}"><span [text]="${f} ? '${on}' : '${off}'">${off}</span></button>
-<input type="hidden" name="${key}_${c.id}" value="" [value]="${f} ? '1' : ''">`;
-}
+/** Set the card's flags, then post the card: this is what logs it or clears it. */
+const mark = (c: Card, state: string) => `AMP.setState({${c.id}: {${state}}}), f${c.id}.submit`;
 
 /** The drawing, two frames small and side by side. */
 function pics(mail: Mail, frames: Frame[], name: string): string {
@@ -212,45 +208,73 @@ function warmup(mail: Mail): string {
   return `${sections.length ? `<amp-accordion class="warmups" animate>\n${sections.join("\n")}\n</amp-accordion>` : ""}${plain.join("\n")}`;
 }
 
+/** A name inside an amp-bind string: no quote that could end it. */
+const lit = (s: string) => `'${s.replace(/\\/g, "").replace(/'/g, "’")}'`;
+
+/** "Romanian deadlift · 40 kg × 5", as the numbers stand, for the line a done card folds to. */
+function doneText(c: Card): { now: string; bind: string } {
+  const part = (n: Numbers, sid: string) => {
+    const weighted = n.weight !== null && n.steps.length > 0;
+    return weighted ? `${lit(`${n.name} · `)} + ${sid}w[${sid}.w] + ' kg × ' + ${sid}.r` : `${lit(`${n.name} · × `)} + ${sid}.r`;
+  };
+  const main = part(c.main, c.id);
+  const bind = c.swap ? `${c.id}.s ? ${part(c.swap, `${c.id}s`)} : ${main}` : main;
+  const now = c.main.weight !== null && c.main.steps.length ? `${c.main.name} · ${kg(c.main.weight)} kg × ${c.main.reps}` : `${c.main.name} · × ${c.main.reps}`;
+  return { now, bind };
+}
+
+/**
+ * One exercise, its own small form: done logs it there and then with the
+ * numbers on the card and folds it to one line, with change to open it again;
+ * skip folds it to a line that brings it back. Nothing she has not marked
+ * done is logged (her reply, 22 Nov 2026).
+ */
 function card(mail: Mail, c: Card): string {
+  const id = c.id;
+  const h = (name: string, value: string | number, bind: string) => `<input type="hidden" name="${name}" value="${value}" [value]="${bind}">`;
   const swap = c.swap
     ? `<amp-accordion class="more" animate>
 <section>
 <h4>Swap &#9662;</h4>
 <div class="inner">${named(mail, c.swap)}
 <p class="meta">${esc(dose(c.sets, c.swap.reps))}</p>
-${numbersBlock(c, c.swap, `${c.id}s`)}
-<div class="taps">${toggle(c, "s", "did this instead", "did this instead ✓")}</div>
+${numbersBlock(c, c.swap, `${id}s`)}
+<div class="taps"><button type="button" class="tap" [class]="${id}.s ? 'tap on' : 'tap'" on="tap:${mark(c, `s: !${id}.s`)}"><span [text]="${id}.s ? 'did this instead ✓' : 'did this instead'">did this instead</span></button></div>
 </div>
 </section>
 </amp-accordion>`
     : "";
-  const k = `${c.id}.k`;
-  return `<div class="card">
-<input type="hidden" name="slot_${c.id}" value="${esc(c.slot)}">
-<input type="hidden" name="k_${c.id}" value="" [value]="${k} ? '1' : ''">
-<p class="gone" [class]="${k} ? 'skipline' : 'gone'">Skipped ${esc(c.main.name)} · <button type="button" class="ghost" on="tap:${keep(c, `${c.id}: {k: false}`)}">bring back</button></p>
-<div [class]="${k} ? 'gone' : ''">
+  const done = doneText(c);
+  return `<form id="f${id}" class="card" method="post" action-xhr="${esc(mail.logUrl!)}" on="submit-success:logged.refresh">
+<input type="hidden" name="kind" value="card"><input type="hidden" name="card" value="${id}">
+${h(`${id}w`, indexOf(c.main.weight, c.main.steps), `${id}.w`)}${h(`${id}r`, c.main.reps, `${id}.r`)}${h(`${id}s`, 0, `${id}.s ? 1 : 0`)}${h(`${id}d`, 0, `${id}.d ? 1 : 0`)}${h(`${id}k`, 0, `${id}.k ? 1 : 0`)}${
+    c.swap ? `${h(`${id}sw`, indexOf(c.swap.weight, c.swap.steps), `${id}s.w`)}${h(`${id}sr`, c.swap.reps, `${id}s.r`)}` : ""
+  }
+<p class="gone" [class]="${id}.k ? 'skipline' : 'gone'">Skipped ${esc(c.main.name)} · <button type="button" class="ghost" on="tap:${mark(c, "k: false")}">bring back</button></p>
+<p class="gone" [class]="${id}.d &amp;&amp; !${id}.e ? 'doneline' : 'gone'">&#10003; <span [text]="${esc(done.bind)}">${esc(done.now)}</span> · <button type="button" class="ghost" on="tap:AMP.setState({${id}: {e: true}})">change</button></p>
+<div submit-success><template type="amp-mustache"><p class="saved">{{saved}}</p></template></div>
+<div submit-error><template type="amp-mustache"><p class="failed">Not saved, tap again</p></template></div>
+<div [class]="${id}.k || (${id}.d &amp;&amp; !${id}.e) ? 'gone' : ''">
 ${named(mail, c.main)}
 <p class="meta">${esc(`${c.muscle} · ${dose(c.sets, c.main.reps)} · rest ${c.rest}`)}</p>
-${numbersBlock(c, c.main, c.id)}
+${numbersBlock(c, c.main, id)}
 <p class="effort">${esc(c.effort)}</p>
-<div class="taps"><button type="button" class="tap" on="tap:${keep(c, `${c.id}: {k: true}`)}">skip</button></div>
+<div class="taps"><button type="button" class="tap mark" [class]="${id}.d ? 'tap mark on' : 'tap mark'" on="tap:${mark(c, "d: true, k: false, e: false")}" aria-label="done">&#10003;</button><button type="button" class="tap mark" on="tap:${mark(c, "k: true, d: false, e: false")}" aria-label="skip">&#10007;</button></div>
 ${swap}
 </div>
-</div>`;
+</form>`;
 }
 
 /**
- * The draft: the whole email's state, posted on every tap (draft.ts). Outside
- * the Save form, since forms cannot nest. `cur` says which card was touched
- * and whether the email shows the draft (`b`, set by picking up).
+ * The numbers, every card's, posted on every − / + (draft.ts). Never the
+ * done or skip flags, so a late one cannot undo a done. `cur` says which card
+ * was touched and whether the email shows the draft (`b`, set by picking up).
  */
 function draftForm(mail: Mail): string {
   const h = (name: string, value: string | number, bind: string) => `<input type="hidden" name="${name}" value="${value}" [value]="${bind}">`;
   const cards = mail.cards.map((c) => {
     const n = c.main;
-    return `${h(`${c.id}w`, indexOf(n.weight, n.steps), `${c.id}.w`)}${h(`${c.id}r`, n.reps, `${c.id}.r`)}${h(`${c.id}k`, 0, `${c.id}.k ? 1 : 0`)}${h(`${c.id}s`, 0, `${c.id}.s ? 1 : 0`)}${
+    return `${h(`${c.id}w`, indexOf(n.weight, n.steps), `${c.id}.w`)}${h(`${c.id}r`, n.reps, `${c.id}.r`)}${h(`${c.id}s`, 0, `${c.id}.s ? 1 : 0`)}${
       c.swap ? `${h(`${c.id}sw`, indexOf(c.swap.weight, c.swap.steps), `${c.id}s.w`)}${h(`${c.id}sr`, c.swap.reps, `${c.id}s.r`)}` : ""
     }`;
   });
@@ -332,8 +356,6 @@ ${resume(mail)}
 ${changes(mail)}
 <p class="sec">WARM-UP · ${mail.warmupMinutes} MIN</p>
 ${warmup(mail)}
-<form id="save" method="post" action-xhr="${esc(mail.logUrl)}" on="submit-success:logged.refresh">
-<input type="hidden" name="kind" value="save">
 <p class="sec">WORKOUT</p>
 ${work.map((c) => card(mail, c)).join("\n")}
 ${abs.length ? `<p class="sec">ABS</p>\n${abs.map((c) => card(mail, c)).join("\n")}` : ""}
@@ -342,11 +364,8 @@ ${abs.length ? `<p class="sec">ABS</p>\n${abs.map((c) => card(mail, c)).join("\n
 <amp-state id="nt"><script type="application/json">{"t":""}</script></amp-state>
 <amp-state id="nr"><script type="application/json">{"t":""}</script></amp-state>
 <textarea class="box" name="note" rows="3" maxlength="1000" placeholder="e.g. didn't feel the hip thrust in my glutes" [text]="nr.t" on="input-debounced:AMP.setState({nt: {t: event.value}}), dnote.submit"></textarea>
-<p class="hint">Everything you set is kept as you go, even if Gmail closes. Save when you finish: it logs every exercise as it shows, except the ones you skipped, and sends your note now. Forgot to save? What you set still counts when your next workout is planned.</p>
-<button class="all" type="submit">Save</button>
-${RESULT}
+<p class="hint">Tap &#10003; after each exercise: that saves it, with the numbers on it. &#10007; skips it. What you write here is kept as you type and read before your next workout is planned.</p>
 </div>
-</form>
 ${draftForm(mail)}
 <form id="dnote" method="post" action-xhr="${esc(mail.logUrl)}"><input type="hidden" name="kind" value="note"><input type="hidden" name="note" value="" [value]="nt.t"></form>
 ${week(mail)}
